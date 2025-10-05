@@ -1,5 +1,6 @@
 import React, { createContext, useEffect, useState } from "react";
 import { api } from "../../lib/axios";
+import Cookies from "js-cookie";
 
 type UserContextType = {
     isAuthenticated: boolean;
@@ -8,8 +9,8 @@ type UserContextType = {
     userId: string | null;
     userType: 'S' | 'T' | 'A' | null;
     setUserType: React.Dispatch<React.SetStateAction<'S' | 'T' | 'A' | null>>;
-    userXp: number | null;
-    setUserXp: React.Dispatch<React.SetStateAction<number | null>>;
+    userProfilePic: string | null;
+    setUserProfilePic: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
 export const ProfileContext = createContext<UserContextType | undefined>(undefined);
@@ -17,11 +18,12 @@ export const ProfileContext = createContext<UserContextType | undefined>(undefin
 export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     const [userId, setUserId] = useState<string | null>(() => {
-        return localStorage.getItem('userId');
+        const id = Cookies.get('userId');
+        return id !== undefined ? id : null;
     });
 
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-        const token = localStorage.getItem('token');
+        const token = Cookies.get('token');
         if (token) {
             api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             return true;
@@ -29,8 +31,20 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return false;
     });
 
-    const [userType, setUserType] = useState<'S' | 'T' | 'A' | null>(null);
-    const [userXp, setUserXp] = useState<number | null>(null);
+    const [userType, setUserType] = useState<'S' | 'T' | 'A' | null>(() => {
+        const type = Cookies.get('type');
+        if (type === 'S' || type === 'T' || type === 'A') {
+            return type;
+        }
+        return null;
+    });
+
+    const [userProfilePic, setUserProfilePic] = useState<string | null>(() => {
+
+        const url = Cookies.get('pic');
+
+        return url !== undefined ? url : null;
+    })
 
     useEffect(() => {
         const handler = (e: Event) => {
@@ -42,9 +56,9 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return () => window.removeEventListener('userLoggedIn', handler);
     }, []);
 
-    console.log('AUTHENTICATED:', isAuthenticated);
+    console.log('autenticado? ' + isAuthenticated);
     return (
-        <ProfileContext.Provider value={{ isAuthenticated, setIsAuthenticated, userId, setUserId, userType, setUserType, userXp, setUserXp }}>
+        <ProfileContext.Provider value={{ isAuthenticated, setIsAuthenticated, userId, setUserId, userType, setUserType, userProfilePic, setUserProfilePic }}>
             {children}
         </ProfileContext.Provider>
     );

@@ -41,7 +41,7 @@ export const LoginPage: React.FC = () => {
     const [snackOpen, setSnackOpen] = useState(false);
     const [snackType, setSnackType] = useState<'success' | 'warning' | null>(null);
     const profileContext = useContext(ProfileContext);
-    const { setIsAuthenticated, setUserId, setUserType, setUserXp } = profileContext!;
+    const { setIsAuthenticated } = profileContext!;
 
 
     const emailRef = useRef<HTMLInputElement | null>(null);
@@ -93,9 +93,8 @@ export const LoginPage: React.FC = () => {
                 return;
             }
 
-            setUserId(response?.data?.user_id);
-            setUserType(response?.data?.user_type);
-            setUserXp(response?.data?.user_xp ?? 0);
+            console.log('A');
+            
             setIsAuthenticated(true);
 
             navigate("/homepage");
@@ -124,8 +123,8 @@ export const LoginPage: React.FC = () => {
         else e.email = null;
 
         if (!password) e.password = "Por favor, informe a senha.";
-        else if (password.length < 6)
-            e.password = "Senha muito curta (mínimo 6 caracteres).";
+        else if (password.length < 8)
+            e.password = "Senha muito curta (mínimo 8 caracteres).";
         else e.password = null;
         setErrors(e);
         return e;

@@ -11,13 +11,21 @@ export const signIn = async (data: ISignIn) => {
 
         const token = response.data.access_token;
         const userId = response.data.user_id;
+        const userType = response.data.user_type;
+        const profilePicture = response.data.user_profile_pic || null;
 
         if (!token || !userId) {
             throw new Error('Authentication failed: Missing token or user ID');
         }
 
-        Cookies.set('token', token, { secure: true, sameSite: 'strict' });
-        Cookies.set('userId', String(userId), { secure: true, sameSite: 'strict' });
+        Cookies.set('token', token);
+        Cookies.set('userId', String(userId));
+        Cookies.set('type', userType);
+
+        if (profilePicture) {
+            Cookies.set('pic', profilePicture)
+        }
+
 
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
@@ -45,8 +53,10 @@ export const logout = () => {
 
     Cookies.remove('token');
     Cookies.remove('userId');
+    Cookies.remove('cookie');
+    Cookies.remove('type');
 
     delete api.defaults.headers.common['Authorization'];
     location.reload();
-    
+
 };
