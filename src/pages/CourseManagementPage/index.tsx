@@ -333,9 +333,8 @@ const CourseManagementPage: React.FC = () => {
     };
 
     const handleEditModule = (moduleId?: number) => {
-        // se não houver curso carregado ou id do módulo for indefinido, não navega
         if (!course || moduleId == null) return;
-        navigate(`/course-management/${course.id_course}/module/${moduleId}/edit`);
+        navigate(`/course-management/${course.id_course}/module/${moduleId}`);
     };
 
     const handleCloseDialog = () => {
