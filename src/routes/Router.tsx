@@ -9,6 +9,8 @@ import RankingPage from "../pages/RankingPage";
 import ChallengesPage from "../pages/ChallengesPage";
 import StatisticsByTeacherPage from "../pages/StatisticsByTeacherPage";
 import CoursesByTeacherPage from "../pages/CoursesByTeacherPage";
+import NewCoursePage from "../pages/NewCoursePage";
+import CourseManagementPage from "../pages/CourseManagementPage";
 
 export const Router: React.FC = () => {
 
@@ -36,8 +38,12 @@ export const Router: React.FC = () => {
 
                         <Route path="/ranking" element={<RankingPage />} />
                         <Route path="/challenges" element={<ChallengesPage />} />
+
+                        {/*TEACHER */}
                         <Route path="/statistics" element={<StatisticsByTeacherPage />} />
                         <Route path="/my-courses" element={<CoursesByTeacherPage />} />
+                        <Route path="/new-course" element={<NewCoursePage/>}/>
+                        <Route path="/course-management/:id" element={<CourseManagementPage/>}/>
 
                     </Route>
                 </>

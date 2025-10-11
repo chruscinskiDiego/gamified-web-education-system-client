@@ -22,6 +22,7 @@ import { api } from "../../lib/axios";
 import { mapDifficulty } from "../../helpers/DifficultyLevel";
 import { dateFormat } from "../../helpers/DateFormat";
 import SEGPrincipalLoader from "../../components/Loaders/SEGPrincipalLoader";
+import { useNavigate } from "react-router-dom";
 
 
 const CoursesByTeacher: React.FC = () => {
@@ -37,6 +38,8 @@ const CoursesByTeacher: React.FC = () => {
     const [page, setPage] = useState(1);
     const [perPage, setPerPage] = useState<number>(3);
     const [loadingCourses, setLoadingCourses] = useState(true);
+
+    const navigate = useNavigate();
 
 
     // #region fetchs
@@ -70,6 +73,12 @@ const CoursesByTeacher: React.FC = () => {
     }, []);
 
     // #region utils
+
+    const handleNavigateTo = (route: string) => {
+
+        navigate(route);
+
+    }
 
     const filtered = useMemo(() => {
         if (!query) return courses;
@@ -146,13 +155,15 @@ const CoursesByTeacher: React.FC = () => {
                     >
                         <SEGButton
                             colorTheme="gradient"
+                            onClick={() => handleNavigateTo("/new-course")}
                             startIcon={<AddCircleIcon />}
                             sx={{
                                 mt: 1,
                                 px: 3,
                                 py: 1,
                                 fontWeight: 700,
-                                minWidth: 110,
+                                minWidth: 100,
+                                height: 50,
                                 maxWidth: 180,
                                 alignSelf: { xs: "flex-start", sm: "center" },
                             }}
@@ -328,7 +339,7 @@ const CoursesByTeacher: React.FC = () => {
                                                     fontWeight: 700,
                                                     boxShadow: "none",
                                                 }}
-                                                onClick={() => console.log("detalhes", c.id_course)}
+                                                onClick={() => handleNavigateTo(`/course-management/${c.id_course}`)}
                                             >
                                                 EDITAR
                                             </SEGButton>

@@ -1,4 +1,3 @@
-// src/components/SEGTextField.tsx
 import React, { useMemo, useState } from "react";
 import {
     TextField,
@@ -27,25 +26,48 @@ export interface SEGTextFieldProps extends Omit<TextFieldProps, "variant" | "siz
     sx?: SxProps<Theme>;
 }
 
-/** Estilos base - só o que é comum (padding, radius, etc) */
-const Styled = styled(TextField)(({ theme }) => ({
-    borderRadius: 10,
-    // Mantemos o variant=filled como padrão visual
-    // Estilos base:
-    "& .MuiFilledInput-root": {
-        borderRadius: 3,
-        // padding vertical do input (ajuste se quiser)
-        paddingLeft: 8,
-        paddingRight: 8,
-        // background será passado via sx do tema
+const Styled = styled(TextField)(() => ({
+  borderRadius: 10,
+  "& .MuiFilledInput-root": {
+    borderRadius: 3,
+    paddingLeft: 8,
+    paddingRight: 8,
+  },
+  "& .MuiInputBase-input": {
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+
+  "& .MuiFilledInput-root textarea": {
+    maxHeight: 273,
+    minHeight: 80,
+    resize: "vertical",
+    overflow: "auto",
+    padding: 12,
+
+    // Firefox: largura / cor do scrollbar
+    scrollbarWidth: "thin", // 'auto' | 'thin' | 'none'
+    scrollbarColor: "rgba(0,0,0,0.22) transparent",
+
+    // WebKit (Chrome, Edge, Safari)
+    "&::-webkit-scrollbar": {
+      width: 8,
+      height: 8,
     },
-    "& .MuiInputBase-input": {
-        // garante altura e alinhamento do texto
-        paddingTop: 12,
-        paddingBottom: 12,
+    "&::-webkit-scrollbar-track": {
+      background: "transparent",
     },
-    // label visual quando usado externamente (se desejar customizar)
-    marginBottom: theme.spacing(1),
+    "&::-webkit-scrollbar-thumb": {
+      borderRadius: 999,
+      border: "2px solid transparent",
+      backgroundClip: "content-box",
+      backgroundColor: "rgba(0,0,0,0.18)",
+    },
+    // foco/hover no thumb
+    "&:hover::-webkit-scrollbar-thumb": {
+      backgroundColor: "rgba(0,0,0,0.28)",
+    },
+  },
 }));
 
 const SEGTextField: React.FC<SEGTextFieldProps> = ({

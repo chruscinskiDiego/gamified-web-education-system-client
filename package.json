@@ -18,7 +18,8 @@
     "js-cookie": "^3.0.5",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.3"
+    "react-router-dom": "^7.9.3",
+    "sweetalert2": "^11.24.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

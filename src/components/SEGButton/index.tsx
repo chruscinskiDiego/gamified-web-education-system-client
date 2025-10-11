@@ -6,7 +6,7 @@ import type { SxProps, Theme } from "@mui/material";
 import { colors } from "../../theme/colors";
 
 interface SEGButtonProps extends ButtonProps {
-  colorTheme?: "blue" | "purple" | "gradient";
+  colorTheme?: "blue" | "purple" | "gradient" | "outlined";
   loading?: boolean;
 }
 
@@ -48,6 +48,23 @@ const variants: Record<
     "&.Mui-disabled": {
       opacity: 0.6,
       boxShadow: "none",
+    },
+  },
+  outlined: {
+    background: "transparent",
+    color: colors.purple,
+    border: `2px solid ${colors.blue}`,
+    boxShadow: "0 8px 20px rgba(122,92,255,0.08)",
+    "&:hover": {
+      background: "rgba(122,92,255,0.06)",
+      transform: "translateY(-1px)",
+      boxShadow: "0 12px 28px rgba(122,92,255,0.12)",
+    },
+    "&.Mui-disabled": {
+      opacity: 0.6,
+      boxShadow: "none",
+      borderColor: "rgba(122,92,255,0.18)",
+      color: "rgba(122,92,255,0.3)",
     },
   },
 };
