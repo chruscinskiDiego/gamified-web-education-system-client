@@ -29,6 +29,7 @@ import SEGButton from "../../components/SEGButton";
 import SEGPrincipalNotificator from "../../components/Notifications/SEGPrincipalNotificator";
 import SEGPrincipalLoader from "../../components/Loaders/SEGPrincipalLoader";
 import { colors } from "../../theme/colors";
+import { api } from "../../lib/axios";
 
 interface ModuleEpisode {
     order: number;
@@ -36,11 +37,7 @@ interface ModuleEpisode {
     created_at: string;
     description: string;
     link_episode: string | null;
-    id_module_episode: number;
-}
-
-interface ModuleEpisodeWithAttachments extends ModuleEpisode {
-    attachments: File[];
+    id_module_episode?: number;
 }
 
 interface ModuleManagementPayload {
@@ -51,142 +48,67 @@ interface ModuleManagementPayload {
     module_episodes: ModuleEpisode[];
 }
 
-const MOCK_MODULE: ModuleManagementPayload = {
-    id_course_module: 3,
-    title: "Fund. de Prog. 3",
-    description: "Um curso muito legal e interativo sobre code",
-    created_at: "2025-10-05T23:04:16.192Z",
-    module_episodes: [
-        {
-            order: 1,
-            title: "Fund. de Prog. 3",
-            created_at: "2025-10-05T20:05:02.278986",
-            description: "Um curso muito legal e interativo sobre code",
-            link_episode: null,
-            id_module_episode: 4,
-        },
-        {
-            order: 2,
-            title: "Fund. de Prog. 3",
-            created_at: "2025-10-05T20:05:04.762288",
-            description: "Um curso muito legal e interativo sobre code",
-            link_episode: null,
-            id_module_episode: 5,
-        },
-        {
-            order: 3,
-            title: "Fund. de Prog. 3",
-            created_at: "2025-10-05T20:05:08.106664",
-            description: "Um curso muito legal e interativo sobre code",
-            link_episode: null,
-            id_module_episode: 6,
-        },
-        {
-            order: 4,
-            title: "Fund. de Prog. 3",
-            created_at: "2025-10-05T20:05:11.258959",
-            description: "Um curso muito legal e interativo sobre code",
-            link_episode: null,
-            id_module_episode: 7,
-        },
-        {
-            order: 5,
-            title: "Fund. de Prog. 3",
-            created_at: "2025-10-05T20:05:14.851338",
-            description: "Um curso muito legal e interativo sobre code",
-            link_episode: null,
-            id_module_episode: 8,
-        },
-        {
-            order: 6,
-            title: "Fund. de Prog. 3",
-            created_at: "2025-10-05T20:05:18.00851",
-            description: "Um curso muito legal e interativo sobre code",
-            link_episode: null,
-            id_module_episode: 9,
-        },
-        {
-            order: 7,
-            title: "Fund. de Prog. 3",
-            created_at: "2025-10-05T20:05:21.119995",
-            description: "Um curso muito legal e interativo sobre code",
-            link_episode: null,
-            id_module_episode: 10,
-        },
-        {
-            order: 8,
-            title: "Fund. de Prog. 3",
-            created_at: "2025-10-05T20:05:24.477887",
-            description: "Um curso muito legal e interativo sobre code",
-            link_episode: null,
-            id_module_episode: 11,
-        },
-        {
-            order: 9,
-            title: "Fund. de Prog. 3",
-            created_at: "2025-10-05T20:05:29.058673",
-            description: "Um curso muito legal e interativo sobre code",
-            link_episode: null,
-            id_module_episode: 12,
-        },
-    ],
-};
-
-const fileAccept = "video/*,image/*,application/pdf,text/plain";
+const fileAccept = "video/*,image/*,application/pdf";
 
 const ModuleManagementPage: React.FC = () => {
-    const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>();
+    const { moduleId } = useParams<{ courseId: string; moduleId: string }>();
     const navigate = useNavigate();
 
-    const [loading, setLoading] = useState<boolean>(true);
+    const [loading, setLoading] = useState(true);
     const [moduleData, setModuleData] = useState<ModuleManagementPayload | null>(null);
+    const [loadingDeleteEpisode, setLoadingDeleteEpisode] = useState<boolean>(false);
 
-    const [moduleTitle, setModuleTitle] = useState<string>("");
-    const [moduleDescription, setModuleDescription] = useState<string>("");
+    const [moduleTitle, setModuleTitle] = useState("");
+    const [moduleDescription, setModuleDescription] = useState("");
+    const [isSavingModule, setIsSavingModule] = useState(false);
 
-    const [isSavingModule, setIsSavingModule] = useState<boolean>(false);
-
-    const [episodes, setEpisodes] = useState<ModuleEpisodeWithAttachments[]>([]);
-    const [hasInitialEpisodesLoaded, setHasInitialEpisodesLoaded] = useState<boolean>(false);
+    const [episodes, setEpisodes] = useState<ModuleEpisode[]>([]);
+    const [hasInitialEpisodesLoaded, setHasInitialEpisodesLoaded] = useState(false);
 
     const [editingEpisodeId, setEditingEpisodeId] = useState<number | null>(null);
     const [episodeDraft, setEpisodeDraft] = useState<Partial<ModuleEpisode>>({});
-    const [episodeSaving, setEpisodeSaving] = useState<boolean>(false);
+    const [episodeSaving, setEpisodeSaving] = useState(false);
 
     const [episodeToDelete, setEpisodeToDelete] = useState<number | null>(null);
 
-    const [isCreatingEpisode, setIsCreatingEpisode] = useState<boolean>(false);
+    const [isCreatingEpisode, setIsCreatingEpisode] = useState(false);
     const [newEpisodeDraft, setNewEpisodeDraft] = useState<ModuleEpisode>({
         order: episodes.length + 1,
         title: "",
         created_at: new Date().toISOString(),
         description: "",
         link_episode: null,
-        id_module_episode: Date.now(),
     });
-    const [creatingEpisode, setCreatingEpisode] = useState<boolean>(false);
+    const [creatingEpisode, setCreatingEpisode] = useState(false);
 
+    // existente: upload por episódio já criado
     const fileInputsRef = useRef<Record<number, HTMLInputElement | null>>({});
+    const [pendingMedia, setPendingMedia] = useState<Record<number, File | null>>({});
+    const [uploadingMediaId, setUploadingMediaId] = useState<number | null>(null);
 
-    const orderedEpisodes = useMemo(
-        () =>
-            [...episodes].sort((episodeA, episodeB) => {
-                if (episodeA.order === episodeB.order) {
-                    return episodeA.id_module_episode - episodeB.id_module_episode;
-                }
-                return episodeA.order - episodeB.order;
-            }),
-        [episodes],
-    );
+    // NOVO: seleção de mídia durante criação
+    const newMediaInputRef = useRef<HTMLInputElement | null>(null);
+    const [newEpisodeMedia, setNewEpisodeMedia] = useState<File | null>(null);
+    const [uploadingNewMedia, setUploadingNewMedia] = useState(false);
+
+    const orderedEpisodes = useMemo(() => [...episodes].sort((a, b) => a.order - b.order), [episodes]);
+
+    const getModuleEpisode = async () => {
+        try {
+            setLoading(true);
+            const response = await api.get(`/course-module/management-view/${moduleId}`);
+            setModuleData(response?.data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        setLoading(true);
-        const timeout = setTimeout(() => {
-            setModuleData(MOCK_MODULE);
-            setLoading(false);
-        }, 350);
-
-        return () => clearTimeout(timeout);
+        if (moduleData !== null) return;
+        getModuleEpisode();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -196,61 +118,30 @@ const ModuleManagementPage: React.FC = () => {
         setModuleDescription(moduleData.description);
 
         if (!hasInitialEpisodesLoaded) {
-            const enhancedEpisodes = moduleData.module_episodes.map((episode) => ({
-                ...episode,
-                attachments: [],
-            }));
-            setEpisodes(enhancedEpisodes);
+            setEpisodes(moduleData.module_episodes);
             setHasInitialEpisodesLoaded(true);
         }
     }, [moduleData, hasInitialEpisodesLoaded]);
 
-    const formattedCreatedAt = useMemo(() => {
-        if (!moduleData?.created_at) return "-";
-        return new Date(moduleData.created_at).toLocaleString("pt-BR", {
-            dateStyle: "medium",
-            timeStyle: "short",
-        });
-    }, [moduleData?.created_at]);
-
-    const handleNavigateBack = () => {
-        navigate(-1);
-    };
-
-    const handleResetModuleForm = () => {
-        if (!moduleData) return;
-        setModuleTitle(moduleData.title);
-        setModuleDescription(moduleData.description);
-    };
+    const handleNavigateBack = () => navigate(-1);
 
     const handleSaveModule = () => {
         if (!moduleTitle.trim() || !moduleDescription.trim()) {
-            SEGPrincipalNotificator(
-                "Título e descrição do módulo são obrigatórios.",
-                "warning",
-                "Campos obrigatórios",
-            );
+            SEGPrincipalNotificator("Título e descrição do módulo são obrigatórios.", "warning", "Campos obrigatórios");
             return;
         }
-
         setIsSavingModule(true);
         setTimeout(() => {
             setModuleData((prev) =>
-                prev
-                    ? {
-                        ...prev,
-                        title: moduleTitle.trim(),
-                        description: moduleDescription.trim(),
-                    }
-                    : prev,
+                prev ? { ...prev, title: moduleTitle.trim(), description: moduleDescription.trim() } : prev,
             );
             setIsSavingModule(false);
             SEGPrincipalNotificator("Módulo atualizado com sucesso!", "success", "Sucesso");
         }, 500);
     };
 
-    const startEpisodeEdition = (episode: ModuleEpisodeWithAttachments) => {
-        setEditingEpisodeId(episode.id_module_episode);
+    const startEpisodeEdition = (episode: ModuleEpisode) => {
+        setEditingEpisodeId(episode?.id_module_episode || 0);
         setEpisodeDraft({
             order: episode.order,
             title: episode.title,
@@ -262,10 +153,7 @@ const ModuleManagementPage: React.FC = () => {
     };
 
     const handleEpisodeDraftChange = <K extends keyof ModuleEpisode>(key: K, value: ModuleEpisode[K]) => {
-        setEpisodeDraft((prev) => ({
-            ...prev,
-            [key]: value,
-        }));
+        setEpisodeDraft((prev) => ({ ...prev, [key]: value }));
     };
 
     const handleCancelEpisodeEdition = () => {
@@ -273,87 +161,137 @@ const ModuleManagementPage: React.FC = () => {
         setEpisodeDraft({});
     };
 
-    const handleSaveEpisode = () => {
+    const saveEpisodeFields = async (episodeId: number, payload: Partial<ModuleEpisode>) => {
+        await api.patch(`/module-episode/update/${episodeId}`, {
+            order: payload.order,
+            title: payload.title,
+            description: payload.description,
+            link_episode: payload.link_episode ?? null,
+        });
+    };
+
+    const handleSaveEpisode = async () => {
         if (!editingEpisodeId || !episodeDraft.title?.trim() || !episodeDraft.description?.trim()) {
-            SEGPrincipalNotificator(
-                "Preencha pelo menos título e descrição do episódio.",
-                "warning",
-                "Dados incompletos",
-            );
+            SEGPrincipalNotificator("Preencha pelo menos título e descrição do episódio.", "warning", "Dados incompletos");
             return;
         }
+
         setEpisodeSaving(true);
-        setTimeout(() => {
-            setEpisodes((prevEpisodes) =>
-                prevEpisodes.map((episode) =>
-                    episode.id_module_episode === editingEpisodeId
+
+        try {
+            await saveEpisodeFields(editingEpisodeId, {
+                order: Number(episodeDraft.order),
+                title: episodeDraft.title.trim(),
+                description: episodeDraft.description.trim(),
+                link_episode: episodeDraft.link_episode ?? null,
+            });
+
+            setEpisodes((prev) =>
+                prev.map((ep) =>
+                    ep.id_module_episode === editingEpisodeId
                         ? {
-                            ...episode,
-                            title: episodeDraft.title?.trim() ?? episode.title,
-                            description: episodeDraft.description?.trim() ?? episode.description,
-                            order: Number(episodeDraft.order ?? episode.order),
-                            link_episode: episodeDraft.link_episode ?? episode.link_episode,
+                            ...ep,
+                            title: episodeDraft.title!.trim(),
+                            description: episodeDraft.description!.trim(),
+                            order: Number(episodeDraft.order ?? ep.order),
+                            link_episode: episodeDraft.link_episode ?? ep.link_episode,
                         }
-                        : episode,
+                        : ep,
                 ),
             );
-            setEpisodeSaving(false);
+
+            SEGPrincipalNotificator("Campos do episódio salvos!", "success", "Sucesso");
             setEditingEpisodeId(null);
             setEpisodeDraft({});
-            SEGPrincipalNotificator("Episódio atualizado!", "success", "Sucesso");
-        }, 400);
+        } catch (error) {
+            console.error(error);
+            SEGPrincipalNotificator("Não foi possível salvar os campos.", "error", "Erro");
+        } finally {
+            setEpisodeSaving(false);
+        }
     };
 
-    const openDeleteDialog = (episodeId: number) => {
-        setEpisodeToDelete(episodeId);
-    };
+    const openDeleteDialog = (episodeId: number) => setEpisodeToDelete(episodeId);
 
-    const handleConfirmDeleteEpisode = () => {
+    const handleConfirmDeleteEpisode = async () => {
+
         if (!episodeToDelete) return;
-        setEpisodes((prevEpisodes) => prevEpisodes.filter((ep) => ep.id_module_episode !== episodeToDelete));
-        setEpisodeToDelete(null);
-        SEGPrincipalNotificator("Episódio removido do módulo.", "success", "Removido");
-    };
 
-    const handleCancelDeleteEpisode = () => {
-        setEpisodeToDelete(null);
-    };
+        try {
 
-    const handleEpisodeUpload = (episodeId: number, files: FileList | null) => {
-        if (!files || files.length === 0) return;
+            setLoadingDeleteEpisode(true);
 
-        const selectedFiles = Array.from(files);
+            const response = await api.delete(`/module-episode/delete/${episodeToDelete}`);
 
-        setEpisodes((prevEpisodes) =>
-            prevEpisodes.map((episode) =>
-                episode.id_module_episode === episodeId
-                    ? {
-                        ...episode,
-                        attachments: [...episode.attachments, ...selectedFiles],
-                    }
-                    : episode,
-            ),
-        );
+            if (response.status === 200) {
 
-        if (fileInputsRef.current[episodeId]) {
-            fileInputsRef.current[episodeId]!.value = "";
+                setEpisodes((prev) => prev.filter((ep) => ep.id_module_episode !== episodeToDelete));
+                setEpisodeToDelete(null);
+                SEGPrincipalNotificator("Episódio removido do módulo.", "success", "Removido");
+
+            }
+
+        } catch (error) {
+
+            SEGPrincipalNotificator("Falha ao remover episódio", "error", "Erro!");
+
+        } finally {
+
+            setLoadingDeleteEpisode(false);
+
         }
 
-        SEGPrincipalNotificator("Arquivo(s) anexado(s) ao episódio!", "success", "Upload realizado");
     };
 
-    const handleRemoveAttachment = (episodeId: number, fileName: string) => {
-        setEpisodes((prevEpisodes) =>
-            prevEpisodes.map((episode) =>
-                episode.id_module_episode === episodeId
-                    ? {
-                        ...episode,
-                        attachments: episode.attachments.filter((file) => file.name !== fileName),
-                    }
-                    : episode,
-            ),
-        );
+    const handleCancelDeleteEpisode = () => setEpisodeToDelete(null);
+
+    // ====== mídia para episódio EXISTENTE ======
+    const handlePickMedia = (episodeId: number, files: FileList | null) => {
+        if (!files || files.length === 0) return;
+        const [file] = Array.from(files);
+        if (!file.type.startsWith("image/") && !file.type.startsWith("video/") && file.type !== "application/pdf") {
+            SEGPrincipalNotificator("Arquivo não suportado. Use PDF, imagem ou vídeo.", "warning", "Tipo inválido");
+            if (fileInputsRef.current[episodeId]) fileInputsRef.current[episodeId]!.value = "";
+            return;
+        }
+        setPendingMedia((prev) => ({ ...prev, [episodeId]: file }));
+        if (fileInputsRef.current[episodeId]) fileInputsRef.current[episodeId]!.value = "";
+        SEGPrincipalNotificator("Mídia selecionada (aguardando envio).", "info", "Seleção concluída");
     };
+
+    const uploadEpisodeMedia = async (episodeId: number) => {
+        const file = pendingMedia[episodeId];
+        if (!file) {
+            SEGPrincipalNotificator("Nenhum arquivo selecionado.", "warning", "Atenção");
+            return;
+        }
+        if (editingEpisodeId === episodeId) {
+            SEGPrincipalNotificator("Salve os campos do episódio antes de enviar a mídia.", "warning", "Atenção");
+            return;
+        }
+
+        setUploadingMediaId(episodeId);
+        try {
+            const form = new FormData();
+            form.append("file", file);
+            const resp = await api.post(`/module-episode/${episodeId}/media`, form, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            const uploadedUrl: string | undefined = resp?.data?.url;
+
+            setEpisodes((prev) =>
+                prev.map((ep) => (ep.id_module_episode === episodeId ? { ...ep, link_episode: uploadedUrl ?? ep.link_episode } : ep)),
+            );
+            setPendingMedia((prev) => ({ ...prev, [episodeId]: null }));
+            SEGPrincipalNotificator("Mídia enviada com sucesso!", "success", "Upload concluído");
+        } catch (error) {
+            console.error(error);
+            SEGPrincipalNotificator("Falha ao enviar a mídia.", "error", "Erro");
+        } finally {
+            setUploadingMediaId(null);
+        }
+    };
+    // ===========================================
 
     const toggleCreateEpisode = () => {
         setIsCreatingEpisode((prev) => !prev);
@@ -363,39 +301,81 @@ const ModuleManagementPage: React.FC = () => {
             created_at: new Date().toISOString(),
             description: "",
             link_episode: null,
-            id_module_episode: Date.now(),
+            id_module_episode: undefined,
         });
+        setNewEpisodeMedia(null);
     };
 
     const handleCreateEpisodeField = <K extends keyof ModuleEpisode>(key: K, value: ModuleEpisode[K]) => {
-        setNewEpisodeDraft((prev) => ({
-            ...prev,
-            [key]: value,
-        }));
+        setNewEpisodeDraft((prev) => ({ ...prev, [key]: value }));
     };
 
-    const handleCreateEpisode = () => {
+    const handleCreateEpisode = async () => {
         if (!newEpisodeDraft.title.trim() || !newEpisodeDraft.description.trim()) {
             SEGPrincipalNotificator("Informe título e descrição para criar o episódio.", "warning", "Atenção");
             return;
         }
+        const orderAlreadyExists = episodes.some((e) => e.order === Number(newEpisodeDraft.order));
+
+        if (orderAlreadyExists) {
+            SEGPrincipalNotificator("Ordem já existente", "warning", "Atenção!");
+            return;
+        }
 
         setCreatingEpisode(true);
-        setTimeout(() => {
-            setEpisodes((prevEpisodes) => [
-                ...prevEpisodes,
-                {
-                    ...newEpisodeDraft,
-                    title: newEpisodeDraft.title.trim(),
-                    description: newEpisodeDraft.description.trim(),
-                    order: Number(newEpisodeDraft.order) || prevEpisodes.length + 1,
-                    attachments: [],
-                },
-            ]);
-            setCreatingEpisode(false);
+
+        try {
+            const episodeDto = {
+                title: newEpisodeDraft.title.trim(),
+                description: newEpisodeDraft.description.trim(),
+                order: Number(newEpisodeDraft.order) || episodes.length + 1,
+                id_course_module: Number(moduleId),
+            };
+
+            const response = await api.post("/module-episode/create", episodeDto);
+
+            const createdId: number = response?.data?.created_episode_id;
+
+            if (!createdId) {
+                throw new Error("ID do episódio não retornado pelo backend.");
+            }
+
+            const created: ModuleEpisode = {
+                order: episodeDto.order,
+                title: episodeDto.title,
+                description: episodeDto.description,
+                created_at: new Date().toISOString(),
+                link_episode: null,
+                id_module_episode: createdId,
+            };
+            setEpisodes((prev) => [...prev, created]);
+
+            if (newEpisodeMedia) {
+                setUploadingNewMedia(true);
+                const form = new FormData();
+                form.append("file", newEpisodeMedia);
+                const mediaResp = await api.post(`/module-episode/${createdId}/media`, form, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+                const uploadedUrl: string | undefined = mediaResp?.data?.url;
+
+                if (uploadedUrl) {
+                    setEpisodes((prev) =>
+                        prev.map((ep) => (ep.id_module_episode === createdId ? { ...ep, link_episode: uploadedUrl } : ep)),
+                    );
+                }
+            }
+
+            SEGPrincipalNotificator("Episódio criado com sucesso!", "success", "Sucesso");
             toggleCreateEpisode();
-            SEGPrincipalNotificator("Novo episódio adicionado!", "success", "Sucesso");
-        }, 450);
+        } catch (error) {
+            console.error(error);
+            SEGPrincipalNotificator("Não foi possível criar o episódio.", "error", "Erro");
+        } finally {
+            setUploadingNewMedia(false);
+            setCreatingEpisode(false);
+            setNewEpisodeMedia(null);
+        }
     };
 
     if (loading) {
@@ -423,9 +403,6 @@ const ModuleManagementPage: React.FC = () => {
                     <Typography variant="h6" gutterBottom>
                         Não encontramos dados para este módulo.
                     </Typography>
-                    <SEGButton startIcon={<ArrowBackIcon />} onClick={handleNavigateBack}>
-                        Voltar
-                    </SEGButton>
                 </Paper>
             </Box>
         );
@@ -435,57 +412,32 @@ const ModuleManagementPage: React.FC = () => {
         <Box sx={{ minHeight: "100vh", backgroundColor: "#ffffffff" }}>
             <Box sx={{ maxWidth: 1180, mx: "auto", px: { xs: 2, md: 4 } }}>
                 <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
-                    <SEGButton
-                        colorTheme="outlined"
-                        startIcon={<ArrowBackIcon />}
-                        onClick={handleNavigateBack}
-                        fullWidth={false}
-                        sx={{ mb: 0 }}
-                    >
-                        Voltar
-                    </SEGButton>
-
                     <Typography variant="h4" sx={{ fontWeight: 700, color: colors.purple }}>
                         Gerenciar módulo
                     </Typography>
                 </Stack>
 
                 <Paper sx={{ p: { xs: 3, md: 4 }, mb: 4, borderRadius: 4, boxShadow: "0 18px 40px rgba(76,103,255,0.08)" }}>
-                    <Stack direction={{ xs: "column", md: "row" }} spacing={3} justifyContent="space-between" sx={{ mb: 3 }}>
-                        <Box>
-                            <Typography variant="h6" sx={{ fontWeight: 700, color: colors.purple }}>
-                                Informações do módulo
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: colors.strongGray }}>
-                                Curso #{courseId ?? "-"} • Módulo #{moduleId ?? moduleData.id_course_module}
-                            </Typography>
-                        </Box>
-                        <Box textAlign={{ xs: "left", md: "right" }}>
-                            <Typography variant="body2" sx={{ color: colors.weakGray }}>
-                                Criado em
-                            </Typography>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                                {formattedCreatedAt}
-                            </Typography>
-                        </Box>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} sx={{ mb: 2 }}>
+                        <SEGButton colorTheme="outlined" startIcon={<ArrowBackIcon />} onClick={handleNavigateBack} fullWidth={false} sx={{ mb: 0 }}>
+                            Voltar
+                        </SEGButton>
+
+                        <SEGButton startIcon={<SaveIcon />} onClick={handleSaveModule} loading={isSavingModule} fullWidth={false} sx={{ mb: 0 }}>
+                            Salvar alterações
+                        </SEGButton>
                     </Stack>
 
                     <Grid container spacing={3}>
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={12}>
                             <SEGTextField
                                 label="Título do módulo"
                                 value={moduleTitle}
-                                onChange={(event) => setModuleTitle(event.target.value)}
+                                onChange={(e) => setModuleTitle(e.target.value)}
                                 placeholder="Ex: Fundamentos de Programação"
+                                fullWidth
                                 InputProps={{ disableUnderline: true }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <SEGTextField
-                                label="ID do módulo"
-                                value={String(moduleData.id_course_module)}
-                                disabled
-                                InputProps={{ disableUnderline: true }}
+                                sx={{ width: "100%" }}
                             />
                         </Grid>
                         <Grid item xs={12}>
@@ -494,38 +446,24 @@ const ModuleManagementPage: React.FC = () => {
                                 multiline
                                 minRows={4}
                                 value={moduleDescription}
-                                onChange={(event) => setModuleDescription(event.target.value)}
+                                onChange={(e) => setModuleDescription(e.target.value)}
                                 placeholder="Descreva o que será ensinado neste módulo"
+                                fullWidth
                                 InputProps={{ disableUnderline: true }}
+                                sx={{ width: "100%" }}
                             />
                         </Grid>
                     </Grid>
-
-                    <Stack direction={{ xs: "column", md: "row" }} spacing={2} justifyContent="flex-end">
-                        <SEGButton
-                            colorTheme="outlined"
-                            onClick={handleResetModuleForm}
-                            startIcon={<CloseIcon />}
-                            fullWidth={false}
-                            sx={{ mb: 0 }}
-                            disabled={isSavingModule}
-                        >
-                            Cancelar
-                        </SEGButton>
-                        <SEGButton
-                            startIcon={<SaveIcon />}
-                            onClick={handleSaveModule}
-                            loading={isSavingModule}
-                            fullWidth={false}
-                            sx={{ mb: 0 }}
-                        >
-                            Salvar alterações
-                        </SEGButton>
-                    </Stack>
                 </Paper>
 
                 <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: 4, boxShadow: "0 18px 40px rgba(76,103,255,0.08)" }}>
-                    <Stack direction={{ xs: "column", md: "row" }} alignItems={{ xs: "stretch", md: "center" }} justifyContent="space-between" spacing={2} sx={{ mb: 3 }}>
+                    <Stack
+                        direction={{ xs: "column", md: "row" }}
+                        alignItems={{ xs: "stretch", md: "center" }}
+                        justifyContent="space-between"
+                        spacing={2}
+                        sx={{ mb: 3 }}
+                    >
                         <Box>
                             <Typography variant="h6" sx={{ fontWeight: 700, color: colors.purple }}>
                                 Episódios do módulo
@@ -556,19 +494,21 @@ const ModuleManagementPage: React.FC = () => {
                                         label="Ordem"
                                         type="number"
                                         value={newEpisodeDraft.order}
-                                        onChange={(event) =>
-                                            handleCreateEpisodeField("order", Number(event.target.value) || 1)
-                                        }
+                                        onChange={(e) => handleCreateEpisodeField("order", Number(e.target.value) || 1)}
+                                        fullWidth
                                         InputProps={{ disableUnderline: true }}
+                                        sx={{ width: "100%", "& .MuiInputBase-root": { minHeight: 48 } }}
                                     />
                                 </Grid>
                                 <Grid item xs={12} md={8}>
                                     <SEGTextField
                                         label="Título"
                                         value={newEpisodeDraft.title}
-                                        onChange={(event) => handleCreateEpisodeField("title", event.target.value)}
+                                        onChange={(e) => handleCreateEpisodeField("title", e.target.value)}
                                         placeholder="Ex: Introdução"
+                                        fullWidth
                                         InputProps={{ disableUnderline: true }}
+                                        sx={{ width: "100%", "& .MuiInputBase-root": { minHeight: 48 } }}
                                     />
                                 </Grid>
                                 <Grid item xs={12}>
@@ -577,36 +517,70 @@ const ModuleManagementPage: React.FC = () => {
                                         multiline
                                         minRows={3}
                                         value={newEpisodeDraft.description}
-                                        onChange={(event) => handleCreateEpisodeField("description", event.target.value)}
+                                        onChange={(e) => handleCreateEpisodeField("description", e.target.value)}
+                                        fullWidth
+                                        sx={{ width: "100%" }}
                                     />
                                 </Grid>
+
+                                {/* NOVO: seleção de mídia já na criação */}
                                 <Grid item xs={12}>
-                                    <SEGTextField
-                                        label="Link (opcional)"
-                                        value={newEpisodeDraft.link_episode ?? ""}
-                                        onChange={(event) =>
-                                            handleCreateEpisodeField("link_episode", event.target.value || null)
-                                        }
-                                        placeholder="Cole o link do conteúdo"
-                                        InputProps={{ disableUnderline: true }}
+                                    <input
+                                        type="file"
+                                        accept={fileAccept}
+                                        ref={newMediaInputRef}
+                                        style={{ display: "none" }}
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            if (!file.type.startsWith("image/") && !file.type.startsWith("video/") && file.type !== "application/pdf") {
+                                                SEGPrincipalNotificator("Arquivo não suportado. Use PDF, imagem ou vídeo.", "warning", "Tipo inválido");
+                                                if (newMediaInputRef.current) newMediaInputRef.current.value = "";
+                                                return;
+                                            }
+                                            setNewEpisodeMedia(file);
+                                            if (newMediaInputRef.current) newMediaInputRef.current.value = "";
+                                        }}
                                     />
+
+                                    {
+                                        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
+                                            <Button
+                                                variant="outlined"
+                                                startIcon={<UploadFileIcon />}
+                                                onClick={() => newMediaInputRef.current?.click()}
+                                                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+                                            >
+                                                Selecionar mídia (opcional)
+                                            </Button>
+
+                                            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                                {!newEpisodeMedia && (
+                                                    <Typography variant="body2" sx={{ color: colors.weakGray }}>
+                                                        Nenhuma mídia selecionada
+                                                    </Typography>
+                                                )}
+                                                {newEpisodeMedia && (
+                                                    <Chip
+                                                        label={newEpisodeMedia.name}
+                                                        onDelete={() => setNewEpisodeMedia(null)}
+                                                        sx={{ backgroundColor: "rgba(93,112,246,0.1)", color: colors.purple, fontWeight: 600 }}
+                                                    />
+                                                )}
+                                            </Stack>
+                                        </Stack>
+                                    }
                                 </Grid>
                             </Grid>
+
                             <Stack direction={{ xs: "column", sm: "row" }} spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
-                                <SEGButton
-                                    colorTheme="outlined"
-                                    onClick={toggleCreateEpisode}
-                                    startIcon={<CloseIcon />}
-                                    fullWidth={false}
-                                    sx={{ mb: 0 }}
-                                    disabled={creatingEpisode}
-                                >
+                                <SEGButton colorTheme="outlined" onClick={toggleCreateEpisode} startIcon={<CloseIcon />} fullWidth={false} sx={{ mb: 0 }} disabled={creatingEpisode || uploadingNewMedia}>
                                     Descartar
                                 </SEGButton>
                                 <SEGButton
                                     startIcon={<SaveIcon />}
                                     onClick={handleCreateEpisode}
-                                    loading={creatingEpisode}
+                                    loading={creatingEpisode || uploadingNewMedia}
                                     fullWidth={false}
                                     sx={{ mb: 0 }}
                                 >
@@ -623,11 +597,19 @@ const ModuleManagementPage: React.FC = () => {
                                 dateStyle: "short",
                                 timeStyle: "short",
                             });
+                            const epId = episode.id_module_episode || 0;
+                            const selectedFile = pendingMedia[epId] || null;
 
                             return (
-                                <Paper key={episode.id_module_episode} sx={{ p: { xs: 2, md: 3 }, borderRadius: 3, boxShadow: "0 12px 30px rgba(76,103,255,0.08)" }}>
-                                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
-                                        <Box sx={{ flex: 1 }}>
+                                <Paper key={epId} sx={{ p: { xs: 2, md: 3 }, borderRadius: 3, boxShadow: "0 12px 30px rgba(76,103,255,0.08)" }}>
+                                    {/* >>> Mudança principal: quando editar, muda o layout para coluna para liberar 100% da largura */}
+                                    <Stack
+                                        direction={isEditing ? "column" : "row"}
+                                        justifyContent="space-between"
+                                        alignItems={isEditing ? "stretch" : "flex-start"}
+                                        spacing={2}
+                                    >
+                                        <Box sx={{ flex: 1, width: "100%" }}>
                                             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                                                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: colors.purple }}>
                                                     #{episode.order}
@@ -644,51 +626,34 @@ const ModuleManagementPage: React.FC = () => {
                                                             label="Ordem"
                                                             type="number"
                                                             value={episodeDraft.order ?? episode.order}
+                                                            onChange={(e) => handleEpisodeDraftChange("order", Number(e.target.value) || episode.order)}
+                                                            fullWidth
                                                             InputProps={{ disableUnderline: true }}
-                                                            onChange={(event) =>
-                                                                handleEpisodeDraftChange(
-                                                                    "order",
-                                                                    Number(event.target.value) || episode.order,
-                                                                )
-                                                            }
+                                                            sx={{ width: "100%", "& .MuiInputBase-root": { minHeight: 48 } }}
                                                         />
                                                     </Grid>
+
                                                     <Grid item xs={12} md={8}>
                                                         <SEGTextField
                                                             label="Título"
                                                             value={episodeDraft.title ?? episode.title}
-                                                            onChange={(event) =>
-                                                                handleEpisodeDraftChange("title", event.target.value)
-                                                            }
+                                                            onChange={(e) => handleEpisodeDraftChange("title", e.target.value)}
+                                                            fullWidth
                                                             InputProps={{ disableUnderline: true }}
+                                                            sx={{ width: "100%", "& .MuiInputBase-root": { minHeight: 48 } }}
                                                         />
                                                     </Grid>
+
                                                     <Grid item xs={12}>
                                                         <SEGTextField
                                                             label="Descrição"
                                                             multiline
                                                             minRows={3}
                                                             value={episodeDraft.description ?? episode.description}
-                                                            onChange={(event) =>
-                                                                handleEpisodeDraftChange(
-                                                                    "description",
-                                                                    event.target.value,
-                                                                )
-                                                            }
+                                                            onChange={(e) => handleEpisodeDraftChange("description", e.target.value)}
+                                                            fullWidth
                                                             InputProps={{ disableUnderline: true }}
-                                                        />
-                                                    </Grid>
-                                                    <Grid item xs={12}>
-                                                        <SEGTextField
-                                                            label="Link (opcional)"
-                                                            value={episodeDraft.link_episode ?? episode.link_episode ?? ""}
-                                                            onChange={(event) =>
-                                                                handleEpisodeDraftChange(
-                                                                    "link_episode",
-                                                                    event.target.value ? event.target.value : null,
-                                                                )
-                                                            }
-                                                            InputProps={{ disableUnderline: true }}
+                                                            sx={{ width: "100%" }}
                                                         />
                                                     </Grid>
                                                 </Grid>
@@ -701,10 +666,7 @@ const ModuleManagementPage: React.FC = () => {
                                                         {episode.description}
                                                     </Typography>
                                                     {episode.link_episode && (
-                                                        <Typography
-                                                            variant="body2"
-                                                            sx={{ color: colors.purple, mt: 1, wordBreak: "break-all" }}
-                                                        >
+                                                        <Typography variant="body2" sx={{ color: colors.purple, mt: 1, wordBreak: "break-all" }}>
                                                             {episode.link_episode}
                                                         </Typography>
                                                     )}
@@ -713,56 +675,53 @@ const ModuleManagementPage: React.FC = () => {
 
                                             <Divider sx={{ my: 2 }} />
 
+                                            {/* Mídia para episódios EXISTENTES (opcional) */}
                                             <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="flex-start">
                                                 <input
                                                     type="file"
                                                     accept={fileAccept}
-                                                    multiple
-                                                    ref={(element) => {
-                                                        fileInputsRef.current[episode.id_module_episode] = element;
+                                                    ref={(el) => {
+                                                        fileInputsRef.current[epId] = el;
                                                     }}
                                                     style={{ display: "none" }}
-                                                    onChange={(event) =>
-                                                        handleEpisodeUpload(episode.id_module_episode, event.target.files)
-                                                    }
+                                                    onChange={(e) => handlePickMedia(epId, e.target.files)}
                                                 />
-                                                <Button
-                                                    variant="outlined"
-                                                    startIcon={<UploadFileIcon />}
-                                                    onClick={() =>
-                                                        fileInputsRef.current[episode.id_module_episode]?.click()
-                                                    }
-                                                    sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-                                                >
-                                                    Fazer upload
-                                                </Button>
-                                                <Stack direction="row" spacing={1} flexWrap="wrap">
-                                                    {episode.attachments.length === 0 && (
+                                                {isEditing &&
+                                                    <Button
+                                                        variant="outlined"
+                                                        startIcon={<UploadFileIcon />}
+                                                        onClick={() => fileInputsRef.current[epId]?.click()}
+                                                        sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+                                                    >
+                                                        Selecionar mídia
+                                                    </Button>
+                                                }
+
+                                                <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                                                    {(!selectedFile && !episode.link_episode) && isEditing && (
                                                         <Typography variant="body2" sx={{ color: colors.weakGray }}>
-                                                            Nenhum arquivo enviado
+                                                            Nenhuma mídia selecionada/enviada
                                                         </Typography>
                                                     )}
-                                                    {episode.attachments.map((file) => (
+                                                    {(selectedFile && isEditing) && (
                                                         <Chip
-                                                            key={`${episode.id_module_episode}-${file.name}`}
-                                                            label={file.name}
-                                                            onDelete={() =>
-                                                                handleRemoveAttachment(episode.id_module_episode, file.name)
-                                                            }
-                                                            sx={{
-                                                                backgroundColor: "rgba(93,112,246,0.1)",
-                                                                color: colors.purple,
-                                                                fontWeight: 600,
-                                                            }}
+                                                            label={selectedFile.name}
+                                                            onDelete={() => setPendingMedia((prev) => ({ ...prev, [epId]: null }))}
+                                                            sx={{ backgroundColor: "rgba(93,112,246,0.1)", color: colors.purple, fontWeight: 600 }}
                                                         />
-                                                    ))}
+                                                    )}
+                                                    {(episode.link_episode && !selectedFile) && isEditing && (
+                                                        <Chip
+                                                            label="Mídia enviada"
+                                                            sx={{ backgroundColor: "rgba(93,112,246,0.1)", color: colors.purple, fontWeight: 600 }}
+                                                        />
+                                                    )}
                                                 </Stack>
                                             </Stack>
-                                        </Box>
 
-                                        <Stack direction="row" spacing={1}>
-                                            {isEditing ? (
-                                                <>
+                                            {/* >>> Botões de ação em EDIÇÃO vão AQUI embaixo, ocupando a largura toda */}
+                                            {isEditing && (
+                                                <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 2 }}>
                                                     <SEGButton
                                                         startIcon={<CloseIcon />}
                                                         colorTheme="outlined"
@@ -782,26 +741,29 @@ const ModuleManagementPage: React.FC = () => {
                                                     >
                                                         Salvar
                                                     </SEGButton>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <IconButton
-                                                        size="large"
-                                                        onClick={() => startEpisodeEdition(episode)}
-                                                        sx={{ backgroundColor: "rgba(93,112,246,0.08)" }}
-                                                    >
-                                                        <EditIcon sx={{ color: colors.purple }} />
-                                                    </IconButton>
-                                                    <IconButton
-                                                        size="large"
-                                                        onClick={() => openDeleteDialog(episode.id_module_episode)}
-                                                        sx={{ backgroundColor: "rgba(232,76,61,0.12)" }}
-                                                    >
-                                                        <DeleteIcon sx={{ color: "#E84C3D" }} />
-                                                    </IconButton>
-                                                </>
+                                                </Stack>
                                             )}
-                                        </Stack>
+                                        </Box>
+
+                                        {/* >>> Em VISUALIZAÇÃO mantém ícones à direita; em EDIÇÃO não renderiza esta coluna */}
+                                        {!isEditing && (
+                                            <Stack direction="row" spacing={1}>
+                                                <IconButton
+                                                    size="large"
+                                                    onClick={() => startEpisodeEdition(episode)}
+                                                    sx={{ backgroundColor: "rgba(93,112,246,0.08)" }}
+                                                >
+                                                    <EditIcon sx={{ color: colors.purple }} />
+                                                </IconButton>
+                                                <IconButton
+                                                    size="large"
+                                                    onClick={() => openDeleteDialog(epId)}
+                                                    sx={{ backgroundColor: "rgba(232,76,61,0.12)" }}
+                                                >
+                                                    <DeleteIcon sx={{ color: "#E84C3D" }} />
+                                                </IconButton>
+                                            </Stack>
+                                        )}
                                     </Stack>
                                 </Paper>
                             );
@@ -818,12 +780,12 @@ const ModuleManagementPage: React.FC = () => {
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleCancelDeleteEpisode} color="inherit">
+                    <SEGButton colorTheme="outlined" onClick={handleCancelDeleteEpisode} color="inherit">
                         Cancelar
-                    </Button>
-                    <Button onClick={handleConfirmDeleteEpisode} color="error" startIcon={<DeleteIcon />}>
+                    </SEGButton>
+                    <SEGButton colorTheme="gradient" onClick={handleConfirmDeleteEpisode} color="error" startIcon={<DeleteIcon />}>
                         Remover
-                    </Button>
+                    </SEGButton>
                 </DialogActions>
             </Dialog>
         </Box>
