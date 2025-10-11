@@ -432,7 +432,7 @@ const ModuleManagementPage: React.FC = () => {
     }
 
     return (
-        <Box sx={{ minHeight: "100vh", backgroundColor: "#f6f8ff", py: { xs: 4, md: 6 } }}>
+        <Box sx={{ minHeight: "100vh", backgroundColor: "#ffffffff" }}>
             <Box sx={{ maxWidth: 1180, mx: "auto", px: { xs: 2, md: 4 } }}>
                 <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
                     <SEGButton
@@ -477,6 +477,7 @@ const ModuleManagementPage: React.FC = () => {
                                 value={moduleTitle}
                                 onChange={(event) => setModuleTitle(event.target.value)}
                                 placeholder="Ex: Fundamentos de Programação"
+                                InputProps={{ disableUnderline: true }}
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -484,6 +485,7 @@ const ModuleManagementPage: React.FC = () => {
                                 label="ID do módulo"
                                 value={String(moduleData.id_course_module)}
                                 disabled
+                                InputProps={{ disableUnderline: true }}
                             />
                         </Grid>
                         <Grid item xs={12}>
@@ -494,6 +496,7 @@ const ModuleManagementPage: React.FC = () => {
                                 value={moduleDescription}
                                 onChange={(event) => setModuleDescription(event.target.value)}
                                 placeholder="Descreva o que será ensinado neste módulo"
+                                InputProps={{ disableUnderline: true }}
                             />
                         </Grid>
                     </Grid>
@@ -556,6 +559,7 @@ const ModuleManagementPage: React.FC = () => {
                                         onChange={(event) =>
                                             handleCreateEpisodeField("order", Number(event.target.value) || 1)
                                         }
+                                        InputProps={{ disableUnderline: true }}
                                     />
                                 </Grid>
                                 <Grid item xs={12} md={8}>
@@ -564,6 +568,7 @@ const ModuleManagementPage: React.FC = () => {
                                         value={newEpisodeDraft.title}
                                         onChange={(event) => handleCreateEpisodeField("title", event.target.value)}
                                         placeholder="Ex: Introdução"
+                                        InputProps={{ disableUnderline: true }}
                                     />
                                 </Grid>
                                 <Grid item xs={12}>
@@ -583,6 +588,7 @@ const ModuleManagementPage: React.FC = () => {
                                             handleCreateEpisodeField("link_episode", event.target.value || null)
                                         }
                                         placeholder="Cole o link do conteúdo"
+                                        InputProps={{ disableUnderline: true }}
                                     />
                                 </Grid>
                             </Grid>
@@ -612,190 +618,194 @@ const ModuleManagementPage: React.FC = () => {
 
                     <Stack spacing={3}>
                         {orderedEpisodes.map((episode) => {
-                                const isEditing = editingEpisodeId === episode.id_module_episode;
-                                const formattedEpisodeDate = new Date(episode.created_at).toLocaleString("pt-BR", {
-                                    dateStyle: "short",
-                                    timeStyle: "short",
-                                });
+                            const isEditing = editingEpisodeId === episode.id_module_episode;
+                            const formattedEpisodeDate = new Date(episode.created_at).toLocaleString("pt-BR", {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                            });
 
-                                return (
-                                    <Paper key={episode.id_module_episode} sx={{ p: { xs: 2, md: 3 }, borderRadius: 3, boxShadow: "0 12px 30px rgba(76,103,255,0.08)" }}>
-                                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
-                                            <Box sx={{ flex: 1 }}>
-                                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: colors.purple }}>
-                                                        #{episode.order}
-                                                    </Typography>
-                                                    <Typography variant="body2" sx={{ color: colors.weakGray }}>
-                                                        Criado em {formattedEpisodeDate}
-                                                    </Typography>
-                                                </Stack>
-
-                                                {isEditing ? (
-                                                    <Grid container spacing={2}>
-                                                        <Grid item xs={12} md={4}>
-                                                            <SEGTextField
-                                                                label="Ordem"
-                                                                type="number"
-                                                                value={episodeDraft.order ?? episode.order}
-                                                                onChange={(event) =>
-                                                                    handleEpisodeDraftChange(
-                                                                        "order",
-                                                                        Number(event.target.value) || episode.order,
-                                                                    )
-                                                                }
-                                                            />
-                                                        </Grid>
-                                                        <Grid item xs={12} md={8}>
-                                                            <SEGTextField
-                                                                label="Título"
-                                                                value={episodeDraft.title ?? episode.title}
-                                                                onChange={(event) =>
-                                                                    handleEpisodeDraftChange("title", event.target.value)
-                                                                }
-                                                            />
-                                                        </Grid>
-                                                        <Grid item xs={12}>
-                                                            <SEGTextField
-                                                                label="Descrição"
-                                                                multiline
-                                                                minRows={3}
-                                                                value={episodeDraft.description ?? episode.description}
-                                                                onChange={(event) =>
-                                                                    handleEpisodeDraftChange(
-                                                                        "description",
-                                                                        event.target.value,
-                                                                    )
-                                                                }
-                                                            />
-                                                        </Grid>
-                                                        <Grid item xs={12}>
-                                                            <SEGTextField
-                                                                label="Link (opcional)"
-                                                                value={episodeDraft.link_episode ?? episode.link_episode ?? ""}
-                                                                onChange={(event) =>
-                                                                    handleEpisodeDraftChange(
-                                                                        "link_episode",
-                                                                        event.target.value ? event.target.value : null,
-                                                                    )
-                                                                }
-                                                            />
-                                                        </Grid>
-                                                    </Grid>
-                                                ) : (
-                                                    <>
-                                                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                                            {episode.title}
-                                                        </Typography>
-                                                        <Typography variant="body2" sx={{ color: colors.strongGray, mt: 1 }}>
-                                                            {episode.description}
-                                                        </Typography>
-                                                        {episode.link_episode && (
-                                                            <Typography
-                                                                variant="body2"
-                                                                sx={{ color: colors.purple, mt: 1, wordBreak: "break-all" }}
-                                                            >
-                                                                {episode.link_episode}
-                                                            </Typography>
-                                                        )}
-                                                    </>
-                                                )}
-
-                                                <Divider sx={{ my: 2 }} />
-
-                                                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="flex-start">
-                                                    <input
-                                                        type="file"
-                                                        accept={fileAccept}
-                                                        multiple
-                                                        ref={(element) => {
-                                                            fileInputsRef.current[episode.id_module_episode] = element;
-                                                        }}
-                                                        style={{ display: "none" }}
-                                                        onChange={(event) =>
-                                                            handleEpisodeUpload(episode.id_module_episode, event.target.files)
-                                                        }
-                                                    />
-                                                    <Button
-                                                        variant="outlined"
-                                                        startIcon={<UploadFileIcon />}
-                                                        onClick={() =>
-                                                            fileInputsRef.current[episode.id_module_episode]?.click()
-                                                        }
-                                                        sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-                                                    >
-                                                        Fazer upload
-                                                    </Button>
-                                                    <Stack direction="row" spacing={1} flexWrap="wrap">
-                                                        {episode.attachments.length === 0 && (
-                                                            <Typography variant="body2" sx={{ color: colors.weakGray }}>
-                                                                Nenhum arquivo enviado
-                                                            </Typography>
-                                                        )}
-                                                        {episode.attachments.map((file) => (
-                                                            <Chip
-                                                                key={`${episode.id_module_episode}-${file.name}`}
-                                                                label={file.name}
-                                                                onDelete={() =>
-                                                                    handleRemoveAttachment(episode.id_module_episode, file.name)
-                                                                }
-                                                                sx={{
-                                                                    backgroundColor: "rgba(93,112,246,0.1)",
-                                                                    color: colors.purple,
-                                                                    fontWeight: 600,
-                                                                }}
-                                                            />
-                                                        ))}
-                                                    </Stack>
-                                                </Stack>
-                                            </Box>
-
-                                            <Stack direction="row" spacing={1}>
-                                                {isEditing ? (
-                                                    <>
-                                                        <SEGButton
-                                                            startIcon={<CloseIcon />}
-                                                            colorTheme="outlined"
-                                                            onClick={handleCancelEpisodeEdition}
-                                                            fullWidth={false}
-                                                            sx={{ mb: 0 }}
-                                                            disabled={episodeSaving}
-                                                        >
-                                                            Cancelar
-                                                        </SEGButton>
-                                                        <SEGButton
-                                                            startIcon={<SaveIcon />}
-                                                            onClick={handleSaveEpisode}
-                                                            loading={episodeSaving}
-                                                            fullWidth={false}
-                                                            sx={{ mb: 0 }}
-                                                        >
-                                                            Salvar
-                                                        </SEGButton>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <IconButton
-                                                            size="large"
-                                                            onClick={() => startEpisodeEdition(episode)}
-                                                            sx={{ backgroundColor: "rgba(93,112,246,0.08)" }}
-                                                        >
-                                                            <EditIcon sx={{ color: colors.purple }} />
-                                                        </IconButton>
-                                                        <IconButton
-                                                            size="large"
-                                                            onClick={() => openDeleteDialog(episode.id_module_episode)}
-                                                            sx={{ backgroundColor: "rgba(232,76,61,0.12)" }}
-                                                        >
-                                                            <DeleteIcon sx={{ color: "#E84C3D" }} />
-                                                        </IconButton>
-                                                    </>
-                                                )}
+                            return (
+                                <Paper key={episode.id_module_episode} sx={{ p: { xs: 2, md: 3 }, borderRadius: 3, boxShadow: "0 12px 30px rgba(76,103,255,0.08)" }}>
+                                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: colors.purple }}>
+                                                    #{episode.order}
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: colors.weakGray }}>
+                                                    Criado em {formattedEpisodeDate}
+                                                </Typography>
                                             </Stack>
+
+                                            {isEditing ? (
+                                                <Grid container spacing={2}>
+                                                    <Grid item xs={12} md={4}>
+                                                        <SEGTextField
+                                                            label="Ordem"
+                                                            type="number"
+                                                            value={episodeDraft.order ?? episode.order}
+                                                            InputProps={{ disableUnderline: true }}
+                                                            onChange={(event) =>
+                                                                handleEpisodeDraftChange(
+                                                                    "order",
+                                                                    Number(event.target.value) || episode.order,
+                                                                )
+                                                            }
+                                                        />
+                                                    </Grid>
+                                                    <Grid item xs={12} md={8}>
+                                                        <SEGTextField
+                                                            label="Título"
+                                                            value={episodeDraft.title ?? episode.title}
+                                                            onChange={(event) =>
+                                                                handleEpisodeDraftChange("title", event.target.value)
+                                                            }
+                                                            InputProps={{ disableUnderline: true }}
+                                                        />
+                                                    </Grid>
+                                                    <Grid item xs={12}>
+                                                        <SEGTextField
+                                                            label="Descrição"
+                                                            multiline
+                                                            minRows={3}
+                                                            value={episodeDraft.description ?? episode.description}
+                                                            onChange={(event) =>
+                                                                handleEpisodeDraftChange(
+                                                                    "description",
+                                                                    event.target.value,
+                                                                )
+                                                            }
+                                                            InputProps={{ disableUnderline: true }}
+                                                        />
+                                                    </Grid>
+                                                    <Grid item xs={12}>
+                                                        <SEGTextField
+                                                            label="Link (opcional)"
+                                                            value={episodeDraft.link_episode ?? episode.link_episode ?? ""}
+                                                            onChange={(event) =>
+                                                                handleEpisodeDraftChange(
+                                                                    "link_episode",
+                                                                    event.target.value ? event.target.value : null,
+                                                                )
+                                                            }
+                                                            InputProps={{ disableUnderline: true }}
+                                                        />
+                                                    </Grid>
+                                                </Grid>
+                                            ) : (
+                                                <>
+                                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                                        {episode.title}
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ color: colors.strongGray, mt: 1 }}>
+                                                        {episode.description}
+                                                    </Typography>
+                                                    {episode.link_episode && (
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{ color: colors.purple, mt: 1, wordBreak: "break-all" }}
+                                                        >
+                                                            {episode.link_episode}
+                                                        </Typography>
+                                                    )}
+                                                </>
+                                            )}
+
+                                            <Divider sx={{ my: 2 }} />
+
+                                            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="flex-start">
+                                                <input
+                                                    type="file"
+                                                    accept={fileAccept}
+                                                    multiple
+                                                    ref={(element) => {
+                                                        fileInputsRef.current[episode.id_module_episode] = element;
+                                                    }}
+                                                    style={{ display: "none" }}
+                                                    onChange={(event) =>
+                                                        handleEpisodeUpload(episode.id_module_episode, event.target.files)
+                                                    }
+                                                />
+                                                <Button
+                                                    variant="outlined"
+                                                    startIcon={<UploadFileIcon />}
+                                                    onClick={() =>
+                                                        fileInputsRef.current[episode.id_module_episode]?.click()
+                                                    }
+                                                    sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+                                                >
+                                                    Fazer upload
+                                                </Button>
+                                                <Stack direction="row" spacing={1} flexWrap="wrap">
+                                                    {episode.attachments.length === 0 && (
+                                                        <Typography variant="body2" sx={{ color: colors.weakGray }}>
+                                                            Nenhum arquivo enviado
+                                                        </Typography>
+                                                    )}
+                                                    {episode.attachments.map((file) => (
+                                                        <Chip
+                                                            key={`${episode.id_module_episode}-${file.name}`}
+                                                            label={file.name}
+                                                            onDelete={() =>
+                                                                handleRemoveAttachment(episode.id_module_episode, file.name)
+                                                            }
+                                                            sx={{
+                                                                backgroundColor: "rgba(93,112,246,0.1)",
+                                                                color: colors.purple,
+                                                                fontWeight: 600,
+                                                            }}
+                                                        />
+                                                    ))}
+                                                </Stack>
+                                            </Stack>
+                                        </Box>
+
+                                        <Stack direction="row" spacing={1}>
+                                            {isEditing ? (
+                                                <>
+                                                    <SEGButton
+                                                        startIcon={<CloseIcon />}
+                                                        colorTheme="outlined"
+                                                        onClick={handleCancelEpisodeEdition}
+                                                        fullWidth={false}
+                                                        sx={{ mb: 0 }}
+                                                        disabled={episodeSaving}
+                                                    >
+                                                        Cancelar
+                                                    </SEGButton>
+                                                    <SEGButton
+                                                        startIcon={<SaveIcon />}
+                                                        onClick={handleSaveEpisode}
+                                                        loading={episodeSaving}
+                                                        fullWidth={false}
+                                                        sx={{ mb: 0 }}
+                                                    >
+                                                        Salvar
+                                                    </SEGButton>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <IconButton
+                                                        size="large"
+                                                        onClick={() => startEpisodeEdition(episode)}
+                                                        sx={{ backgroundColor: "rgba(93,112,246,0.08)" }}
+                                                    >
+                                                        <EditIcon sx={{ color: colors.purple }} />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        size="large"
+                                                        onClick={() => openDeleteDialog(episode.id_module_episode)}
+                                                        sx={{ backgroundColor: "rgba(232,76,61,0.12)" }}
+                                                    >
+                                                        <DeleteIcon sx={{ color: "#E84C3D" }} />
+                                                    </IconButton>
+                                                </>
+                                            )}
                                         </Stack>
-                                    </Paper>
-                                );
-                            })}
+                                    </Stack>
+                                </Paper>
+                            );
+                        })}
                     </Stack>
                 </Paper>
             </Box>
