@@ -27,6 +27,12 @@ const NewCoursePage: React.FC = () => {
   const [description, setDescription] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [category, setCategory] = useState("");
+  const [formErrors, setFormErrors] = useState({
+    title: "",
+    description: "",
+    difficulty: "",
+    category: "",
+  });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -90,9 +96,7 @@ const NewCoursePage: React.FC = () => {
     const validPayload = validateFields();
 
     if (!validPayload) {
-
-      alert("payload invalido!");
-
+      SEGPrincipalNotificator("Revise os campos obrigatórios.", "warning", "Formulário inválido");
       return;
 
     }
@@ -130,8 +134,6 @@ const NewCoursePage: React.FC = () => {
 
 
     } catch (error) {
-
-      alert(error);
 
       console.error(error);
 
@@ -189,12 +191,41 @@ const NewCoursePage: React.FC = () => {
   };
 
   const validateFields = () => {
+    const trimmedTitle = title.trim();
+    const trimmedDescription = description.trim();
 
-    if (description === "" || difficulty === "" || category === "" || title === "") return false;
+    const errors = {
+      title: "",
+      description: "",
+      difficulty: "",
+      category: "",
+    };
 
-    return true;
+    if (!trimmedTitle) {
+      errors.title = "Informe o título do curso.";
+    } else if (trimmedTitle.length < 3) {
+      errors.title = "O título deve ter pelo menos 3 caracteres.";
+    }
 
-  }
+    if (!trimmedDescription) {
+      errors.description = "Informe a descrição do curso.";
+    } else if (trimmedDescription.length < 10) {
+      errors.description = "A descrição deve ter pelo menos 10 caracteres.";
+    }
+
+    if (!difficulty) {
+      errors.difficulty = "Selecione o nível de dificuldade.";
+    }
+
+    if (!category) {
+      errors.category = "Selecione a categoria.";
+    }
+
+    setFormErrors(errors);
+
+    return Object.values(errors).every((errorMessage) => !errorMessage);
+
+  };
 
   if (loadingCategories) {
     return (
@@ -269,7 +300,14 @@ const NewCoursePage: React.FC = () => {
                 label="Título"
                 fullWidth
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (formErrors.title) {
+                    setFormErrors((prev) => ({ ...prev, title: "" }));
+                  }
+                }}
+                error={Boolean(formErrors.title)}
+                helperText={formErrors.title}
                 sx={{
                   mb: 0,
                   "& .MuiFilledInput-root": { minHeight: 56, display: "flex", alignItems: "center" },
@@ -284,7 +322,14 @@ const NewCoursePage: React.FC = () => {
                 fullWidth
                 select
                 value={difficulty}
-                onChange={(e: any) => setDifficulty(String(e.target.value))}
+                onChange={(e: any) => {
+                  setDifficulty(String(e.target.value));
+                  if (formErrors.difficulty) {
+                    setFormErrors((prev) => ({ ...prev, difficulty: "" }));
+                  }
+                }}
+                error={Boolean(formErrors.difficulty)}
+                helperText={formErrors.difficulty}
                 sx={{
                   mb: 0,
                   "& .MuiFilledInput-root": { minHeight: 56, display: "flex", alignItems: "center" },
@@ -308,7 +353,14 @@ const NewCoursePage: React.FC = () => {
                 fullWidth
                 select
                 value={category}
-                onChange={(e: any) => setCategory(String(e.target.value))}
+                onChange={(e: any) => {
+                  setCategory(String(e.target.value));
+                  if (formErrors.category) {
+                    setFormErrors((prev) => ({ ...prev, category: "" }));
+                  }
+                }}
+                error={Boolean(formErrors.category)}
+                helperText={formErrors.category}
                 sx={{
                   mb: 0,
                   "& .MuiFilledInput-root": { minHeight: 56, display: "flex", alignItems: "center" },
@@ -354,7 +406,14 @@ const NewCoursePage: React.FC = () => {
                 maxRows={12}
                 placeholder="Escreva a descrição do curso..."
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  if (formErrors.description) {
+                    setFormErrors((prev) => ({ ...prev, description: "" }));
+                  }
+                }}
+                error={Boolean(formErrors.description)}
+                helperText={formErrors.description}
                 InputProps={{ disableUnderline: true }}
                 sx={{
                   height: "100%",
