@@ -28,6 +28,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import SEGPrincipalNotificator from "../../components/Notifications/SEGPrincipalNotificator";
 import { type Category, type Course, type CourseModule } from "../../interfaces/course.interfaces";
 import { api } from "../../lib/axios";
+import SEGPrincipalLoader from "../../components/Loaders/SEGPrincipalLoader";
 
 
 const difficulties = [
@@ -58,6 +59,12 @@ const CourseManagementPage: React.FC = () => {
     const [loadingCategories, setLoadingCategories] = useState<boolean>(true);
     const [loadingCourse, setLoadingCourse] = useState<boolean>(true);
     const fileRef = useRef<HTMLInputElement | null>(null);
+    const [moduleToDelete, setModuleToDelete] = useState<number | null>(null);
+
+    const [loadingModuleCreation, setLoadingModuleCreation] = useState<boolean>(false);
+    const [loadingCourseSave, setLoadingCourseSave] = useState<boolean>(false);
+    const [loadingModuleDelete, setLoadingModuleDelete] = useState<boolean>(false);
+
 
     const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
     const [modalType, setModalType] = useState<"save-course" | "delete-course" | "delete-module">();
@@ -128,7 +135,6 @@ const CourseManagementPage: React.FC = () => {
         setImageFile(null);
     }, [course]);
 
-    // preview de arquivo local
     useEffect(() => {
         if (!imageFile) return;
         const url = URL.createObjectURL(imageFile);
@@ -147,10 +153,19 @@ const CourseManagementPage: React.FC = () => {
     };
 
     if (loadingCourse || loadingCategories) {
-        // você pode trocar por um loader customizado
         return (
-            <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Typography>Carregando...</Typography>
+            <Box
+                sx={{
+                    position: "fixed",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 1300,
+                    backgroundColor: "transparent",
+                }}
+            >
+                <SEGPrincipalLoader />
             </Box>
         );
     }
@@ -171,71 +186,155 @@ const CourseManagementPage: React.FC = () => {
     }
 
     const handleSaveCourse = async () => {
-        // validações simples
+
+
         if (!title.trim() || !description.trim() || !difficulty || categoryId === "") {
-            SEGPrincipalNotificator("Preencha título, descrição, dificuldade e categoria", "warning", "Atenção");
+            SEGPrincipalNotificator("Preencha título, descrição, dificuldade e categoria", "warning", "Atenção!");
             return;
         }
 
-        // atualiza estado local
-        setCourse((prev) => {
-            if (!prev) return prev;
-            return {
-                ...prev,
-                title: title.trim(),
-                description: description.trim(),
-                difficulty_level: difficulty,
-                id_category: typeof categoryId === "number" ? categoryId : null,
-                active,
-                link_thumbnail: previewUrl ?? prev.link_thumbnail,
-            } as Course;
-        });
 
-        SEGPrincipalNotificator("Curso atualizado", "success", "Sucesso");
+        const courseDTO: Course = {
+            title: title.trim(),
+            description: description.trim(),
+            difficulty_level: difficulty,
+            id_category: typeof categoryId === "number" ? categoryId : null,
+        };
 
-        // TODO: se quiser integrar com API, faça o PUT/POST aqui (ex.: api.put(`/course/${course.id_course}`, payload))
+        setLoadingCourseSave(true);
+
+        try {
+
+            const response = await api.patch(`/course/update/${id}`, courseDTO);
+
+            if (response.status === 200) {
+
+                setCourse((prev) => {
+                    if (!prev) return prev;
+                    return {
+                        ...prev,
+                        title: title.trim(),
+                        description: description.trim(),
+                        difficulty_level: difficulty,
+                        id_category: typeof categoryId === "number" ? categoryId : null,
+                        active,
+                        link_thumbnail: previewUrl ?? prev.link_thumbnail,
+                    } as Course;
+                });
+
+                SEGPrincipalNotificator("Curso atualizado", "success", "Sucesso!");
+
+            }
+
+        } catch (error) {
+
+            SEGPrincipalNotificator("Erro na atualização", "error", "Erro!");
+
+            console.error(error);
+
+        } finally {
+
+            setLoadingCourseSave(false);
+
+            handleCloseDialog();
+
+        }
+
     };
 
-    const handleAddModule = () => {
-        if (!newModuleTitle.trim()) {
-            SEGPrincipalNotificator("Título do módulo é obrigatório", "warning", "Atenção");
+    const handleAddModule = async () => {
+
+        if (!newModuleTitle.trim() || !newModuleDescription) {
+            SEGPrincipalNotificator("Título e Descrição do módulo são obrigatórios", "warning", "Atenção!");
             return;
         }
 
         const modules = course.course_modules ?? [];
-        const maxOrder = modules.length ? Math.max(...modules.map((m) => m.order)) : 0;
-        const maxId = modules.length ? Math.max(...modules.map((m) => m.id_module)) : 0;
+        const maxOrder = modules.length ? Math.max(...modules.map((m) => m.order)) : 0;;
 
-        const module: CourseModule = {
-            id_module: maxId + 1,
+        const moduleDto: CourseModule = {
             order: maxOrder + 1,
             title: newModuleTitle.trim(),
             description: newModuleDescription.trim(),
-            created_at: new Date().toISOString(),
+            id_course: course.id_course
         };
 
-        setCourse((prev) => {
-            if (!prev) return prev;
-            return { ...prev, course_modules: [...(prev.course_modules ?? []), module] } as Course;
-        });
+        setLoadingModuleCreation(true);
 
-        setNewModuleTitle("");
-        setNewModuleDescription("");
-        setCreatingModule(false);
+        try {
 
-        SEGPrincipalNotificator("Módulo criado", "success", "Sucesso");
+            const response = await api.post("/course-module/create", moduleDto);
+
+            const moduleId = response?.data?.created_module_id || 0;
+
+            moduleDto.id_module = moduleId;
+
+            setCourse((prev) => {
+                if (!prev) return prev;
+                return { ...prev, course_modules: [...(prev.course_modules ?? []), moduleDto] } as Course;
+            });
+
+            setNewModuleTitle("");
+            setNewModuleDescription("");
+            setCreatingModule(false);
+
+            SEGPrincipalNotificator("Módulo criado", "success", "Sucesso!");
+
+        } catch (error) {
+
+            console.error(error);
+
+            SEGPrincipalNotificator("Falha ao criar módulo", "error", "Erro!")
+
+        } finally {
+
+            setLoadingModuleDelete(false);
+
+        }
+
+
     };
 
-    const handleDeleteModule = (moduleId: number) => {
-        setCourse((prev) => {
-            if (!prev) return prev;
-            return { ...prev, course_modules: (prev.course_modules ?? []).filter((m) => m.id_module !== moduleId) } as Course;
-        });
-        SEGPrincipalNotificator("Módulo removido", "success", "Removido");
+    const handleDeleteModule = async (moduleId: number) => {
+
+        setLoadingModuleDelete(true);
+
+        try {
+
+            const response = await api.delete(`/course-module/delete/${moduleToDelete}`);
+
+            if (response.status === 200) {
+
+                setCourse((prev) => {
+                    if (!prev) return prev;
+                    return { ...prev, course_modules: (prev.course_modules ?? []).filter((m) => m.id_module !== moduleId) } as Course;
+                });
+
+                SEGPrincipalNotificator("Módulo removido", "success", "Sucesso!");
+
+            }
+
+        } catch (error) {
+
+            SEGPrincipalNotificator("Falha ao remover módulo", "error", "Erro!");
+
+            console.error(error);
+
+        } finally {
+
+            setLoadingModuleDelete(false);
+
+            setModuleToDelete(null);
+
+            handleCloseDialog();
+
+        }
+
     };
 
-    const handleEditModule = (moduleId: number) => {
-        navigate(`/course-management/${course.id_course}/module/${moduleId}/edit`);
+    const handleEditModule = (moduleId?: number) => {
+        if (!course || moduleId == null) return;
+        navigate(`/course-management/${course.id_course}/module/${moduleId}`);
     };
 
     const handleCloseDialog = () => {
@@ -249,13 +348,17 @@ const CourseManagementPage: React.FC = () => {
         setConfirmDialogOpen(true);
     };
 
-    const handleDeleteCourseDialog = () => {
+    /*const handleDeleteCourseDialog = () => {
         setModalType("delete-course");
         setConfirmDialogOpen(true);
-    };
+    };*/
 
-    const handleDeleteModuleDialog = () => {
+    const handleDeleteModuleDialog = (moduleId: number) => {
+
         setModalType("delete-module");
+
+        setModuleToDelete(moduleId);
+
         setConfirmDialogOpen(true);
     };
 
@@ -289,6 +392,7 @@ const CourseManagementPage: React.FC = () => {
                                     <SEGButton
                                         colorTheme="gradient"
                                         onClick={handleSaveCourse}
+                                        loading={loadingCourseSave}
                                         startIcon={<SaveIcon />}>
                                         SALVAR
                                     </SEGButton>
@@ -358,7 +462,8 @@ const CourseManagementPage: React.FC = () => {
 
                                     <SEGButton
                                         colorTheme="gradient"
-                                        onClick={handleSaveCourse}
+                                        onClick={() => handleDeleteModule(moduleToDelete || 0)}
+                                        loading={loadingModuleDelete}
                                         startIcon={<DeleteIcon />}>
                                         EXCLUIR
                                     </SEGButton>
@@ -473,7 +578,7 @@ const CourseManagementPage: React.FC = () => {
                                     </Box>
                                     <Box sx={{ mt: 1, textAlign: "right" }}>
                                         <Typography variant="caption" sx={{ color: colors.strongGray }}>
-                                            Criado em: {new Date(course.created_at).toLocaleString()}
+                                            Criado em: {new Date(course?.created_at || new Date().toLocaleString()).toLocaleString()}
                                         </Typography>
                                     </Box>
                                 </Box>
@@ -511,10 +616,10 @@ const CourseManagementPage: React.FC = () => {
                                             <ListItemText primary={`${module.order}. ${module.title}`} secondary={module.description} />
 
                                             <Box sx={{ display: "flex", gap: 1 }}>
-                                                <SEGButton colorTheme="outlined" onClick={() => handleEditModule(module.id_module)}>
+                                                <SEGButton colorTheme="outlined" onClick={() => handleEditModule(module?.id_module)}>
                                                     <EditIcon />
                                                 </SEGButton>
-                                                <SEGButton colorTheme="outlined" onClick={handleDeleteModuleDialog}>
+                                                <SEGButton colorTheme="outlined" onClick={() => handleDeleteModuleDialog(module?.id_module || 0)}>
                                                     <DeleteIcon />
                                                 </SEGButton>
                                             </Box>
@@ -535,8 +640,19 @@ const CourseManagementPage: React.FC = () => {
                                     <SEGTextField label="Descrição" fullWidth multiline minRows={3} value={newModuleDescription} onChange={(e) => setNewModuleDescription(e.target.value)} sx={{ mb: 1 }} InputProps={{ disableUnderline: true }} />
 
                                     <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-                                        <SEGButton colorTheme="outlined" onClick={() => setCreatingModule(false)} >Cancelar</SEGButton>
-                                        <SEGButton type="submit" colorTheme="gradient" startIcon={<AddIcon />}>Adicionar</SEGButton>
+                                        <SEGButton
+                                            colorTheme="outlined"
+                                            onClick={() => setCreatingModule(false)} >
+                                            Cancelar
+                                        </SEGButton>
+
+                                        <SEGButton
+                                            type="submit"
+                                            colorTheme="gradient"
+                                            loading={loadingModuleCreation}
+                                            startIcon={<AddIcon />}>
+                                            Adicionar
+                                        </SEGButton>
                                     </Box>
                                 </Box>
                             )}
