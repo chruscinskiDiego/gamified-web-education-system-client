@@ -1,4 +1,4 @@
-import { useMemo, useState, type SyntheticEvent } from "react";
+import { useMemo } from "react";
 import {
     Box,
     Card,
@@ -10,8 +10,6 @@ import {
     Grid,
     Rating,
     Stack,
-    Tab,
-    Tabs,
     Typography,
     useTheme,
 } from "@mui/material";
@@ -141,13 +139,6 @@ type HomePageResponse = {
     highlighted_courses: CourseSummary[];
 };
 
-const SECTION_TABS = [
-    { value: "registered", label: "Meus cursos" },
-    { value: "highlighted", label: "Em alta" },
-] as const;
-
-type TabValue = typeof SECTION_TABS[number]["value"];
-
 const useHomeCourses = () => {
     return useMemo<HomePageResponse>(() => MOCK_HOME_DATA, []);
 };
@@ -262,15 +253,8 @@ const CourseCard = ({ course, onClick }: { course: CourseSummary; onClick: () =>
 export const HomePage: React.FC = () => {
     const theme = useTheme();
     const navigate = useNavigate();
-    const [currentTab, setCurrentTab] = useState<TabValue>("registered");
 
     const { registered_courses, highlighted_courses } = useHomeCourses();
-
-    const coursesToDisplay = currentTab === "registered" ? registered_courses : highlighted_courses;
-
-    const handleChangeTab = (_: SyntheticEvent, value: TabValue) => {
-        setCurrentTab(value);
-    };
 
     const handleNavigateToCourse = (courseId: string) => {
         navigate(`/courses/${courseId}`);
@@ -305,73 +289,21 @@ export const HomePage: React.FC = () => {
                         </Typography>
                     </Stack>
 
-                    <Box
-                        sx={{
-                            borderRadius: 4,
-                            background: "#ffffff",
-                            boxShadow: "0px 16px 40px rgba(33, 33, 52, 0.12)",
-                            p: { xs: 2.5, md: 4 },
-                        }}
-                    >
-                        <Tabs
-                            value={currentTab}
-                            onChange={handleChangeTab}
-                            variant="scrollable"
-                            scrollButtons="auto"
-                            allowScrollButtonsMobile
-                            sx={{
-                                mb: { xs: 3, md: 4 },
-                                "& .MuiTab-root": {
-                                    textTransform: "none",
-                                    fontWeight: 700,
-                                    fontSize: "1rem",
-                                    minWidth: 120,
-                                },
-                                "& .MuiTabs-indicator": {
-                                    background: "linear-gradient(90deg, #5D70F6 0%, #49A0FB 100%)",
-                                    height: 3,
-                                    borderRadius: 8,
-                                },
-                            }}
-                        >
-                            {SECTION_TABS.map((tab) => (
-                                <Tab key={tab.value} value={tab.value} label={tab.label} />
-                            ))}
-                        </Tabs>
+                    <Stack spacing={4}>
+                        <CourseSection
+                            title="Meus cursos"
+                            description="Continue de onde parou nos cursos em que você já está matriculado."
+                            courses={registered_courses}
+                            onNavigate={handleNavigateToCourse}
+                        />
 
-                        {coursesToDisplay.length === 0 ? (
-                            <Box
-                                sx={{
-                                    py: { xs: 6, md: 8 },
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    textAlign: "center",
-                                    color: theme.palette.grey[500],
-                                }}
-                            >
-                                <ImageIcon sx={{ fontSize: 56, mb: 2, color: theme.palette.grey[400] }} />
-                                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                                    Nada por aqui ainda
-                                </Typography>
-                                <Typography variant="body2" sx={{ maxWidth: 360 }}>
-                                    Assim que novos cursos estiverem disponíveis, eles aparecerão nesta seção.
-                                </Typography>
-                            </Box>
-                        ) : (
-                            <Grid container spacing={3}>
-                                {coursesToDisplay.map((course) => (
-                                    <Grid item xs={12} sm={6} md={4} key={course.id_course}>
-                                        <CourseCard
-                                            course={course}
-                                            onClick={() => handleNavigateToCourse(course.id_course)}
-                                        />
-                                    </Grid>
-                                ))}
-                            </Grid>
-                        )}
-                    </Box>
+                        <CourseSection
+                            title="Cursos em destaque"
+                            description="Explore o que outros alunos estão estudando agora mesmo."
+                            courses={highlighted_courses}
+                            onNavigate={handleNavigateToCourse}
+                        />
+                    </Stack>
                 </Stack>
             </Container>
         </Box>
@@ -379,3 +311,72 @@ export const HomePage: React.FC = () => {
 };
 
 export default HomePage;
+
+const CourseSection = ({
+    title,
+    description,
+    courses,
+    onNavigate,
+}: {
+    title: string;
+    description: string;
+    courses: CourseSummary[];
+    onNavigate: (id: string) => void;
+}) => {
+    const theme = useTheme();
+
+    return (
+        <Stack spacing={2.5} component="section">
+            <Stack spacing={1}>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: "#1f1f39" }}>
+                    {title}
+                </Typography>
+                <Typography variant="body2" sx={{ color: theme.palette.grey[600], maxWidth: 520 }}>
+                    {description}
+                </Typography>
+            </Stack>
+
+            <Box
+                sx={{
+                    borderRadius: 4,
+                    background: "#ffffff",
+                    boxShadow: "0px 16px 40px rgba(33, 33, 52, 0.12)",
+                    p: { xs: 2.5, md: 4 },
+                }}
+            >
+                {courses.length === 0 ? (
+                    <Box
+                        sx={{
+                            py: { xs: 6, md: 8 },
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            textAlign: "center",
+                            color: theme.palette.grey[500],
+                        }}
+                    >
+                        <ImageIcon sx={{ fontSize: 56, mb: 2, color: theme.palette.grey[400] }} />
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                            Nada por aqui ainda
+                        </Typography>
+                        <Typography variant="body2" sx={{ maxWidth: 360 }}>
+                            Assim que novos cursos estiverem disponíveis, eles aparecerão nesta seção.
+                        </Typography>
+                    </Box>
+                ) : (
+                    <Grid container spacing={3}>
+                        {courses.map((course) => (
+                            <Grid item xs={12} sm={6} md={4} key={course.id_course}>
+                                <CourseCard
+                                    course={course}
+                                    onClick={() => onNavigate(course.id_course)}
+                                />
+                            </Grid>
+                        ))}
+                    </Grid>
+                )}
+            </Box>
+        </Stack>
+    );
+};
