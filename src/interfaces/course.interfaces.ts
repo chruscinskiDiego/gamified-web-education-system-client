@@ -35,3 +35,16 @@ export type Course = {
     id_category?: number | null;
     course_modules?: CourseModule[];
 };
+
+export type CourseSummary = {
+    title: string;
+    id_course: string;
+    link_thumbnail: string | null;
+    difficulty_level: string;
+    avaliation_average: number | null;
+};
+
+export type HomePageResponse = {
+    registered_courses: CourseSummary[];
+    highlighted_courses: CourseSummary[];
+};

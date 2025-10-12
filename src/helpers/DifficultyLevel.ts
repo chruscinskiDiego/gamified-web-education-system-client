@@ -5,7 +5,7 @@ export const mapDifficulty = (d: string) => {
         case "M":
             return "Médio";
         case "H":
-            return "Difício";
+            return "Difícil";
         default:
             return "Médio";
     }
