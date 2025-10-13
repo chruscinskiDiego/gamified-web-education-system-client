@@ -115,6 +115,8 @@ const CoursesResume: React.FC = () => {
                     background: colors.horizontalGradient,
                     color: "#fff",
                     py: { xs: 6, md: 8 },
+                    borderTopLeftRadius: { xs: 32, md: 60 },
+                    borderTopRightRadius: { xs: 32, md: 60 },
                     borderBottomLeftRadius: { xs: 32, md: 60 },
                     borderBottomRightRadius: { xs: 32, md: 60 },
                     boxShadow: "0 18px 45px rgba(93, 112, 246, 0.25)",
