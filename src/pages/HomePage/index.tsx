@@ -35,7 +35,7 @@ export const HomePage: React.FC = () => {
     },[]);
 
     const handleNavigateToCourse = (courseId: string) => {
-        navigate(`/courses/${courseId}`);
+        navigate(`/course/resume/${courseId}`);
     };
 
     return (
