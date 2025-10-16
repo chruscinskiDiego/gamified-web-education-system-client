@@ -52,6 +52,7 @@ interface CourseResumeData {
 type EvaluationMetric = {
     note: number;
     id_avaliation: number;
+    comment?: string | null;
 };
 
 interface CourseEvaluationNotes {
@@ -133,10 +134,13 @@ const CoursesResume: React.FC = () => {
     const { id } = useParams();
 
     const getCourseResume = async () => {
+        try {
+            const response = await api.get(`/course/resume/${id}`);
 
-        const response = await api.get(`/course/resume/${id}`);
-
-        setCourseResume(response?.data ? response.data : null);
+            setCourseResume(response?.data ? response.data : null);
+        } catch (error) {
+            console.error("Erro ao buscar resumo do curso", error);
+        }
     };
 
     useEffect(() => {
@@ -210,21 +214,79 @@ const CoursesResume: React.FC = () => {
         setRatingDialogMode(null);
     };
 
-    const handleSubmitRating = (event: React.FormEvent<HTMLFormElement>) => {
+    type CreateEvaluationPayload = {
+        materialQualityNote: number;
+        didaticsNote: number;
+        teachingMethodologyNote: number;
+        commentary: string;
+        id_course: string;
+    };
+
+    type UpdateEvaluationPayload = {
+        materialQualityAvaliationId?: number;
+        materialQualityNote: number;
+        didaticsAvaliationId?: number;
+        didaticsNote: number;
+        teachingMethodologyAvaliationId?: number;
+        teachingMethodologyNote: number;
+        commentaryId?: number;
+        commentary: string;
+    };
+
+    type DeleteEvaluationPayload = {
+        avaliations: Array<{ avaliation_type: string; delete_avaliation_id: number }>;
+    };
+
+    const handleCreateEvaluation = async (payload: CreateEvaluationPayload) => {
+        try {
+            await api.post("/course/avaliation", payload);
+            await getCourseResume();
+        } catch (error) {
+            console.error("Erro ao criar avaliação", error);
+        }
+    };
+
+    const handleEditEvaluation = async (payload: UpdateEvaluationPayload) => {
+        try {
+            await api.put("/course/avaliation", payload);
+            await getCourseResume();
+        } catch (error) {
+            console.error("Erro ao editar avaliação", error);
+        }
+    };
+
+    const handleDeleteEvaluation = async (payload: DeleteEvaluationPayload) => {
+        try {
+            await api.request({
+                url: "/course/avaliation",
+                method: "delete",
+                data: payload,
+            });
+            await getCourseResume();
+        } catch (error) {
+            console.error("Erro ao excluir avaliação", error);
+        }
+    };
+
+    const handleSubmitRating = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!ratingDialogMode) return;
 
         if (ratingDialogMode === "create") {
-            const payload = {
+            if (!courseResume?.id_course) {
+                console.error("Curso não identificado para criação de avaliação");
+                return;
+            }
+            const payload: CreateEvaluationPayload = {
                 materialQualityNote: formValues.materialQualityNote,
                 didaticsNote: formValues.didaticsNote,
                 teachingMethodologyNote: formValues.teachingMethodologyNote,
                 commentary: formValues.commentary,
-                id_course: courseResume?.id_course,
+                id_course: courseResume.id_course,
             };
-            console.info("Criar avaliação", payload);
+            await handleCreateEvaluation(payload);
         } else if (ratingDialogMode === "edit" && userEvaluation) {
-            const payload = {
+            const payload: UpdateEvaluationPayload = {
                 materialQualityAvaliationId: userEvaluation.notes.material_quality?.id_avaliation,
                 materialQualityNote: formValues.materialQualityNote,
                 didaticsAvaliationId: userEvaluation.notes.didatics?.id_avaliation,
@@ -234,19 +296,19 @@ const CoursesResume: React.FC = () => {
                 commentaryId: userEvaluation.notes.commentary?.id_avaliation,
                 commentary: formValues.commentary,
             };
-            console.info("Atualizar avaliação", payload);
+            await handleEditEvaluation(payload);
         }
 
         handleCloseRatingDialog();
     };
 
-    const handleConfirmDelete = () => {
+    const handleConfirmDelete = async () => {
         if (!userEvaluation) {
             setDeleteDialogOpen(false);
             return;
         }
 
-        const payload = {
+        const payload: DeleteEvaluationPayload = {
             avaliations: [
                 userEvaluation.notes.didatics && {
                     avaliation_type: "didatics" as const,
@@ -267,7 +329,7 @@ const CoursesResume: React.FC = () => {
             ].filter(Boolean) as Array<{ avaliation_type: string; delete_avaliation_id: number }>,
         };
 
-        console.info("Excluir avaliação", payload);
+        await handleDeleteEvaluation(payload);
         setDeleteDialogOpen(false);
     };
 
@@ -471,7 +533,10 @@ const CoursesResume: React.FC = () => {
                             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                                 Sobre o curso
                             </Typography>
-                            <Typography variant="body1" sx={{ color: "#555", lineHeight: 1.7 }}>
+                            <Typography
+                                variant="body1"
+                                sx={{ color: "#555", lineHeight: 1.7, whiteSpace: "pre-line" }}
+                            >
                                 {courseResume?.description}
                             </Typography>
                             <Divider sx={{ my: 3 }} />
@@ -663,6 +728,18 @@ const CoursesResume: React.FC = () => {
                                                                         {metric.note.toFixed(1)}
                                                                     </Typography>
                                                                 </Stack>
+                                                                {metric.comment && (
+                                                                    <Typography
+                                                                        variant="body2"
+                                                                        sx={{
+                                                                            mt: 1,
+                                                                            color: colors.strongGray,
+                                                                            whiteSpace: "pre-line",
+                                                                        }}
+                                                                    >
+                                                                        {metric.comment}
+                                                                    </Typography>
+                                                                )}
                                                             </Paper>
                                                         </Grid>
                                                     );
@@ -681,7 +758,10 @@ const CoursesResume: React.FC = () => {
                                                         <Typography variant="overline" sx={{ color: colors.strongGray }}>
                                                             Comentário sobre o curso
                                                         </Typography>
-                                                        <Typography variant="body1" sx={{ mt: 1, lineHeight: 1.7, color: "#4b4b4b" }}>
+                                                        <Typography
+                                                            variant="body1"
+                                                            sx={{ mt: 1, lineHeight: 1.7, color: "#4b4b4b", whiteSpace: "pre-line" }}
+                                                        >
                                                             {commentaryText}
                                                         </Typography>
                                                     </Box>
