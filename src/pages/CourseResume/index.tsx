@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Avatar,
     Box,
@@ -27,6 +27,8 @@ import { colors } from "../../theme/colors";
 import SEGButton from "../../components/SEGButton";
 import { mapDifficulty } from "../../helpers/DifficultyLevel";
 import { dateFormat } from "../../helpers/DateFormat";
+import { api } from "../../lib/axios";
+import { useParams } from "react-router-dom";
 
 interface CourseResumeData {
     id_course: string;
@@ -79,7 +81,7 @@ interface RatingFormValues {
     commentary: string;
 }
 
-const mockedCourse: CourseResumeData = {
+/*const courseResume: CourseResumeData = {
     id_course: "26e22b72-d358-459e-b209-ce57912df142",
     title: "Fund. de Prog.",
     description: "Um curso muito legal e interativo sobre code",
@@ -121,34 +123,56 @@ const mockedCourse: CourseResumeData = {
             },
         },
     ],
-};
+};*/
 
 const CoursesResume: React.FC = () => {
+
     const [ratingDialogMode, setRatingDialogMode] = useState<"create" | "edit" | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [courseResume, setCourseResume] = useState<CourseResumeData | null>(null);
+    const { id } = useParams();
+
+    const getCourseResume = async () => {
+
+        const response = await api.get(`/course/resume/${id}`);
+
+        setCourseResume(response?.data ? response.data : null);
+    };
+
+    useEffect(() => {
+
+        if (!courseResume) getCourseResume();
+
+        
+
+        return;
+
+    }, []);
+
+    console.log('RESUMO DO CURSO: ' + JSON.stringify(courseResume));
 
     const buildInitialFormValues = (): RatingFormValues => ({
-        materialQualityNote: mockedCourse.evaluations_by_user?.[0]?.notes.material_quality?.note ?? 3,
-        didaticsNote: mockedCourse.evaluations_by_user?.[0]?.notes.didatics?.note ?? 3,
-        teachingMethodologyNote: mockedCourse.evaluations_by_user?.[0]?.notes.teaching_methodology?.note ?? 3,
+        materialQualityNote: courseResume?.evaluations_by_user?.[0]?.notes.material_quality?.note ?? 3,
+        didaticsNote: courseResume?.evaluations_by_user?.[0]?.notes.didatics?.note ?? 3,
+        teachingMethodologyNote: courseResume?.evaluations_by_user?.[0]?.notes.teaching_methodology?.note ?? 3,
         commentary:
-            (mockedCourse.evaluations_by_user?.[0]?.notes.commentary?.comment ??
-                (typeof mockedCourse.evaluations_by_user?.[0]?.notes.commentary?.note === "string"
-                    ? String(mockedCourse.evaluations_by_user?.[0]?.notes.commentary?.note)
+            (courseResume?.evaluations_by_user?.[0]?.notes.commentary?.comment ??
+                (typeof courseResume?.evaluations_by_user?.[0]?.notes.commentary?.note === "string"
+                    ? String(courseResume.evaluations_by_user?.[0]?.notes.commentary?.note)
                     : "")) ?? "",
     });
 
     const [formValues, setFormValues] = useState<RatingFormValues>(() => buildInitialFormValues());
 
-    const registrationLabel = mockedCourse.registration_state === null
+    const registrationLabel = courseResume?.registration_state === null
         ? "MATRICULAR"
-        : mockedCourse.registration_state === "S"
+        : courseResume?.registration_state === "S"
             ? "CANCELAR MATRÍCULA"
             : null;
 
-    const isUserEnrolled = mockedCourse.registration_state === "S" || mockedCourse.registration_state === "F";
-    const userEvaluation = mockedCourse.evaluations_by_user?.[0] ?? null;
-    const teacherName = mockedCourse.teacher_full_name ?? "Professor não informado";
+    const isUserEnrolled = courseResume?.registration_state === "S" || courseResume?.registration_state === "F";
+    const userEvaluation = courseResume?.evaluations_by_user?.[0] ?? null;
+    const teacherName = courseResume?.teacher_full_name ?? "Professor não informado";
     const teacherInitials = teacherName
         .split(" ")
         .filter(Boolean)
@@ -162,10 +186,10 @@ const CoursesResume: React.FC = () => {
         key: EvaluationMetricKey;
         label: string;
     }> = [
-        { key: "material_quality", label: "Qualidade do Material" },
-        { key: "didatics", label: "Didática do Professor" },
-        { key: "teaching_methodology", label: "Metodologia de Ensino" },
-    ];
+            { key: "material_quality", label: "Qualidade do Material" },
+            { key: "didatics", label: "Didática do Professor" },
+            { key: "teaching_methodology", label: "Metodologia de Ensino" },
+        ];
 
     const handleOpenCreateDialog = () => {
         setFormValues({
@@ -196,7 +220,7 @@ const CoursesResume: React.FC = () => {
                 didaticsNote: formValues.didaticsNote,
                 teachingMethodologyNote: formValues.teachingMethodologyNote,
                 commentary: formValues.commentary,
-                id_course: mockedCourse.id_course,
+                id_course: courseResume?.id_course,
             };
             console.info("Criar avaliação", payload);
         } else if (ratingDialogMode === "edit" && userEvaluation) {
@@ -250,7 +274,7 @@ const CoursesResume: React.FC = () => {
     const renderRegistrationButton = () => {
         if (!registrationLabel) return null;
 
-        const colorTheme = mockedCourse.registration_state === "S" ? "outlined" : "gradient";
+        const colorTheme = courseResume?.registration_state === "S" ? "outlined" : "gradient";
 
         return (
             <SEGButton
@@ -267,34 +291,34 @@ const CoursesResume: React.FC = () => {
         {
             label: "ID do curso",
             icon: <FingerprintIcon fontSize="small" sx={{ color: colors.blue }} />,
-            value: mockedCourse.id_course,
+            value: courseResume?.id_course,
         },
         {
             label: "Professor responsável",
             icon: <PersonOutlineIcon fontSize="small" sx={{ color: colors.blue }} />,
-            value: mockedCourse.teacher_full_name ?? "Não informado",
+            value: courseResume?.teacher_full_name ?? "Não informado",
         },
         {
             label: "Categoria",
             icon: <CategoryIcon fontSize="small" sx={{ color: colors.blue }} />,
-            value: mockedCourse.category ?? "Não informado",
+            value: courseResume?.category ?? "Não informado",
         },
         {
             label: "Data de criação",
             icon: <CalendarMonthIcon fontSize="small" sx={{ color: colors.blue }} />,
-            value: dateFormat(mockedCourse.created_at),
+            value: dateFormat(courseResume?.created_at || new Date().toISOString()),
         },
         {
             label: "Quantidade de módulos",
             icon: <LayersIcon fontSize="small" sx={{ color: colors.blue }} />,
-            value: mockedCourse.modules_count,
+            value: courseResume?.modules_count,
         },
         {
             label: "Status da matrícula",
             icon: <EmojiEventsIcon fontSize="small" sx={{ color: colors.blue }} />,
-            value: mockedCourse.registration_state === null
+            value: courseResume?.registration_state === null
                 ? "Não matriculado"
-                : mockedCourse.registration_state === "S"
+                : courseResume?.registration_state === "S"
                     ? "Cursando"
                     : "Concluído",
         },
@@ -320,7 +344,7 @@ const CoursesResume: React.FC = () => {
                         <Grid item xs={12} md={7}>
                             <Stack spacing={3}>
                                 <Chip
-                                    label={`Dificuldade: ${mapDifficulty(mockedCourse.difficulty_level)}`}
+                                    label={`Dificuldade: ${mapDifficulty(courseResume?.difficulty_level || '')}`}
                                     sx={{
                                         alignSelf: "flex-start",
                                         bgcolor: "rgba(255,255,255,0.15)",
@@ -332,10 +356,7 @@ const CoursesResume: React.FC = () => {
                                     }}
                                 />
                                 <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: "0.6px" }}>
-                                    {mockedCourse.title}
-                                </Typography>
-                                <Typography variant="h6" sx={{ fontWeight: 400, opacity: 0.95 }}>
-                                    {mockedCourse.description}
+                                    {courseResume?.title}
                                 </Typography>
                                 <Paper
                                     elevation={0}
@@ -359,10 +380,10 @@ const CoursesResume: React.FC = () => {
                                         </Typography>
                                         <Stack direction="row" spacing={2} alignItems="flex-end">
                                             <Typography variant="h3" sx={{ fontWeight: 800, lineHeight: 1 }}>
-                                                {mockedCourse.overall_rating.avg?.toFixed(2) ?? "--"}
+                                                {courseResume?.overall_rating.avg?.toFixed(2) ?? ""}
                                             </Typography>
                                             <Rating
-                                                value={mockedCourse.overall_rating.avg ?? 0}
+                                                value={courseResume?.overall_rating.avg ?? 0}
                                                 precision={0.1}
                                                 readOnly
                                                 sx={{
@@ -374,10 +395,10 @@ const CoursesResume: React.FC = () => {
                                         </Stack>
                                     </Stack>
                                     <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                                        {mockedCourse.overall_rating.count > 0
-                                            ? `${mockedCourse.overall_rating.count} avaliação${mockedCourse.overall_rating.count > 1 ? "s" : ""} registradas`
-                                            : "Ainda sem avaliações registradas"}
-                                    </Typography>
+                                            {(courseResume?.overall_rating?.count ?? 0) > 0
+                                                ? `${courseResume?.overall_rating?.count ?? 0} ${(courseResume?.overall_rating?.count ?? 0) > 1 ? "avaliações registradas" : "avaliação registrada"}`
+                                                : ""}
+                                        </Typography>
                                 </Paper>
                                 <Stack direction={{ xs: "column", sm: "row" }} spacing={3} alignItems={{ xs: "flex-start", sm: "center" }}>
                                     <Stack direction="row" spacing={2} alignItems="center">
@@ -419,8 +440,8 @@ const CoursesResume: React.FC = () => {
                             >
                                 <Box
                                     component="img"
-                                    src={mockedCourse.link_thumbnail}
-                                    alt={`Thumb do curso ${mockedCourse.title}`}
+                                    src={courseResume?.link_thumbnail}
+                                    alt={`Thumb do curso ${courseResume?.title}`}
                                     sx={{
                                         width: "100%",
                                         height: { xs: 260, md: 320 },
@@ -451,7 +472,7 @@ const CoursesResume: React.FC = () => {
                                 Sobre o curso
                             </Typography>
                             <Typography variant="body1" sx={{ color: "#555", lineHeight: 1.7 }}>
-                                {mockedCourse.description}
+                                {courseResume?.description}
                             </Typography>
                             <Divider sx={{ my: 3 }} />
                             <Typography variant="caption" sx={{ color: colors.strongGray }}>
@@ -459,7 +480,7 @@ const CoursesResume: React.FC = () => {
                             </Typography>
                             <Typography
                                 component="a"
-                                href={mockedCourse.link_thumbnail}
+                                href={courseResume?.link_thumbnail}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 sx={{
@@ -471,7 +492,7 @@ const CoursesResume: React.FC = () => {
                                     fontWeight: 600,
                                 }}
                             >
-                                {mockedCourse.link_thumbnail}
+                                {courseResume?.link_thumbnail}
                             </Typography>
                         </Paper>
                     </Grid>
@@ -538,14 +559,14 @@ const CoursesResume: React.FC = () => {
                                 </Box>
                                 <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                                     {isUserEnrolled ? (
-                                        mockedCourse.user_rated ? (
+                                        courseResume.user_rated ? (
                                             <>
-                                                <SEGButton colorTheme="blue" sx={{ maxWidth: 240 }} onClick={handleOpenEditDialog}>
+                                                <SEGButton colorTheme="blue" sx={{ maxWidth: 240, maxHeight: 55 }} onClick={handleOpenEditDialog}>
                                                     Editar avaliação
                                                 </SEGButton>
                                                 <SEGButton
                                                     colorTheme="outlined"
-                                                    sx={{ maxWidth: 240, mb: 0 }}
+                                                    sx={{ maxWidth: 240, mb: 0, maxHeight: 55 }}
                                                     onClick={() => setDeleteDialogOpen(true)}
                                                 >
                                                     Excluir avaliação
@@ -566,9 +587,9 @@ const CoursesResume: React.FC = () => {
 
                             <Divider sx={{ my: 3 }} />
 
-                            {mockedCourse.evaluations_by_user && mockedCourse.evaluations_by_user.length > 0 ? (
+                            {courseResume?.evaluations_by_user && courseResume.evaluations_by_user.length > 0 ? (
                                 <Stack spacing={3}>
-                                    {mockedCourse.evaluations_by_user.map((evaluation) => (
+                                    {courseResume.evaluations_by_user.map((evaluation) => (
                                         <Paper
                                             key={`${evaluation.student_id}-${evaluation.last_avaliation_id}`}
                                             elevation={0}
