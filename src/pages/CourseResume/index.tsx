@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     Avatar,
     Box,
@@ -54,16 +54,20 @@ type EvaluationMetric = {
     id_avaliation: number;
 };
 
+interface CommentaryObject {
+    id_avaliation?: number;
+    comment?: string | null;
+    note?: number | string | null;
+    [key: string]: unknown;
+}
+
+type CommentaryValue = CommentaryObject | string | null | undefined;
+
 interface CourseEvaluationNotes {
     didatics?: EvaluationMetric;
     material_quality?: EvaluationMetric;
     teaching_methodology?: EvaluationMetric;
-    commentary?: {
-        id_avaliation: number;
-        comment?: string;
-        note?: number | string;
-        [key: string]: unknown;
-    };
+    commentary?: CommentaryValue;
 }
 
 interface CourseEvaluation {
@@ -72,6 +76,7 @@ interface CourseEvaluation {
     student_id: string;
     student_full_name: string;
     last_avaliation_id: number;
+    commentary?: CommentaryValue;
 }
 
 interface RatingFormValues {
@@ -125,6 +130,34 @@ interface RatingFormValues {
     ],
 };*/
 
+const isCommentaryObject = (value: CommentaryValue): value is CommentaryObject =>
+    typeof value === "object" && value !== null;
+
+const getCommentaryText = (value: CommentaryValue): string => {
+    if (isCommentaryObject(value)) {
+        if (typeof value.note === "string" && value.note.trim().length > 0) {
+            return value.note.trim();
+        }
+        if (typeof value.comment === "string" && value.comment.trim().length > 0) {
+            return value.comment.trim();
+        }
+    }
+
+    if (typeof value === "string") {
+        return value.trim();
+    }
+
+    return "";
+};
+
+const getCommentaryId = (value: CommentaryValue): number | undefined => {
+    if (isCommentaryObject(value) && typeof value.id_avaliation === "number") {
+        return value.id_avaliation;
+    }
+
+    return undefined;
+};
+
 const CoursesResume: React.FC = () => {
 
     const [ratingDialogMode, setRatingDialogMode] = useState<"create" | "edit" | null>(null);
@@ -132,34 +165,32 @@ const CoursesResume: React.FC = () => {
     const [courseResume, setCourseResume] = useState<CourseResumeData | null>(null);
     const { id } = useParams();
 
-    const getCourseResume = async () => {
+    const getCourseResume = useCallback(async () => {
+        if (!id) return;
 
-        const response = await api.get(`/course/resume/${id}`);
-
-        setCourseResume(response?.data ? response.data : null);
-    };
+        try {
+            const response = await api.get(`/course/resume/${id}`);
+            setCourseResume(response?.data ? response.data : null);
+        } catch (error) {
+            console.error("Erro ao carregar o resumo do curso", error);
+        }
+    }, [id]);
 
     useEffect(() => {
-
-        if (!courseResume) getCourseResume();
-
-        
-
-        return;
-
-    }, []);
-
-    console.log('RESUMO DO CURSO: ' + JSON.stringify(courseResume));
+        if (!courseResume) {
+            void getCourseResume();
+        }
+    }, [courseResume, getCourseResume]);
 
     const buildInitialFormValues = (): RatingFormValues => ({
         materialQualityNote: courseResume?.evaluations_by_user?.[0]?.notes.material_quality?.note ?? 3,
         didaticsNote: courseResume?.evaluations_by_user?.[0]?.notes.didatics?.note ?? 3,
         teachingMethodologyNote: courseResume?.evaluations_by_user?.[0]?.notes.teaching_methodology?.note ?? 3,
         commentary:
-            (courseResume?.evaluations_by_user?.[0]?.notes.commentary?.comment ??
-                (typeof courseResume?.evaluations_by_user?.[0]?.notes.commentary?.note === "string"
-                    ? String(courseResume.evaluations_by_user?.[0]?.notes.commentary?.note)
-                    : "")) ?? "",
+            getCommentaryText(
+                courseResume?.evaluations_by_user?.[0]?.commentary ??
+                courseResume?.evaluations_by_user?.[0]?.notes.commentary,
+            ) || "",
     });
 
     const [formValues, setFormValues] = useState<RatingFormValues>(() => buildInitialFormValues());
@@ -210,65 +241,156 @@ const CoursesResume: React.FC = () => {
         setRatingDialogMode(null);
     };
 
-    const handleSubmitRating = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        if (!ratingDialogMode) return;
-
-        if (ratingDialogMode === "create") {
-            const payload = {
-                materialQualityNote: formValues.materialQualityNote,
-                didaticsNote: formValues.didaticsNote,
-                teachingMethodologyNote: formValues.teachingMethodologyNote,
-                commentary: formValues.commentary,
-                id_course: courseResume?.id_course,
-            };
-            console.info("Criar avaliação", payload);
-        } else if (ratingDialogMode === "edit" && userEvaluation) {
-            const payload = {
-                materialQualityAvaliationId: userEvaluation.notes.material_quality?.id_avaliation,
-                materialQualityNote: formValues.materialQualityNote,
-                didaticsAvaliationId: userEvaluation.notes.didatics?.id_avaliation,
-                didaticsNote: formValues.didaticsNote,
-                teachingMethodologyAvaliationId: userEvaluation.notes.teaching_methodology?.id_avaliation,
-                teachingMethodologyNote: formValues.teachingMethodologyNote,
-                commentaryId: userEvaluation.notes.commentary?.id_avaliation,
-                commentary: formValues.commentary,
-            };
-            console.info("Atualizar avaliação", payload);
-        }
-
-        handleCloseRatingDialog();
+    type AvaliationPayloadItem = {
+        avaliation_type: EvaluationMetricKey;
+        note: number;
+        id_avaliation?: number;
     };
 
-    const handleConfirmDelete = () => {
-        if (!userEvaluation) {
+    const buildAvaliationsPayload = (): AvaliationPayloadItem[] => {
+        const noteByKey: Record<EvaluationMetricKey, number> = {
+            material_quality: formValues.materialQualityNote,
+            didatics: formValues.didaticsNote,
+            teaching_methodology: formValues.teachingMethodologyNote,
+        };
+
+        return evaluationCriteria
+            .map(({ key }) => {
+                const metric = userEvaluation?.notes[key];
+                const noteValue = noteByKey[key];
+
+                if (typeof noteValue !== "number") return null;
+
+                return {
+                    avaliation_type: key,
+                    note: noteValue,
+                    id_avaliation: metric?.id_avaliation,
+                };
+            })
+            .filter(Boolean) as AvaliationPayloadItem[];
+    };
+
+    const createCourseEvaluation = async (payload: {
+        id_course: string;
+        avaliations: AvaliationPayloadItem[];
+        commentary?: string;
+    }) => {
+        try {
+            await api.post("/course/avaliation", payload);
+            await getCourseResume();
+        } catch (error) {
+            console.error("Erro ao criar avaliação", error);
+            throw error;
+        }
+    };
+
+    const updateCourseEvaluation = async (payload: {
+        id_course: string;
+        avaliations: AvaliationPayloadItem[];
+        commentary?: { id_avaliation?: number; comment: string } | null;
+    }) => {
+        try {
+            await api.put("/course/avaliation", payload);
+            await getCourseResume();
+        } catch (error) {
+            console.error("Erro ao atualizar avaliação", error);
+            throw error;
+        }
+    };
+
+    const deleteCourseEvaluation = async (payload: {
+        id_course: string;
+        avaliations: Array<{ avaliation_type: string; delete_avaliation_id: number }>;
+    }) => {
+        try {
+            await api.delete("/course/avaliation", { data: payload });
+            await getCourseResume();
+        } catch (error) {
+            console.error("Erro ao excluir avaliação", error);
+            throw error;
+        }
+    };
+
+    const handleSubmitRating = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!ratingDialogMode || !courseResume) return;
+
+        const avaliations = buildAvaliationsPayload();
+        const trimmedCommentary = formValues.commentary.trim();
+
+        try {
+            if (ratingDialogMode === "create") {
+                await createCourseEvaluation({
+                    id_course: courseResume.id_course,
+                    avaliations: avaliations.map(({ avaliation_type, note }) => ({ avaliation_type, note })),
+                    commentary: trimmedCommentary || undefined,
+                });
+            } else if (ratingDialogMode === "edit" && userEvaluation) {
+                const commentarySource = userEvaluation.commentary ?? userEvaluation.notes.commentary;
+                const commentaryId = getCommentaryId(commentarySource);
+
+                await updateCourseEvaluation({
+                    id_course: courseResume.id_course,
+                    avaliations,
+                    commentary:
+                        commentaryId || trimmedCommentary
+                            ? {
+                                id_avaliation: commentaryId,
+                                comment: trimmedCommentary,
+                            }
+                            : null,
+                });
+            }
+        } catch (error) {
+            // Errors are logged inside each handler; nothing else to do here for now.
+        } finally {
+            handleCloseRatingDialog();
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!userEvaluation || !courseResume) {
             setDeleteDialogOpen(false);
             return;
         }
 
-        const payload = {
-            avaliations: [
-                userEvaluation.notes.didatics && {
-                    avaliation_type: "didatics" as const,
-                    delete_avaliation_id: userEvaluation.notes.didatics.id_avaliation,
-                },
-                userEvaluation.notes.material_quality && {
-                    avaliation_type: "material_quality" as const,
-                    delete_avaliation_id: userEvaluation.notes.material_quality.id_avaliation,
-                },
-                userEvaluation.notes.teaching_methodology && {
-                    avaliation_type: "teaching_methodology" as const,
-                    delete_avaliation_id: userEvaluation.notes.teaching_methodology.id_avaliation,
-                },
-                userEvaluation.notes.commentary && {
-                    avaliation_type: "commentary" as const,
-                    delete_avaliation_id: userEvaluation.notes.commentary.id_avaliation,
-                },
-            ].filter(Boolean) as Array<{ avaliation_type: string; delete_avaliation_id: number }>,
-        };
+        const avaliationsToDelete: Array<{ avaliation_type: string; delete_avaliation_id: number }> = [];
 
-        console.info("Excluir avaliação", payload);
-        setDeleteDialogOpen(false);
+        evaluationCriteria.forEach(({ key }) => {
+            const metric = userEvaluation.notes[key];
+            if (metric?.id_avaliation) {
+                avaliationsToDelete.push({
+                    avaliation_type: key,
+                    delete_avaliation_id: metric.id_avaliation,
+                });
+            }
+        });
+
+        const commentarySource = userEvaluation.commentary ?? userEvaluation.notes.commentary;
+        const commentaryId = getCommentaryId(commentarySource);
+
+        if (commentaryId) {
+            avaliationsToDelete.push({
+                avaliation_type: "commentary",
+                delete_avaliation_id: commentaryId,
+            });
+        }
+
+        if (avaliationsToDelete.length === 0) {
+            setDeleteDialogOpen(false);
+            return;
+        }
+
+        try {
+            await deleteCourseEvaluation({
+                id_course: courseResume.id_course,
+                avaliations: avaliationsToDelete,
+            });
+        } catch (error) {
+            // Error already logged in deleteCourseEvaluation
+        } finally {
+            setDeleteDialogOpen(false);
+        }
     };
 
     const renderRegistrationButton = () => {
@@ -471,7 +593,10 @@ const CoursesResume: React.FC = () => {
                             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                                 Sobre o curso
                             </Typography>
-                            <Typography variant="body1" sx={{ color: "#555", lineHeight: 1.7 }}>
+                            <Typography
+                                variant="body1"
+                                sx={{ color: "#555", lineHeight: 1.7, whiteSpace: "pre-line" }}
+                            >
                                 {courseResume?.description}
                             </Typography>
                             <Divider sx={{ my: 3 }} />
@@ -670,10 +795,9 @@ const CoursesResume: React.FC = () => {
                                             </Grid>
 
                                             {(() => {
-                                                const commentaryRaw = evaluation.notes.commentary;
-                                                const commentaryText = typeof commentaryRaw?.note === "string"
-                                                    ? commentaryRaw.note
-                                                    : commentaryRaw?.comment ?? "";
+                                                const commentaryText = getCommentaryText(
+                                                    evaluation.commentary ?? evaluation.notes.commentary,
+                                                );
                                                 if (!commentaryText) return null;
 
                                                 return (
@@ -681,7 +805,10 @@ const CoursesResume: React.FC = () => {
                                                         <Typography variant="overline" sx={{ color: colors.strongGray }}>
                                                             Comentário sobre o curso
                                                         </Typography>
-                                                        <Typography variant="body1" sx={{ mt: 1, lineHeight: 1.7, color: "#4b4b4b" }}>
+                                                        <Typography
+                                                            variant="body1"
+                                                            sx={{ mt: 1, lineHeight: 1.7, color: "#4b4b4b", whiteSpace: "pre-line" }}
+                                                        >
                                                             {commentaryText}
                                                         </Typography>
                                                     </Box>
