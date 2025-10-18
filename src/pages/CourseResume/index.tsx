@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     Avatar,
     Box,
@@ -179,6 +179,70 @@ const CoursesResume: React.FC = () => {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [courseResume, setCourseResume] = useState<CourseResumeData | null>(null);
     const { id } = useParams();
+    const descriptionPaperRef = useRef<HTMLDivElement | null>(null);
+    const descriptionTitleRef = useRef<HTMLHeadingElement | null>(null);
+    const generalInfoPaperRef = useRef<HTMLDivElement | null>(null);
+    const [descriptionContentMaxHeight, setDescriptionContentMaxHeight] = useState<number | null>(null);
+
+    const updateDescriptionContentHeight = useCallback(() => {
+        if (typeof window === "undefined") return;
+
+        const isMdUp = window.matchMedia("(min-width:900px)").matches;
+        if (!isMdUp) {
+            setDescriptionContentMaxHeight(null);
+            return;
+        }
+
+        const generalInfoElement = generalInfoPaperRef.current;
+        const descriptionPaperElement = descriptionPaperRef.current;
+        const descriptionTitleElement = descriptionTitleRef.current;
+
+        if (!generalInfoElement || !descriptionPaperElement) {
+            setDescriptionContentMaxHeight(null);
+            return;
+        }
+
+        const generalInfoHeight = generalInfoElement.offsetHeight;
+        const { paddingTop, paddingBottom } = window.getComputedStyle(descriptionPaperElement);
+        const verticalPadding = (parseFloat(paddingTop) || 0) + (parseFloat(paddingBottom) || 0);
+        let titleHeight = 0;
+
+        if (descriptionTitleElement) {
+            const { marginTop, marginBottom } = window.getComputedStyle(descriptionTitleElement);
+            titleHeight =
+                descriptionTitleElement.offsetHeight +
+                (parseFloat(marginTop) || 0) +
+                (parseFloat(marginBottom) || 0);
+        }
+
+        const availableHeight = generalInfoHeight - verticalPadding - titleHeight;
+
+        setDescriptionContentMaxHeight(availableHeight > 0 ? availableHeight : null);
+    }, []);
+
+    useEffect(() => {
+        updateDescriptionContentHeight();
+
+        if (typeof window === "undefined") return;
+
+        const handleResize = () => updateDescriptionContentHeight();
+        window.addEventListener("resize", handleResize);
+
+        const generalInfoElement = generalInfoPaperRef.current;
+        let resizeObserver: ResizeObserver | null = null;
+
+        if (generalInfoElement && typeof ResizeObserver !== "undefined") {
+            resizeObserver = new ResizeObserver(() => {
+                updateDescriptionContentHeight();
+            });
+            resizeObserver.observe(generalInfoElement);
+        }
+
+        return () => {
+            window.removeEventListener("resize", handleResize);
+            resizeObserver?.disconnect();
+        };
+    }, [updateDescriptionContentHeight, courseResume]);
 
     const sanitizeCourseResume = (data: CourseResumeApiResponse | null | undefined): CourseResumeData | null => {
         if (!data) return null;
@@ -651,7 +715,7 @@ const CoursesResume: React.FC = () => {
 
             <Container maxWidth="lg">
                 <Grid container spacing={4}>
-                    <Grid item xs={12} md={7}>
+                    <Grid item xs={12} md={7} sx={{ display: { md: "flex" } }}>
                         <Paper
                             elevation={0}
                             sx={{
@@ -659,16 +723,57 @@ const CoursesResume: React.FC = () => {
                                 p: { xs: 3, md: 4 },
                                 bgcolor: "#fff",
                                 boxShadow: "0 16px 40px rgba(93, 112, 246, 0.08)",
+                                display: "flex",
+                                flexDirection: "column",
                             }}
+                            ref={descriptionPaperRef}
                         >
-                            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                            <Typography
+                                variant="h6"
+                                sx={{ fontWeight: 700, mb: { xs: 2, md: 3 } }}
+                                ref={descriptionTitleRef}
+                            >
                                 Sobre o curso
                             </Typography>
-                            <Typography variant="body1" sx={{ color: "#555", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
-                                {courseResume?.description?.trim()
-                                    ? courseResume.description
-                                    : "Descrição não disponível."}
-                            </Typography>
+                            <Box
+                                sx={{
+                                    flex: 1,
+                                    overflowY: { xs: "visible", md: "auto" },
+                                    pr: { md: 1 },
+                                    scrollbarWidth: "thin",
+                                    scrollbarColor: `${colors.purple} transparent`,
+                                    "&::-webkit-scrollbar": {
+                                        width: 6,
+                                    },
+                                    "&::-webkit-scrollbar-track": {
+                                        backgroundColor: "transparent",
+                                        borderRadius: 999,
+                                    },
+                                    "&::-webkit-scrollbar-thumb": {
+                                        backgroundColor: colors.purple,
+                                        borderRadius: 999,
+                                    },
+                                    "&::-webkit-scrollbar-thumb:hover": {
+                                        backgroundColor: "#4c60e8",
+                                    },
+                                    ...(descriptionContentMaxHeight
+                                        ? { maxHeight: { md: `${descriptionContentMaxHeight}px` } }
+                                        : {}),
+                                }}
+                            >
+                                <Typography
+                                    variant="body1"
+                                    sx={{
+                                        color: "#555",
+                                        lineHeight: 1.7,
+                                        whiteSpace: "pre-wrap",
+                                    }}
+                                >
+                                    {courseResume?.description?.trim()
+                                        ? courseResume.description
+                                        : "Descrição não disponível."}
+                                </Typography>
+                            </Box>
 
                         </Paper>
                     </Grid>
@@ -681,6 +786,7 @@ const CoursesResume: React.FC = () => {
                                 bgcolor: "#fff",
                                 boxShadow: "0 16px 40px rgba(73, 160, 251, 0.12)",
                             }}
+                            ref={generalInfoPaperRef}
                         >
                             <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
                                 Informações gerais
