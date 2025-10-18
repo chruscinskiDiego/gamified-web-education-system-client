@@ -30,28 +30,9 @@ import { dateFormat } from "../../helpers/DateFormat";
 import { api } from "../../lib/axios";
 import { useParams } from "react-router-dom";
 
-interface CourseResumeData {
-    id_course: string;
-    title: string;
-    description: string;
-    link_thumbnail: string;
-    difficulty_level: string;
-    created_at: string;
-    registration_state: "S" | "F" | null;
-    teacher_full_name?: string | null;
-    category?: string | null;
-    modules_count: string;
-    overall_rating: {
-        avg: number | null;
-        count: number;
-    };
-    user_rated: boolean;
-    evaluations_by_user: CourseEvaluation[] | null;
-}
-
 type EvaluationMetric = {
-    note: number;
-    id_avaliation: number;
+    note: number | null;
+    id_avaliation: number | null;
 };
 
 interface CourseEvaluationNotes {
@@ -59,26 +40,79 @@ interface CourseEvaluationNotes {
     material_quality?: EvaluationMetric;
     teaching_methodology?: EvaluationMetric;
     commentary?: {
-        id_avaliation: number;
-        comment?: string;
-        note?: number | string;
+        id_avaliation: number | null;
+        comment?: string | null;
+        note?: number | string | null;
         [key: string]: unknown;
-    };
+    } | null;
 }
 
 interface CourseEvaluation {
     avg: number | null;
     notes: CourseEvaluationNotes;
-    student_id: string;
-    student_full_name: string;
-    last_avaliation_id: number;
+    student_id: string | null;
+    student_full_name: string | null;
+    last_avaliation_id: number | null;
 }
+
+interface CourseResumeData {
+    id_course: string | null;
+    title: string | null;
+    description: string | null;
+    link_thumbnail: string | null;
+    difficulty_level: string | null;
+    created_at: string | null;
+    registration_state: "S" | "F" | null;
+    teacher_full_name?: string | null;
+    category?: string | null;
+    modules_count: string | number | null;
+    overall_rating: {
+        avg: number | null;
+        count: number;
+    };
+    user_rated: boolean;
+    evaluations_by_user: CourseEvaluation[];
+}
+
+type CourseResumeApiResponse = Omit<CourseResumeData, "overall_rating" | "evaluations_by_user"> & {
+    overall_rating?: {
+        avg: number | null;
+        count: number | null;
+    } | null;
+    evaluations_by_user?: Array<CourseEvaluation | null> | null;
+};
 
 interface RatingFormValues {
     materialQualityNote: number;
     didaticsNote: number;
     teachingMethodologyNote: number;
     commentary: string;
+}
+
+interface CreateEvaluationPayload {
+    materialQualityNote: number;
+    didaticsNote: number;
+    teachingMethodologyNote: number;
+    commentary: string;
+    id_course: string;
+}
+
+interface UpdateEvaluationPayload {
+    materialQualityAvaliationId: number | null | undefined;
+    materialQualityNote: number;
+    didaticsAvaliationId: number | null | undefined;
+    didaticsNote: number;
+    teachingMethodologyAvaliationId: number | null | undefined;
+    teachingMethodologyNote: number;
+    commentaryId: number | null | undefined;
+    commentary: string;
+}
+
+interface DeleteEvaluationPayload {
+    avaliations: Array<{
+        avaliation_type: "didatics" | "material_quality" | "teaching_methodology" | "commentary";
+        delete_avaliation_id: number;
+    }>;
 }
 
 /*const courseResume: CourseResumeData = {
@@ -132,37 +166,99 @@ const CoursesResume: React.FC = () => {
     const [courseResume, setCourseResume] = useState<CourseResumeData | null>(null);
     const { id } = useParams();
 
+    const sanitizeCourseResume = (data: CourseResumeApiResponse | null | undefined): CourseResumeData | null => {
+        if (!data) return null;
+
+        const evaluations = Array.isArray(data.evaluations_by_user)
+            ? data.evaluations_by_user.filter((evaluation): evaluation is CourseEvaluation => Boolean(evaluation))
+            : [];
+
+        return {
+            id_course: data.id_course ?? null,
+            title: data.title ?? null,
+            description: data.description ?? null,
+            link_thumbnail: data.link_thumbnail ?? null,
+            difficulty_level: data.difficulty_level ?? null,
+            created_at: data.created_at ?? null,
+            registration_state: data.registration_state ?? null,
+            teacher_full_name: data.teacher_full_name ?? null,
+            category: data.category ?? null,
+            modules_count: data.modules_count ?? null,
+            overall_rating: {
+                avg: data.overall_rating?.avg ?? null,
+                count: data.overall_rating?.count ?? 0,
+            },
+            user_rated: Boolean(data.user_rated),
+            evaluations_by_user: evaluations.map((evaluation) => ({
+                avg: evaluation?.avg ?? null,
+                notes: evaluation?.notes ? {
+                    didatics: evaluation.notes.didatics ?? undefined,
+                    material_quality: evaluation.notes.material_quality ?? undefined,
+                    teaching_methodology: evaluation.notes.teaching_methodology ?? undefined,
+                    commentary: evaluation.notes.commentary ?? null,
+                } : {},
+                student_id: evaluation?.student_id ?? null,
+                student_full_name: evaluation?.student_full_name ?? null,
+                last_avaliation_id: evaluation?.last_avaliation_id ?? null,
+            })),
+        };
+    };
+
     const getCourseResume = async () => {
+        if (!id) return;
 
-        const response = await api.get(`/course/resume/${id}`);
-
-        setCourseResume(response?.data ? response.data : null);
+        try {
+            const response = await api.get<CourseResumeApiResponse>(`/course/resume/${id}`);
+            setCourseResume(sanitizeCourseResume(response?.data));
+        } catch (error) {
+            console.error("Erro ao buscar resumo do curso", error);
+            setCourseResume(null);
+        }
     };
 
     useEffect(() => {
+        getCourseResume();
+    }, [id]);
 
-        if (!courseResume) getCourseResume();
+    const createCourseEvaluation = async (payload: CreateEvaluationPayload) => {
+        await api.post("/course/avaliation", payload);
+    };
 
-        
+    const updateCourseEvaluation = async (payload: UpdateEvaluationPayload) => {
+        await api.put("/course/avaliation", payload);
+    };
 
-        return;
+    const deleteCourseEvaluation = async (payload: DeleteEvaluationPayload) => {
+        await api.delete("/course/avaliation", { data: payload });
+    };
 
-    }, []);
+    const buildInitialFormValues = (): RatingFormValues => {
+        const evaluation = courseResume?.evaluations_by_user?.[0];
+        const commentary = evaluation?.notes?.commentary;
 
-    console.log('RESUMO DO CURSO: ' + JSON.stringify(courseResume));
+        const trimmedComment = commentary?.comment?.trim();
 
-    const buildInitialFormValues = (): RatingFormValues => ({
-        materialQualityNote: courseResume?.evaluations_by_user?.[0]?.notes.material_quality?.note ?? 3,
-        didaticsNote: courseResume?.evaluations_by_user?.[0]?.notes.didatics?.note ?? 3,
-        teachingMethodologyNote: courseResume?.evaluations_by_user?.[0]?.notes.teaching_methodology?.note ?? 3,
-        commentary:
-            (courseResume?.evaluations_by_user?.[0]?.notes.commentary?.comment ??
-                (typeof courseResume?.evaluations_by_user?.[0]?.notes.commentary?.note === "string"
-                    ? String(courseResume.evaluations_by_user?.[0]?.notes.commentary?.note)
-                    : "")) ?? "",
-    });
+        return {
+            materialQualityNote: evaluation?.notes?.material_quality?.note ?? 3,
+            didaticsNote: evaluation?.notes?.didatics?.note ?? 3,
+            teachingMethodologyNote: evaluation?.notes?.teaching_methodology?.note ?? 3,
+            commentary:
+                (trimmedComment && trimmedComment.length > 0
+                    ? trimmedComment
+                    : typeof commentary?.note === "string"
+                        ? commentary.note
+                        : "") ?? "",
+        };
+    };
 
     const [formValues, setFormValues] = useState<RatingFormValues>(() => buildInitialFormValues());
+
+    useEffect(() => {
+        if (ratingDialogMode === "edit") {
+            setFormValues(buildInitialFormValues());
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [courseResume]);
 
     const registrationLabel = courseResume?.registration_state === null
         ? "MATRICULAR"
@@ -172,13 +268,18 @@ const CoursesResume: React.FC = () => {
 
     const isUserEnrolled = courseResume?.registration_state === "S" || courseResume?.registration_state === "F";
     const userEvaluation = courseResume?.evaluations_by_user?.[0] ?? null;
-    const teacherName = courseResume?.teacher_full_name ?? "Professor não informado";
+    const teacherNameRaw = courseResume?.teacher_full_name?.trim();
+    const teacherName = teacherNameRaw && teacherNameRaw.length > 0 ? teacherNameRaw : "Professor não informado";
     const teacherInitials = teacherName
         .split(" ")
         .filter(Boolean)
         .slice(0, 2)
         .map((n) => n[0]?.toUpperCase() ?? "")
         .join("") || "?";
+    const overallRatingAvg = courseResume?.overall_rating?.avg ?? null;
+    const overallRatingCount = courseResume?.overall_rating?.count ?? 0;
+    const thumbnailUrl = courseResume?.link_thumbnail?.trim() ?? "";
+    const hasThumbnail = thumbnailUrl.length > 0;
 
     type EvaluationMetricKey = "material_quality" | "didatics" | "teaching_methodology";
 
@@ -210,65 +311,81 @@ const CoursesResume: React.FC = () => {
         setRatingDialogMode(null);
     };
 
-    const handleSubmitRating = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmitRating = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!ratingDialogMode) return;
 
-        if (ratingDialogMode === "create") {
-            const payload = {
-                materialQualityNote: formValues.materialQualityNote,
-                didaticsNote: formValues.didaticsNote,
-                teachingMethodologyNote: formValues.teachingMethodologyNote,
-                commentary: formValues.commentary,
-                id_course: courseResume?.id_course,
-            };
-            console.info("Criar avaliação", payload);
-        } else if (ratingDialogMode === "edit" && userEvaluation) {
-            const payload = {
-                materialQualityAvaliationId: userEvaluation.notes.material_quality?.id_avaliation,
-                materialQualityNote: formValues.materialQualityNote,
-                didaticsAvaliationId: userEvaluation.notes.didatics?.id_avaliation,
-                didaticsNote: formValues.didaticsNote,
-                teachingMethodologyAvaliationId: userEvaluation.notes.teaching_methodology?.id_avaliation,
-                teachingMethodologyNote: formValues.teachingMethodologyNote,
-                commentaryId: userEvaluation.notes.commentary?.id_avaliation,
-                commentary: formValues.commentary,
-            };
-            console.info("Atualizar avaliação", payload);
-        }
+        try {
+            if (ratingDialogMode === "create" && courseResume?.id_course) {
+                const payload: CreateEvaluationPayload = {
+                    materialQualityNote: formValues.materialQualityNote,
+                    didaticsNote: formValues.didaticsNote,
+                    teachingMethodologyNote: formValues.teachingMethodologyNote,
+                    commentary: formValues.commentary,
+                    id_course: courseResume.id_course,
+                };
 
-        handleCloseRatingDialog();
+                await createCourseEvaluation(payload);
+            } else if (ratingDialogMode === "edit" && userEvaluation) {
+                const payload: UpdateEvaluationPayload = {
+                    materialQualityAvaliationId: userEvaluation.notes.material_quality?.id_avaliation ?? null,
+                    materialQualityNote: formValues.materialQualityNote,
+                    didaticsAvaliationId: userEvaluation.notes.didatics?.id_avaliation ?? null,
+                    didaticsNote: formValues.didaticsNote,
+                    teachingMethodologyAvaliationId: userEvaluation.notes.teaching_methodology?.id_avaliation ?? null,
+                    teachingMethodologyNote: formValues.teachingMethodologyNote,
+                    commentaryId: userEvaluation.notes.commentary?.id_avaliation ?? null,
+                    commentary: formValues.commentary,
+                };
+
+                await updateCourseEvaluation(payload);
+            }
+
+            await getCourseResume();
+        } catch (error) {
+            console.error("Erro ao enviar avaliação do curso", error);
+        } finally {
+            handleCloseRatingDialog();
+        }
     };
 
-    const handleConfirmDelete = () => {
+    const handleConfirmDelete = async () => {
         if (!userEvaluation) {
             setDeleteDialogOpen(false);
             return;
         }
 
-        const payload = {
+        const payload: DeleteEvaluationPayload = {
             avaliations: [
-                userEvaluation.notes.didatics && {
+                userEvaluation.notes.didatics?.id_avaliation != null && {
                     avaliation_type: "didatics" as const,
                     delete_avaliation_id: userEvaluation.notes.didatics.id_avaliation,
                 },
-                userEvaluation.notes.material_quality && {
+                userEvaluation.notes.material_quality?.id_avaliation != null && {
                     avaliation_type: "material_quality" as const,
                     delete_avaliation_id: userEvaluation.notes.material_quality.id_avaliation,
                 },
-                userEvaluation.notes.teaching_methodology && {
+                userEvaluation.notes.teaching_methodology?.id_avaliation != null && {
                     avaliation_type: "teaching_methodology" as const,
                     delete_avaliation_id: userEvaluation.notes.teaching_methodology.id_avaliation,
                 },
-                userEvaluation.notes.commentary && {
+                userEvaluation.notes.commentary?.id_avaliation != null && {
                     avaliation_type: "commentary" as const,
                     delete_avaliation_id: userEvaluation.notes.commentary.id_avaliation,
                 },
-            ].filter(Boolean) as Array<{ avaliation_type: string; delete_avaliation_id: number }>,
+            ].filter((avaliation): avaliation is DeleteEvaluationPayload["avaliations"][number] => Boolean(avaliation)),
         };
 
-        console.info("Excluir avaliação", payload);
-        setDeleteDialogOpen(false);
+        try {
+            if (payload.avaliations.length > 0) {
+                await deleteCourseEvaluation(payload);
+                await getCourseResume();
+            }
+        } catch (error) {
+            console.error("Erro ao excluir avaliação do curso", error);
+        } finally {
+            setDeleteDialogOpen(false);
+        }
     };
 
     const renderRegistrationButton = () => {
@@ -287,31 +404,37 @@ const CoursesResume: React.FC = () => {
         );
     };
 
+    const resolveDetailValue = (value: string | number | null | undefined) => {
+        if (value === null || value === undefined) return "Não informado";
+        if (typeof value === "string" && value.trim().length === 0) return "Não informado";
+        return value;
+    };
+
     const detailItems = [
         {
             label: "ID do curso",
             icon: <FingerprintIcon fontSize="small" sx={{ color: colors.blue }} />,
-            value: courseResume?.id_course,
+            value: resolveDetailValue(courseResume?.id_course ?? null),
         },
         {
             label: "Professor responsável",
             icon: <PersonOutlineIcon fontSize="small" sx={{ color: colors.blue }} />,
-            value: courseResume?.teacher_full_name ?? "Não informado",
+            value: resolveDetailValue(courseResume?.teacher_full_name ?? null),
         },
         {
             label: "Categoria",
             icon: <CategoryIcon fontSize="small" sx={{ color: colors.blue }} />,
-            value: courseResume?.category ?? "Não informado",
+            value: resolveDetailValue(courseResume?.category ?? null),
         },
         {
             label: "Data de criação",
             icon: <CalendarMonthIcon fontSize="small" sx={{ color: colors.blue }} />,
-            value: dateFormat(courseResume?.created_at || new Date().toISOString()),
+            value: courseResume?.created_at ? dateFormat(courseResume.created_at) : "Não informado",
         },
         {
             label: "Quantidade de módulos",
             icon: <LayersIcon fontSize="small" sx={{ color: colors.blue }} />,
-            value: courseResume?.modules_count,
+            value: resolveDetailValue(courseResume?.modules_count ?? null),
         },
         {
             label: "Status da matrícula",
@@ -320,7 +443,9 @@ const CoursesResume: React.FC = () => {
                 ? "Não matriculado"
                 : courseResume?.registration_state === "S"
                     ? "Cursando"
-                    : "Concluído",
+                    : courseResume?.registration_state === "F"
+                        ? "Concluído"
+                        : "Não informado",
         },
     ];
 
@@ -344,7 +469,7 @@ const CoursesResume: React.FC = () => {
                         <Grid item xs={12} md={7}>
                             <Stack spacing={3}>
                                 <Chip
-                                    label={`Dificuldade: ${mapDifficulty(courseResume?.difficulty_level || '')}`}
+                                    label={`Dificuldade: ${mapDifficulty(courseResume?.difficulty_level ?? "")}`}
                                     sx={{
                                         alignSelf: "flex-start",
                                         bgcolor: "rgba(255,255,255,0.15)",
@@ -356,7 +481,9 @@ const CoursesResume: React.FC = () => {
                                     }}
                                 />
                                 <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: "0.6px" }}>
-                                    {courseResume?.title}
+                                    {courseResume?.title?.trim() && courseResume.title.trim().length > 0
+                                        ? courseResume.title
+                                        : "Curso sem título"}
                                 </Typography>
                                 <Paper
                                     elevation={0}
@@ -380,10 +507,12 @@ const CoursesResume: React.FC = () => {
                                         </Typography>
                                         <Stack direction="row" spacing={2} alignItems="flex-end">
                                             <Typography variant="h3" sx={{ fontWeight: 800, lineHeight: 1 }}>
-                                                {courseResume?.overall_rating.avg?.toFixed(2) ?? ""}
+                                                {overallRatingAvg !== null && overallRatingAvg !== undefined
+                                                    ? overallRatingAvg.toFixed(2)
+                                                    : "--"}
                                             </Typography>
                                             <Rating
-                                                value={courseResume?.overall_rating.avg ?? 0}
+                                                value={overallRatingAvg ?? 0}
                                                 precision={0.1}
                                                 readOnly
                                                 sx={{
@@ -395,9 +524,9 @@ const CoursesResume: React.FC = () => {
                                         </Stack>
                                     </Stack>
                                     <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                                            {(courseResume?.overall_rating?.count ?? 0) > 0
-                                                ? `${courseResume?.overall_rating?.count ?? 0} ${(courseResume?.overall_rating?.count ?? 0) > 1 ? "avaliações registradas" : "avaliação registrada"}`
-                                                : ""}
+                                            {overallRatingCount > 0
+                                                ? `${overallRatingCount} ${overallRatingCount > 1 ? "avaliações registradas" : "avaliação registrada"}`
+                                                : "Ainda não há avaliações registradas"}
                                         </Typography>
                                 </Paper>
                                 <Stack direction={{ xs: "column", sm: "row" }} spacing={3} alignItems={{ xs: "flex-start", sm: "center" }}>
@@ -438,18 +567,38 @@ const CoursesResume: React.FC = () => {
                                     backdropFilter: "blur(10px)",
                                 }}
                             >
-                                <Box
-                                    component="img"
-                                    src={courseResume?.link_thumbnail}
-                                    alt={`Thumb do curso ${courseResume?.title}`}
-                                    sx={{
-                                        width: "100%",
-                                        height: { xs: 260, md: 320 },
-                                        objectFit: "cover",
-                                        borderRadius: 4,
-                                        boxShadow: "0 24px 45px rgba(0,0,0,0.25)",
-                                    }}
-                                />
+                                {hasThumbnail ? (
+                                    <Box
+                                        component="img"
+                                        src={thumbnailUrl}
+                                        alt={`Thumb do curso ${courseResume?.title ?? "sem título"}`}
+                                        sx={{
+                                            width: "100%",
+                                            height: { xs: 260, md: 320 },
+                                            objectFit: "cover",
+                                            borderRadius: 4,
+                                            boxShadow: "0 24px 45px rgba(0,0,0,0.25)",
+                                        }}
+                                    />
+                                ) : (
+                                    <Box
+                                        sx={{
+                                            width: "100%",
+                                            height: { xs: 260, md: 320 },
+                                            borderRadius: 4,
+                                            background: "rgba(255,255,255,0.08)",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            color: "#fff",
+                                            fontWeight: 600,
+                                            textAlign: "center",
+                                            px: 3,
+                                        }}
+                                    >
+                                        Thumbnail não disponível
+                                    </Box>
+                                )}
                             </Paper>
                         </Grid>
                     </Grid>
@@ -471,29 +620,37 @@ const CoursesResume: React.FC = () => {
                             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                                 Sobre o curso
                             </Typography>
-                            <Typography variant="body1" sx={{ color: "#555", lineHeight: 1.7 }}>
-                                {courseResume?.description}
+                            <Typography variant="body1" sx={{ color: "#555", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+                                {courseResume?.description?.trim()
+                                    ? courseResume.description
+                                    : "Descrição não disponível."}
                             </Typography>
                             <Divider sx={{ my: 3 }} />
                             <Typography variant="caption" sx={{ color: colors.strongGray }}>
                                 Link da thumbnail
                             </Typography>
-                            <Typography
-                                component="a"
-                                href={courseResume?.link_thumbnail}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                sx={{
-                                    display: "inline-block",
-                                    mt: 1,
-                                    color: colors.purple,
-                                    textDecoration: "none",
-                                    wordBreak: "break-all",
-                                    fontWeight: 600,
-                                }}
-                            >
-                                {courseResume?.link_thumbnail}
-                            </Typography>
+                            {hasThumbnail ? (
+                                <Typography
+                                    component="a"
+                                    href={thumbnailUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    sx={{
+                                        display: "inline-block",
+                                        mt: 1,
+                                        color: colors.purple,
+                                        textDecoration: "none",
+                                        wordBreak: "break-all",
+                                        fontWeight: 600,
+                                    }}
+                                >
+                                    {thumbnailUrl}
+                                </Typography>
+                            ) : (
+                                <Typography variant="body2" sx={{ mt: 1, color: colors.strongGray }}>
+                                    Nenhum link de thumbnail informado.
+                                </Typography>
+                            )}
                         </Paper>
                     </Grid>
                     <Grid item xs={12} md={5}>
@@ -559,7 +716,7 @@ const CoursesResume: React.FC = () => {
                                 </Box>
                                 <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                                     {isUserEnrolled ? (
-                                        courseResume.user_rated ? (
+                                        courseResume?.user_rated ? (
                                             <>
                                                 <SEGButton colorTheme="blue" sx={{ maxWidth: 240, maxHeight: 55 }} onClick={handleOpenEditDialog}>
                                                     Editar avaliação
@@ -589,106 +746,120 @@ const CoursesResume: React.FC = () => {
 
                             {courseResume?.evaluations_by_user && courseResume.evaluations_by_user.length > 0 ? (
                                 <Stack spacing={3}>
-                                    {courseResume.evaluations_by_user.map((evaluation) => (
-                                        <Paper
-                                            key={`${evaluation.student_id}-${evaluation.last_avaliation_id}`}
-                                            elevation={0}
-                                            sx={{
-                                                borderRadius: 3,
-                                                p: { xs: 2.5, md: 3 },
-                                                bgcolor: "#f9f9ff",
-                                                border: "1px solid rgba(93,112,246,0.08)",
-                                            }}
-                                        >
-                                            <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={2}>
-                                                <Stack direction="row" spacing={2} alignItems="center">
-                                                    <Avatar sx={{ bgcolor: colors.blue, color: "#fff" }}>
-                                                        {evaluation.student_full_name
-                                                            .split(" ")
-                                                            .slice(0, 2)
-                                                            .map((n) => n[0])
-                                                            .join("")}
-                                                    </Avatar>
-                                                    <Box>
-                                                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                                                            {evaluation.student_full_name}
-                                                        </Typography>
-                                                        <Stack direction="row" spacing={1} alignItems="center">
-                                                            <Rating
-                                                                value={evaluation.avg ?? 0}
-                                                                precision={0.1}
-                                                                readOnly
-                                                                size="small"
-                                                            />
-                                                            <Typography variant="body2" sx={{ color: colors.strongGray }}>
-                                                                {evaluation.avg ? evaluation.avg.toFixed(2) : "--"}
+                                    {courseResume.evaluations_by_user.map((evaluation, index) => {
+                                        const studentName = evaluation.student_full_name?.trim() ?? "Estudante";
+                                        const studentInitials = studentName
+                                            .split(" ")
+                                            .filter(Boolean)
+                                            .slice(0, 2)
+                                            .map((n) => n[0]?.toUpperCase() ?? "")
+                                            .join("") || "?";
+                                        const evaluationAverage = evaluation.avg ?? null;
+                                        const chipLabel = evaluation.last_avaliation_id != null
+                                            ? `Última avaliação #${evaluation.last_avaliation_id}`
+                                            : "Última avaliação";
+
+                                        return (
+                                            <Paper
+                                                key={`${evaluation.student_id ?? "student"}-${evaluation.last_avaliation_id ?? index}`}
+                                                elevation={0}
+                                                sx={{
+                                                    borderRadius: 3,
+                                                    p: { xs: 2.5, md: 3 },
+                                                    bgcolor: "#f9f9ff",
+                                                    border: "1px solid rgba(93,112,246,0.08)",
+                                                }}
+                                            >
+                                                <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={2}>
+                                                    <Stack direction="row" spacing={2} alignItems="center">
+                                                        <Avatar sx={{ bgcolor: colors.blue, color: "#fff" }}>
+                                                            {studentInitials}
+                                                        </Avatar>
+                                                        <Box>
+                                                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                                                                {studentName}
                                                             </Typography>
-                                                        </Stack>
-                                                    </Box>
-                                                </Stack>
-                                                <Chip
-                                                    label={`Última avaliação #${evaluation.last_avaliation_id}`}
-                                                    sx={{
-                                                        alignSelf: { xs: "flex-start", sm: "center" },
-                                                        bgcolor: "rgba(93,112,246,0.12)",
-                                                        color: colors.blue,
-                                                        fontWeight: 600,
-                                                    }}
-                                                />
-                                            </Stack>
-
-                                            <Divider sx={{ my: 2.5 }} />
-
-                                            <Grid container spacing={2.5}>
-                                                {evaluationCriteria.map(({ key, label }) => {
-                                                    const metric = evaluation.notes[key];
-                                                    if (!metric) return null;
-                                                    return (
-                                                        <Grid item xs={12} md={4} key={key as string}>
-                                                            <Paper
-                                                                elevation={0}
-                                                                sx={{
-                                                                    p: 2,
-                                                                    borderRadius: 2.5,
-                                                                    bgcolor: "#fff",
-                                                                    border: "1px solid rgba(93,112,246,0.06)",
-                                                                }}
-                                                            >
-                                                                <Typography variant="overline" sx={{ color: colors.strongGray }}>
-                                                                    {label}
+                                                            <Stack direction="row" spacing={1} alignItems="center">
+                                                                <Rating
+                                                                    value={evaluationAverage ?? 0}
+                                                                    precision={0.1}
+                                                                    readOnly
+                                                                    size="small"
+                                                                />
+                                                                <Typography variant="body2" sx={{ color: colors.strongGray }}>
+                                                                    {evaluationAverage !== null && evaluationAverage !== undefined
+                                                                        ? evaluationAverage.toFixed(2)
+                                                                        : "--"}
                                                                 </Typography>
-                                                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
-                                                                    <Rating value={metric.note} readOnly size="small" />
-                                                                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                                                                        {metric.note.toFixed(1)}
+                                                            </Stack>
+                                                        </Box>
+                                                    </Stack>
+                                                    <Chip
+                                                        label={chipLabel}
+                                                        sx={{
+                                                            alignSelf: { xs: "flex-start", sm: "center" },
+                                                            bgcolor: "rgba(93,112,246,0.12)",
+                                                            color: colors.blue,
+                                                            fontWeight: 600,
+                                                        }}
+                                                    />
+                                                </Stack>
+
+                                                <Divider sx={{ my: 2.5 }} />
+
+                                                <Grid container spacing={2.5}>
+                                                    {evaluationCriteria.map(({ key, label }) => {
+                                                        const metric = evaluation.notes?.[key];
+                                                        if (!metric || metric.note == null) return null;
+                                                        return (
+                                                            <Grid item xs={12} md={4} key={key as string}>
+                                                                <Paper
+                                                                    elevation={0}
+                                                                    sx={{
+                                                                        p: 2,
+                                                                        borderRadius: 2.5,
+                                                                        bgcolor: "#fff",
+                                                                        border: "1px solid rgba(93,112,246,0.06)",
+                                                                    }}
+                                                                >
+                                                                    <Typography variant="overline" sx={{ color: colors.strongGray }}>
+                                                                        {label}
                                                                     </Typography>
-                                                                </Stack>
-                                                            </Paper>
-                                                        </Grid>
+                                                                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+                                                                        <Rating value={metric.note ?? 0} readOnly size="small" />
+                                                                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                                                                            {(metric.note ?? 0).toFixed(1)}
+                                                                        </Typography>
+                                                                    </Stack>
+                                                                </Paper>
+                                                            </Grid>
+                                                        );
+                                                    })}
+                                                </Grid>
+
+                                                {(() => {
+                                                    const commentaryRaw = evaluation.notes?.commentary;
+                                                    const commentText = commentaryRaw?.comment?.trim() ?? "";
+                                                    const commentaryNoteText = typeof commentaryRaw?.note === "string"
+                                                        ? commentaryRaw.note.trim()
+                                                        : "";
+                                                    const commentaryText = commentText || commentaryNoteText;
+                                                    if (!commentaryText) return null;
+
+                                                    return (
+                                                        <Box sx={{ mt: 3 }}>
+                                                            <Typography variant="overline" sx={{ color: colors.strongGray }}>
+                                                                Comentário sobre o curso
+                                                            </Typography>
+                                                            <Typography variant="body1" sx={{ mt: 1, lineHeight: 1.7, color: "#4b4b4b" }}>
+                                                                {commentaryText}
+                                                            </Typography>
+                                                        </Box>
                                                     );
-                                                })}
-                                            </Grid>
-
-                                            {(() => {
-                                                const commentaryRaw = evaluation.notes.commentary;
-                                                const commentaryText = typeof commentaryRaw?.note === "string"
-                                                    ? commentaryRaw.note
-                                                    : commentaryRaw?.comment ?? "";
-                                                if (!commentaryText) return null;
-
-                                                return (
-                                                    <Box sx={{ mt: 3 }}>
-                                                        <Typography variant="overline" sx={{ color: colors.strongGray }}>
-                                                            Comentário sobre o curso
-                                                        </Typography>
-                                                        <Typography variant="body1" sx={{ mt: 1, lineHeight: 1.7, color: "#4b4b4b" }}>
-                                                            {commentaryText}
-                                                        </Typography>
-                                                    </Box>
-                                                );
-                                            })()}
-                                        </Paper>
-                                    ))}
+                                                })()}
+                                            </Paper>
+                                        );
+                                    })}
                                 </Stack>
                             ) : (
                                 <Box
