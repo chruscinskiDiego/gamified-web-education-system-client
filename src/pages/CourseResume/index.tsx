@@ -55,6 +55,7 @@ interface CourseEvaluation {
     commentary?: CourseEvaluationCommentary | null;
     student_id: string | null;
     student_full_name: string | null;
+    student_profile_picture: string | null;
     last_avaliation_id: number | null;
 }
 
@@ -129,50 +130,6 @@ interface DeleteEvaluationPayload {
     }>;
 }
 
-/*const courseResume: CourseResumeData = {
-    id_course: "26e22b72-d358-459e-b209-ce57912df142",
-    title: "Fund. de Prog.",
-    description: "Um curso muito legal e interativo sobre code",
-    link_thumbnail: "https://gamified-web-education-system-server.s3.sa-east-1.amazonaws.com//user-profile-pictures/20c55048-111a-45cf-b40a-24c34ef80579",
-    difficulty_level: "E",
-    created_at: "2025-10-01T15:15:50.062Z",
-    registration_state: "S",
-    teacher_full_name: "Diego Chruscinski de Souza",
-    category: "Aulas do Jaime",
-    modules_count: "12",
-    overall_rating: {
-        avg: 3.67,
-        count: 3,
-    },
-    user_rated: true,
-    evaluations_by_user: [
-        {
-            avg: 3.67,
-            student_id: "f975ed4e-803f-4fe3-8482-0aeb587163ad",
-            student_full_name: "Professor Diego Chruscinski de Souza",
-            last_avaliation_id: 9,
-            notes: {
-                didatics: {
-                    note: 5,
-                    id_avaliation: 5,
-                },
-                material_quality: {
-                    note: 1,
-                    id_avaliation: 9,
-                },
-                teaching_methodology: {
-                    note: 5,
-                    id_avaliation: 5,
-                },
-                commentary: {
-                    id_avaliation: 7,
-                    comment: "Curso muito bom!",
-                },
-            },
-        },
-    ],
-};*/
-
 const CoursesResume: React.FC = () => {
 
     const [ratingDialogMode, setRatingDialogMode] = useState<"create" | "edit" | null>(null);
@@ -227,6 +184,7 @@ const CoursesResume: React.FC = () => {
                     commentary,
                     student_id: evaluation?.student_id ?? null,
                     student_full_name: evaluation?.student_full_name ?? null,
+                    student_profile_picture: evaluation?.student_profile_picture ?? null,
                     last_avaliation_id: evaluation?.last_avaliation_id ?? null,
                 };
             }),
@@ -300,12 +258,6 @@ const CoursesResume: React.FC = () => {
     const teacherNameRaw = courseResume?.teacher_full_name?.trim();
     const teacherProfilePicture = courseResume?.teacher_profile_picture?.trim() || null;
     const teacherName = teacherNameRaw && teacherNameRaw.length > 0 ? teacherNameRaw : "Professor não informado";
-    const teacherInitials = teacherName
-        .split(" ")
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((n) => n[0]?.toUpperCase() ?? "")
-        .join("") || "?";
     const overallRatingAvg = courseResume?.overall_rating?.avg ?? null;
     const overallRatingCount = courseResume?.overall_rating?.count ?? 0;
     const thumbnailUrl = courseResume?.link_thumbnail?.trim() ?? "";
@@ -424,16 +376,31 @@ const CoursesResume: React.FC = () => {
     const renderRegistrationButton = () => {
         if (!registrationLabel) return null;
 
-        const colorTheme = courseResume?.registration_state === "S" ? "purple" : "gradient";
+        const colorTheme = courseResume?.registration_state === "S" ? "purple" : "white";
 
         return (
-            <SEGButton
-                colorTheme={colorTheme}
-                onClick={() => console.info(`${registrationLabel} clicado`)}
-                sx={{ maxWidth: { xs: "100%", sm: 260 } }}
-            >
-                {registrationLabel}
-            </SEGButton>
+            <>
+                <SEGButton
+                    colorTheme={colorTheme}
+                    onClick={() => console.info(`${registrationLabel} clicado`)}
+                    sx={{ maxWidth: { xs: "100%", sm: 320 } }}
+                >
+                    {registrationLabel}
+                </SEGButton>
+
+                {courseResume?.registration_state === 'S' && (
+                    <SEGButton
+                        colorTheme="white"
+                        onClick={() => console.info(`${registrationLabel} clicado`)}
+                        sx={{ maxWidth: { xs: "100%", sm: 320 } }}
+                    >
+                        Ir para o curso
+                    </SEGButton>
+                )
+
+                }
+
+            </>
 
         );
     };
@@ -482,6 +449,8 @@ const CoursesResume: React.FC = () => {
                         : "Não informado",
         },
     ];
+
+    console.log('resumo ' + JSON.stringify(courseResume?.teacher_profile_picture))
 
     return (
         <Box sx={{ backgroundColor: "#f5f7fb", minHeight: "calc(100vh - 64px)", pb: 8 }}>
@@ -566,25 +535,17 @@ const CoursesResume: React.FC = () => {
                                 <Stack direction={{ xs: "column", sm: "row" }} spacing={3} alignItems={{ xs: "flex-start", sm: "center" }}>
                                     <Stack direction="row" spacing={2} alignItems="center">
                                         <Avatar
-                                            src={teacherProfilePicture || undefined}
-                                            alt={teacherName}
+                                            src={teacherProfilePicture ?? undefined}
+                                            alt="Usuário"
                                             sx={{
-                                                bgcolor: "rgba(255,255,255,0.2)",
-                                                color: "#fff",
-                                                width: 56,
-                                                height: 56,
-                                                fontWeight: 700,
-                                            }}
-                                            imgProps={{
-                                                referrerPolicy: "no-referrer",
-                                                crossOrigin: "anonymous",
-                                                onError: (e) => {
-                                                    // Se a imagem falhar, limpa o src para renderizar o fallback (iniciais)
-                                                    (e.currentTarget as HTMLImageElement).src = "";
-                                                },
+                                                width: { xs: 38, sm: 42, md: 44 },
+                                                height: { xs: 38, sm: 42, md: 44 },
+                                                bgcolor: "#fff",
+                                                color: "#000",
+                                                boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
                                             }}
                                         >
-                                            {teacherInitials}
+                                            {!teacherProfilePicture && <PersonOutlineIcon />}
                                         </Avatar>
 
                                         <Box>
@@ -596,6 +557,9 @@ const CoursesResume: React.FC = () => {
                                             </Typography>
                                         </Box>
                                     </Stack>
+
+                                </Stack>
+                                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "flex-start", sm: "center" }}>
                                     {renderRegistrationButton()}
                                 </Stack>
                             </Stack>
@@ -768,16 +732,9 @@ const CoursesResume: React.FC = () => {
                                 <Stack spacing={3}>
                                     {courseResume.evaluations_by_user.map((evaluation, index) => {
                                         const studentName = evaluation.student_full_name?.trim() ?? "Estudante";
-                                        const studentInitials = studentName
-                                            .split(" ")
-                                            .filter(Boolean)
-                                            .slice(0, 2)
-                                            .map((n) => n[0]?.toUpperCase() ?? "")
-                                            .join("") || "?";
+                                        const studentProfilePicture = evaluation.student_profile_picture;
+
                                         const evaluationAverage = evaluation.avg ?? null;
-                                        const chipLabel = evaluation.last_avaliation_id != null
-                                            ? `Última avaliação #${evaluation.last_avaliation_id}`
-                                            : "Última avaliação";
 
                                         return (
                                             <Paper
@@ -792,8 +749,18 @@ const CoursesResume: React.FC = () => {
                                             >
                                                 <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={2}>
                                                     <Stack direction="row" spacing={2} alignItems="center">
-                                                        <Avatar sx={{ bgcolor: colors.blue, color: "#fff" }}>
-                                                            {studentInitials}
+                                                        <Avatar
+                                                            src={studentProfilePicture ?? undefined}
+                                                            alt="Usuário"
+                                                            sx={{
+                                                                width: { xs: 38, sm: 42, md: 44 },
+                                                                height: { xs: 38, sm: 42, md: 44 },
+                                                                bgcolor: "#fff",
+                                                                color: "#000",
+                                                                boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                                                            }}
+                                                        >
+                                                            {!teacherProfilePicture && <PersonOutlineIcon />}
                                                         </Avatar>
                                                         <Box>
                                                             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -814,15 +781,6 @@ const CoursesResume: React.FC = () => {
                                                             </Stack>
                                                         </Box>
                                                     </Stack>
-                                                    <Chip
-                                                        label={chipLabel}
-                                                        sx={{
-                                                            alignSelf: { xs: "flex-start", sm: "center" },
-                                                            bgcolor: "rgba(93,112,246,0.12)",
-                                                            color: colors.blue,
-                                                            fontWeight: 600,
-                                                        }}
-                                                    />
                                                 </Stack>
 
                                                 <Divider sx={{ my: 2.5 }} />
