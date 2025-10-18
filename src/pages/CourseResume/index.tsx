@@ -651,7 +651,7 @@ const CoursesResume: React.FC = () => {
 
             <Container maxWidth="lg">
                 <Grid container spacing={4}>
-                    <Grid item xs={12} md={7}>
+                    <Grid item xs={12} md={7} sx={{ display: "flex" }}>
                         <Paper
                             elevation={0}
                             sx={{
@@ -659,20 +659,38 @@ const CoursesResume: React.FC = () => {
                                 p: { xs: 3, md: 4 },
                                 bgcolor: "#fff",
                                 boxShadow: "0 16px 40px rgba(93, 112, 246, 0.08)",
+                                height: "100%",
+                                display: "flex",
+                                flexDirection: "column",
                             }}
                         >
                             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                                 Sobre o curso
                             </Typography>
-                            <Typography variant="body1" sx={{ color: "#555", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
-                                {courseResume?.description?.trim()
-                                    ? courseResume.description
-                                    : "Descrição não disponível."}
-                            </Typography>
+                            <Box
+                                sx={{
+                                    flex: 1,
+                                    overflowY: { xs: "visible", md: "auto" },
+                                    pr: { md: 1 },
+                                }}
+                            >
+                                <Typography
+                                    variant="body1"
+                                    sx={{
+                                        color: "#555",
+                                        lineHeight: 1.7,
+                                        whiteSpace: "pre-wrap",
+                                    }}
+                                >
+                                    {courseResume?.description?.trim()
+                                        ? courseResume.description
+                                        : "Descrição não disponível."}
+                                </Typography>
+                            </Box>
 
                         </Paper>
                     </Grid>
-                    <Grid item xs={12} md={5}>
+                    <Grid item xs={12} md={5} sx={{ display: "flex" }}>
                         <Paper
                             elevation={0}
                             sx={{
@@ -680,6 +698,9 @@ const CoursesResume: React.FC = () => {
                                 p: { xs: 3, md: 4 },
                                 bgcolor: "#fff",
                                 boxShadow: "0 16px 40px rgba(73, 160, 251, 0.12)",
+                                height: "100%",
+                                display: "flex",
+                                flexDirection: "column",
                             }}
                         >
                             <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
