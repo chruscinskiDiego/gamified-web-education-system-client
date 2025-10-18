@@ -196,7 +196,10 @@ const CoursesResume: React.FC = () => {
             created_at: data.created_at ?? null,
             registration_state: data.registration_state ?? null,
             teacher_full_name: data.teacher_full_name ?? null,
-            teacher_profile_picture: data.teacher_profile_picture ?? null,
+            teacher_profile_picture:
+                typeof data.teacher_profile_picture === "string"
+                    ? data.teacher_profile_picture.trim() || null
+                    : data.teacher_profile_picture ?? null,
             category: data.category ?? null,
             modules_count: data.modules_count ?? null,
             overall_rating: {
@@ -295,7 +298,7 @@ const CoursesResume: React.FC = () => {
     const isUserEnrolled = courseResume?.registration_state === "S" || courseResume?.registration_state === "F";
     const userEvaluation = courseResume?.evaluations_by_user?.[0] ?? null;
     const teacherNameRaw = courseResume?.teacher_full_name?.trim();
-    const teacherProfilePicture = courseResume?.teacher_profile_picture;
+    const teacherProfilePicture = courseResume?.teacher_profile_picture?.trim() || null;
     const teacherName = teacherNameRaw && teacherNameRaw.length > 0 ? teacherNameRaw : "Professor não informado";
     const teacherInitials = teacherName
         .split(" ")
@@ -479,8 +482,6 @@ const CoursesResume: React.FC = () => {
                         : "Não informado",
         },
     ];
-
-    console.log('teacher avatar url: ' + teacherProfilePicture);
 
     return (
         <Box sx={{ backgroundColor: "#f5f7fb", minHeight: "calc(100vh - 64px)", pb: 8 }}>
