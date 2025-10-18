@@ -35,21 +35,24 @@ type EvaluationMetric = {
     id_avaliation: number | null;
 };
 
+interface CourseEvaluationCommentary {
+    id_avaliation: number | null;
+    comment?: string | null;
+    note?: number | string | null;
+    [key: string]: unknown;
+}
+
 interface CourseEvaluationNotes {
     didatics?: EvaluationMetric;
     material_quality?: EvaluationMetric;
     teaching_methodology?: EvaluationMetric;
-    commentary?: {
-        id_avaliation: number | null;
-        comment?: string | null;
-        note?: number | string | null;
-        [key: string]: unknown;
-    } | null;
+    commentary?: CourseEvaluationCommentary | null;
 }
 
 interface CourseEvaluation {
     avg: number | null;
     notes: CourseEvaluationNotes;
+    commentary?: CourseEvaluationCommentary | null;
     student_id: string | null;
     student_full_name: string | null;
     last_avaliation_id: number | null;
@@ -79,7 +82,17 @@ type CourseResumeApiResponse = Omit<CourseResumeData, "overall_rating" | "evalua
         avg: number | null;
         count: number | null;
     } | null;
-    evaluations_by_user?: Array<CourseEvaluation | null> | null;
+    evaluations_by_user?: Array<(
+        Omit<CourseEvaluation, "notes" | "commentary"> & {
+            notes?: {
+                didatics?: EvaluationMetric | null;
+                material_quality?: EvaluationMetric | null;
+                teaching_methodology?: EvaluationMetric | null;
+                commentary?: CourseEvaluationCommentary | null;
+            } | null;
+            commentary?: CourseEvaluationCommentary | null;
+        }
+    ) | null> | null;
 };
 
 interface RatingFormValues {
@@ -189,18 +202,29 @@ const CoursesResume: React.FC = () => {
                 count: data.overall_rating?.count ?? 0,
             },
             user_rated: Boolean(data.user_rated),
-            evaluations_by_user: evaluations.map((evaluation) => ({
-                avg: evaluation?.avg ?? null,
-                notes: evaluation?.notes ? {
-                    didatics: evaluation.notes.didatics ?? undefined,
-                    material_quality: evaluation.notes.material_quality ?? undefined,
-                    teaching_methodology: evaluation.notes.teaching_methodology ?? undefined,
-                    commentary: evaluation.notes.commentary ?? null,
-                } : {},
-                student_id: evaluation?.student_id ?? null,
-                student_full_name: evaluation?.student_full_name ?? null,
-                last_avaliation_id: evaluation?.last_avaliation_id ?? null,
-            })),
+            evaluations_by_user: evaluations.map((evaluation) => {
+                const commentary = evaluation?.notes?.commentary ?? evaluation?.commentary ?? null;
+
+                const notes: CourseEvaluationNotes = evaluation?.notes
+                    ? {
+                        didatics: evaluation.notes.didatics ?? undefined,
+                        material_quality: evaluation.notes.material_quality ?? undefined,
+                        teaching_methodology: evaluation.notes.teaching_methodology ?? undefined,
+                        commentary,
+                    }
+                    : commentary
+                        ? { commentary }
+                        : {};
+
+                return {
+                    avg: evaluation?.avg ?? null,
+                    notes,
+                    commentary,
+                    student_id: evaluation?.student_id ?? null,
+                    student_full_name: evaluation?.student_full_name ?? null,
+                    last_avaliation_id: evaluation?.last_avaliation_id ?? null,
+                };
+            }),
         };
     };
 
@@ -234,7 +258,7 @@ const CoursesResume: React.FC = () => {
 
     const buildInitialFormValues = (): RatingFormValues => {
         const evaluation = courseResume?.evaluations_by_user?.[0];
-        const commentary = evaluation?.notes?.commentary;
+        const commentary = evaluation?.notes?.commentary ?? evaluation?.commentary ?? null;
 
         const trimmedComment = commentary?.comment?.trim();
 
@@ -327,6 +351,7 @@ const CoursesResume: React.FC = () => {
 
                 await createCourseEvaluation(payload);
             } else if (ratingDialogMode === "edit" && userEvaluation) {
+                const userCommentary = userEvaluation.notes?.commentary ?? userEvaluation.commentary ?? null;
                 const payload: UpdateEvaluationPayload = {
                     materialQualityAvaliationId: userEvaluation.notes.material_quality?.id_avaliation ?? null,
                     materialQualityNote: formValues.materialQualityNote,
@@ -334,7 +359,7 @@ const CoursesResume: React.FC = () => {
                     didaticsNote: formValues.didaticsNote,
                     teachingMethodologyAvaliationId: userEvaluation.notes.teaching_methodology?.id_avaliation ?? null,
                     teachingMethodologyNote: formValues.teachingMethodologyNote,
-                    commentaryId: userEvaluation.notes.commentary?.id_avaliation ?? null,
+                    commentaryId: userCommentary?.id_avaliation ?? null,
                     commentary: formValues.commentary,
                 };
 
@@ -355,6 +380,8 @@ const CoursesResume: React.FC = () => {
             return;
         }
 
+        const userCommentary = userEvaluation.notes?.commentary ?? userEvaluation.commentary ?? null;
+
         const payload: DeleteEvaluationPayload = {
             avaliations: [
                 userEvaluation.notes.didatics?.id_avaliation != null && {
@@ -369,9 +396,9 @@ const CoursesResume: React.FC = () => {
                     avaliation_type: "teaching_methodology" as const,
                     delete_avaliation_id: userEvaluation.notes.teaching_methodology.id_avaliation,
                 },
-                userEvaluation.notes.commentary?.id_avaliation != null && {
+                userCommentary?.id_avaliation != null && {
                     avaliation_type: "commentary" as const,
-                    delete_avaliation_id: userEvaluation.notes.commentary.id_avaliation,
+                    delete_avaliation_id: userCommentary.id_avaliation,
                 },
             ].filter((avaliation): avaliation is DeleteEvaluationPayload["avaliations"][number] => Boolean(avaliation)),
         };
@@ -838,7 +865,7 @@ const CoursesResume: React.FC = () => {
                                                 </Grid>
 
                                                 {(() => {
-                                                    const commentaryRaw = evaluation.notes?.commentary;
+                                                    const commentaryRaw = evaluation.notes?.commentary ?? evaluation.commentary ?? null;
                                                     const commentText = commentaryRaw?.comment?.trim() ?? "";
                                                     const commentaryNoteText = typeof commentaryRaw?.note === "string"
                                                         ? commentaryRaw.note.trim()
