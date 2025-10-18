@@ -67,6 +67,7 @@ interface CourseResumeData {
     created_at: string | null;
     registration_state: "S" | "F" | null;
     teacher_full_name?: string | null;
+    teacher_profile_picture?: string | null;
     category?: string | null;
     modules_count: string | number | null;
     overall_rating: {
@@ -195,6 +196,7 @@ const CoursesResume: React.FC = () => {
             created_at: data.created_at ?? null,
             registration_state: data.registration_state ?? null,
             teacher_full_name: data.teacher_full_name ?? null,
+            teacher_profile_picture: data.teacher_profile_picture ?? null,
             category: data.category ?? null,
             modules_count: data.modules_count ?? null,
             overall_rating: {
@@ -281,7 +283,7 @@ const CoursesResume: React.FC = () => {
         if (ratingDialogMode === "edit") {
             setFormValues(buildInitialFormValues());
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [courseResume]);
 
     const registrationLabel = courseResume?.registration_state === null
@@ -293,6 +295,7 @@ const CoursesResume: React.FC = () => {
     const isUserEnrolled = courseResume?.registration_state === "S" || courseResume?.registration_state === "F";
     const userEvaluation = courseResume?.evaluations_by_user?.[0] ?? null;
     const teacherNameRaw = courseResume?.teacher_full_name?.trim();
+    const teacherProfilePicture = courseResume?.teacher_profile_picture;
     const teacherName = teacherNameRaw && teacherNameRaw.length > 0 ? teacherNameRaw : "Professor não informado";
     const teacherInitials = teacherName
         .split(" ")
@@ -418,7 +421,7 @@ const CoursesResume: React.FC = () => {
     const renderRegistrationButton = () => {
         if (!registrationLabel) return null;
 
-        const colorTheme = courseResume?.registration_state === "S" ? "outlined" : "gradient";
+        const colorTheme = courseResume?.registration_state === "S" ? "purple" : "gradient";
 
         return (
             <SEGButton
@@ -428,6 +431,7 @@ const CoursesResume: React.FC = () => {
             >
                 {registrationLabel}
             </SEGButton>
+
         );
     };
 
@@ -475,6 +479,8 @@ const CoursesResume: React.FC = () => {
                         : "Não informado",
         },
     ];
+
+    console.log('teacher avatar url: ' + teacherProfilePicture);
 
     return (
         <Box sx={{ backgroundColor: "#f5f7fb", minHeight: "calc(100vh - 64px)", pb: 8 }}>
@@ -551,14 +557,16 @@ const CoursesResume: React.FC = () => {
                                         </Stack>
                                     </Stack>
                                     <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                                            {overallRatingCount > 0
-                                                ? `${overallRatingCount} ${overallRatingCount > 1 ? "avaliações registradas" : "avaliação registrada"}`
-                                                : "Ainda não há avaliações registradas"}
-                                        </Typography>
+                                        {overallRatingCount > 0
+                                            ? `${overallRatingCount} ${overallRatingCount > 1 ? "avaliações registradas" : "avaliação registrada"}`
+                                            : "Ainda não há avaliações registradas"}
+                                    </Typography>
                                 </Paper>
                                 <Stack direction={{ xs: "column", sm: "row" }} spacing={3} alignItems={{ xs: "flex-start", sm: "center" }}>
                                     <Stack direction="row" spacing={2} alignItems="center">
                                         <Avatar
+                                            src={teacherProfilePicture || undefined}
+                                            alt={teacherName}
                                             sx={{
                                                 bgcolor: "rgba(255,255,255,0.2)",
                                                 color: "#fff",
@@ -566,9 +574,18 @@ const CoursesResume: React.FC = () => {
                                                 height: 56,
                                                 fontWeight: 700,
                                             }}
+                                            imgProps={{
+                                                referrerPolicy: "no-referrer",
+                                                crossOrigin: "anonymous",
+                                                onError: (e) => {
+                                                    // Se a imagem falhar, limpa o src para renderizar o fallback (iniciais)
+                                                    (e.currentTarget as HTMLImageElement).src = "";
+                                                },
+                                            }}
                                         >
                                             {teacherInitials}
                                         </Avatar>
+
                                         <Box>
                                             <Typography variant="body2" sx={{ opacity: 0.7 }}>
                                                 Professor responsável
@@ -652,32 +669,7 @@ const CoursesResume: React.FC = () => {
                                     ? courseResume.description
                                     : "Descrição não disponível."}
                             </Typography>
-                            <Divider sx={{ my: 3 }} />
-                            <Typography variant="caption" sx={{ color: colors.strongGray }}>
-                                Link da thumbnail
-                            </Typography>
-                            {hasThumbnail ? (
-                                <Typography
-                                    component="a"
-                                    href={thumbnailUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    sx={{
-                                        display: "inline-block",
-                                        mt: 1,
-                                        color: colors.purple,
-                                        textDecoration: "none",
-                                        wordBreak: "break-all",
-                                        fontWeight: 600,
-                                    }}
-                                >
-                                    {thumbnailUrl}
-                                </Typography>
-                            ) : (
-                                <Typography variant="body2" sx={{ mt: 1, color: colors.strongGray }}>
-                                    Nenhum link de thumbnail informado.
-                                </Typography>
-                            )}
+
                         </Paper>
                     </Grid>
                     <Grid item xs={12} md={5}>
