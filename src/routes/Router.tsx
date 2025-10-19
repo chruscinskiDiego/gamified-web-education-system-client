@@ -13,6 +13,7 @@ import NewCoursePage from "../pages/NewCoursePage";
 import CourseManagementPage from "../pages/CourseManagementPage";
 import ModuleManagementPage from "../pages/ModuleManagementPage";
 import CoursesResume from "../pages/CourseResume";
+import CourseDataAndProgressPage from "../pages/CourseDataAndProgressPage";
 
 export const Router: React.FC = () => {
 
@@ -50,6 +51,7 @@ export const Router: React.FC = () => {
 
                         {/*GENERAL*/}
                         <Route path="/course/resume/:id" element={<CoursesResume/>}/>
+                        <Route path="/course/:id" element={<CourseDataAndProgressPage/>}/>
 
                     </Route>
                 </>
