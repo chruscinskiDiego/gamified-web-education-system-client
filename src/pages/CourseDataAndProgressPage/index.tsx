@@ -330,11 +330,13 @@ const CourseDataAndProgressPage: React.FC = () => {
 
     const [mediaType, setMediaType] = useState<EpisodeMediaType>("text");
     const [isResolvingMediaType, setIsResolvingMediaType] = useState(false);
+    const [videoWatchProgress, setVideoWatchProgress] = useState(0);
 
     useEffect(() => {
         if (!selectedEpisode) {
             setMediaType("text");
             setIsResolvingMediaType(false);
+            setVideoWatchProgress(0);
             return;
         }
 
@@ -343,6 +345,7 @@ const CourseDataAndProgressPage: React.FC = () => {
         if (!linkEpisode) {
             setMediaType("text");
             setIsResolvingMediaType(false);
+            setVideoWatchProgress(selectedEpisode.completed ? 1 : 0);
             return;
         }
 
@@ -351,6 +354,7 @@ const CourseDataAndProgressPage: React.FC = () => {
         if (inferredType !== "external") {
             setMediaType(inferredType);
             setIsResolvingMediaType(false);
+            setVideoWatchProgress(selectedEpisode.completed ? 1 : 0);
             return;
         }
 
@@ -367,6 +371,7 @@ const CourseDataAndProgressPage: React.FC = () => {
             if (isVideo) {
                 setMediaType("video");
                 setIsResolvingMediaType(false);
+                setVideoWatchProgress(selectedEpisode.completed ? 1 : 0);
                 return;
             }
 
@@ -377,6 +382,7 @@ const CourseDataAndProgressPage: React.FC = () => {
             if (isImage) {
                 setMediaType("image");
                 setIsResolvingMediaType(false);
+                setVideoWatchProgress(selectedEpisode.completed ? 1 : 0);
                 return;
             }
 
@@ -386,6 +392,7 @@ const CourseDataAndProgressPage: React.FC = () => {
 
             setMediaType(isPdf ? "pdf" : "external");
             setIsResolvingMediaType(false);
+            setVideoWatchProgress(selectedEpisode.completed ? 1 : 0);
         };
 
         void resolveMediaType();
@@ -395,6 +402,22 @@ const CourseDataAndProgressPage: React.FC = () => {
             abortController.abort();
         };
     }, [selectedEpisode]);
+
+    useEffect(() => {
+        if (!selectedEpisode) {
+            setVideoWatchProgress(0);
+            return;
+        }
+
+        if (selectedEpisode.completed) {
+            setVideoWatchProgress(1);
+            return;
+        }
+
+        if (mediaType !== "video") {
+            setVideoWatchProgress(0);
+        }
+    }, [mediaType, selectedEpisode]);
 
     const getCourseDataAndProgress = useCallback(async () => {
         if (!id) return;
@@ -477,6 +500,10 @@ const CourseDataAndProgressPage: React.FC = () => {
         if (selectedModuleId == null || selectedEpisodeId == null) return;
 
         if (isEpisodeLocked(selectedModuleId, selectedEpisodeId)) return;
+
+        if (mediaType === "video" && videoWatchProgress < 0.75) {
+            return;
+        }
 
         const updatedModules = courseData.modules.map((module) => {
             if (module.id_course_module !== selectedModuleId) return module;
@@ -568,6 +595,48 @@ const CourseDataAndProgressPage: React.FC = () => {
         window.open(selectedEpisode.link_episode, "_blank", "noopener,noreferrer");
     };
 
+    const handleVideoTimeUpdate = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
+        const { currentTarget } = event;
+        const { currentTime, duration } = currentTarget;
+
+        if (!duration || Number.isNaN(duration) || duration === Infinity) {
+            return;
+        }
+
+        const progress = currentTime / duration;
+
+        setVideoWatchProgress((previousProgress) => Math.max(previousProgress, Math.min(progress, 1)));
+    }, []);
+
+    const handleVideoLoadedMetadata = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
+        const { currentTarget } = event;
+        const { currentTime, duration } = currentTarget;
+
+        if (!duration || Number.isNaN(duration) || duration === Infinity) {
+            return;
+        }
+
+        const progress = currentTime / duration;
+
+        setVideoWatchProgress((previousProgress) => Math.max(previousProgress, Math.min(progress, 1)));
+    }, []);
+
+    const handleVideoEnded = useCallback(() => {
+        setVideoWatchProgress(1);
+    }, []);
+
+    const canMarkSelectedEpisodeAsCompleted = useMemo(() => {
+        if (!selectedEpisode || selectedEpisode.completed) return false;
+
+        if (isSelectedEpisodeLocked) return false;
+
+        if (mediaType === "video") {
+            return videoWatchProgress >= 0.75;
+        }
+
+        return true;
+    }, [isSelectedEpisodeLocked, mediaType, selectedEpisode, videoWatchProgress]);
+
     return (
         <Box sx={{ backgroundColor: "white", minHeight: "calc(100vh - 32px)", py: { xs: 3 } }}>
             <Container maxWidth="lg">
@@ -642,56 +711,59 @@ const CourseDataAndProgressPage: React.FC = () => {
                                                     <Box sx={{ borderRadius: 2, overflow: "hidden", backgroundColor: "black" }}>
                                                         <video
                                                             src={selectedEpisode.link_episode}
-                                                        controls
-                                                        style={{ width: "100%", display: "block" }}
-                                                    >
-                                                        Seu navegador não suporta a reprodução de vídeo.
-                                                    </video>
-                                                </Box>
-                                            )}
-
-                                            {mediaType === "image" && selectedEpisode.link_episode && (
-                                                <Box
-                                                    component="img"
-                                                    src={selectedEpisode.link_episode}
-                                                    alt={selectedEpisode.title}
-                                                    loading="lazy"
-                                                    sx={{ width: "100%", borderRadius: 2, objectFit: "cover" }}
-                                                />
-                                            )}
-
-                                            {mediaType === "pdf" && selectedEpisode.link_episode && (
-                                                <Stack spacing={1.5}>
-                                                    <Box sx={{ height: { xs: 360, md: 480 }, borderRadius: 2, overflow: "hidden", backgroundColor: "#f0f0f0" }}>
-                                                        <iframe
-                                                            src={`${selectedEpisode.link_episode}#view=FitH`}
-                                                            style={{ border: "none", width: "100%", height: "100%" }}
-                                                            title={selectedEpisode.title}
-                                                        />
+                                                            controls
+                                                            onTimeUpdate={handleVideoTimeUpdate}
+                                                            onLoadedMetadata={handleVideoLoadedMetadata}
+                                                            onEnded={handleVideoEnded}
+                                                            style={{ width: "100%", display: "block" }}
+                                                        >
+                                                            Seu navegador não suporta a reprodução de vídeo.
+                                                        </video>
                                                     </Box>
-                                                    <SEGButton
-                                                        colorTheme="outlined"
-                                                        component="a"
-                                                        href={selectedEpisode.link_episode}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        download
-                                                    >
-                                                        Baixar PDF
-                                                    </SEGButton>
-                                                </Stack>
-                                            )}
+                                                )}
 
-                                            {mediaType === "external" && selectedEpisode.link_episode && (
-                                                <Stack spacing={1.5}>
-                                                    <Typography variant="body1" sx={{ color: "text.secondary" }}>
-                                                        Abrimos este conteúdo em uma nova aba porque o formato não pôde ser identificado automaticamente.
-                                                    </Typography>
-                                                    <SEGButton colorTheme="outlined" onClick={handleOpenExternalEpisode}>
-                                                        Abrir conteúdo em nova aba
-                                                    </SEGButton>
-                                                </Stack>
-                                            )}
+                                                {mediaType === "image" && selectedEpisode.link_episode && (
+                                                    <Box
+                                                        component="img"
+                                                        src={selectedEpisode.link_episode}
+                                                        alt={selectedEpisode.title}
+                                                        loading="lazy"
+                                                        sx={{ width: "100%", borderRadius: 2, objectFit: "cover" }}
+                                                    />
+                                                )}
+
+                                                {mediaType === "pdf" && selectedEpisode.link_episode && (
+                                                    <Stack spacing={1.5}>
+                                                        <Box sx={{ height: { xs: 360, md: 480 }, borderRadius: 2, overflow: "hidden", backgroundColor: "#f0f0f0" }}>
+                                                            <iframe
+                                                                src={`${selectedEpisode.link_episode}#view=FitH`}
+                                                                style={{ border: "none", width: "100%", height: "100%" }}
+                                                                title={selectedEpisode.title}
+                                                            />
+                                                        </Box>
+                                                        <SEGButton
+                                                            colorTheme="outlined"
+                                                            component="a"
+                                                            href={selectedEpisode.link_episode}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            download
+                                                        >
+                                                            Baixar PDF
+                                                        </SEGButton>
+                                                    </Stack>
+                                                )}
+
+                                                {mediaType === "external" && selectedEpisode.link_episode && (
+                                                    <Stack spacing={1.5}>
+                                                        <Typography variant="body1" sx={{ color: "text.secondary" }}>
+                                                            Abrimos este conteúdo em uma nova aba porque o formato não pôde ser identificado automaticamente.
+                                                        </Typography>
+                                                        <SEGButton colorTheme="outlined" onClick={handleOpenExternalEpisode}>
+                                                            Abrir conteúdo em nova aba
+                                                        </SEGButton>
+                                                    </Stack>
+                                                )}
 
                                             <Typography variant="body1" sx={{ color: "text.secondary" }}>
                                                 {selectedEpisode.description}
@@ -708,7 +780,12 @@ const CourseDataAndProgressPage: React.FC = () => {
                                         <SEGButton
                                             colorTheme="gradient"
                                             onClick={handleCompleteEpisode}
-                                            disabled={selectedEpisode.completed || isSelectedEpisodeLocked}
+                                            disabled={!canMarkSelectedEpisodeAsCompleted}
+                                            title={
+                                                mediaType === "video" && !selectedEpisode.completed && videoWatchProgress < 0.75
+                                                    ? "Assista pelo menos 75% do vídeo para concluir a aula."
+                                                    : undefined
+                                            }
                                             sx={{ mt: 1 }}
                                         >
                                             {selectedEpisode.completed ? "Aula concluída" : "Marcar aula como concluída"}
