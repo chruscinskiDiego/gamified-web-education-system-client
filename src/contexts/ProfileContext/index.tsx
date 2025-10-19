@@ -7,6 +7,8 @@ type UserContextType = {
     setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
     setUserId: React.Dispatch<React.SetStateAction<string | null>>;
     userId: string | null;
+    userXp?: number | null;
+    setUserXp: React.Dispatch<React.SetStateAction<number | null>>;
     userType: 'S' | 'T' | 'A' | null;
     setUserType: React.Dispatch<React.SetStateAction<'S' | 'T' | 'A' | null>>;
     userProfilePic: string | null;
@@ -44,6 +46,8 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return url !== undefined ? url : null;
     });
 
+    const [userXp, setUserXp] = useState<number | null>(null);
+
     useEffect(() => {
         const handler = (e: Event) => {
             const custom = e as CustomEvent<{ userId: string; userType?: 'S' | 'T' | 'A'; userProfilePic?: string | null }>;
@@ -61,7 +65,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return () => window.removeEventListener('userLoggedIn', handler);
     }, []);
     return (
-        <ProfileContext.Provider value={{ isAuthenticated, setIsAuthenticated, userId, setUserId, userType, setUserType, userProfilePic, setUserProfilePic }}>
+        <ProfileContext.Provider value={{ isAuthenticated, setIsAuthenticated, userId, setUserId, userType, setUserType, userProfilePic, setUserProfilePic, userXp, setUserXp }}>
             {children}
         </ProfileContext.Provider>
     );
