@@ -61,6 +61,23 @@ interface CourseData {
 
 type EpisodeMediaType = "text" | "video" | "image" | "pdf" | "external";
 
+const SNIFF_BYTE_LENGTH = 2048;
+const SNIFF_RANGE_HEADER = `bytes=0-${SNIFF_BYTE_LENGTH - 1}`;
+
+const asciiDecoder = typeof TextDecoder !== "undefined" ? new TextDecoder("ascii") : undefined;
+
+const decodeAscii = (bytes: Uint8Array, start: number, end: number) => {
+    const slice = bytes.slice(start, end);
+
+    if (asciiDecoder) {
+        return asciiDecoder.decode(slice);
+    }
+
+    return Array.from(slice)
+        .map((byte) => String.fromCharCode(byte))
+        .join("");
+};
+
 const createEmptyCourseState = (): CourseData => ({
     title: "",
     modules: [],
@@ -136,6 +153,72 @@ const resolveMediaTypeFromHeaders = (headers: Headers): EpisodeMediaType => {
     return "external";
 };
 
+const detectMediaTypeFromBuffer = (buffer: ArrayBuffer): EpisodeMediaType | null => {
+    const bytes = new Uint8Array(buffer);
+
+    if (bytes.length >= 4) {
+        if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
+            return "pdf";
+        }
+
+        if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+            return "image";
+        }
+
+        if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+            return "image";
+        }
+
+        if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) {
+            return "image";
+        }
+
+        if (bytes[0] === 0x42 && bytes[1] === 0x4d) {
+            return "image";
+        }
+
+        if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+            const format = decodeAscii(bytes, 8, 12);
+
+            if (format === "WEBP") {
+                return "image";
+            }
+
+            return "video";
+        }
+
+        if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) {
+            return "video";
+        }
+
+        if (bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) {
+            return "video";
+        }
+    }
+
+    if (bytes.length >= 12) {
+        const brand = decodeAscii(bytes, 4, 12);
+
+        if (brand.includes("ftyp")) {
+            return "video";
+        }
+    }
+
+    return null;
+};
+
+const isAbortError = (error: unknown): boolean => {
+    if (error instanceof DOMException) {
+        return error.name === "AbortError";
+    }
+
+    if (typeof error === "object" && error !== null && "name" in error) {
+        return (error as { name?: string }).name === "AbortError";
+    }
+
+    return false;
+};
+
 const sanitizeCourse = (course: CourseData): CourseData => ({
         ...course,
         modules: course.modules.map((module) => {
@@ -208,26 +291,80 @@ const CourseDataAndProgressPage: React.FC = () => {
         }
 
         let isActive = true;
-        const controller = new AbortController();
+        const abortControllers: AbortController[] = [];
+
+        const fetchWithController = async (init: RequestInit) => {
+            const controller = new AbortController();
+            abortControllers.push(controller);
+            return fetch(linkEpisode, { ...init, signal: controller.signal });
+        };
 
         const resolveMediaType = async () => {
             setIsResolvingMediaType(true);
 
-            try {
-                const response = await fetch(linkEpisode, { method: "HEAD", signal: controller.signal });
+            const resolveFromHead = async (): Promise<EpisodeMediaType | null> => {
+                try {
+                    const response = await fetchWithController({ method: "HEAD" });
 
-                if (!response.ok) {
-                    throw new Error("Failed to fetch media metadata");
+                    if (!response.ok) {
+                        return null;
+                    }
+
+                    const resolvedType = resolveMediaTypeFromHeaders(response.headers);
+
+                    return resolvedType !== "external" ? resolvedType : null;
+                } catch (error) {
+                    if (isAbortError(error)) {
+                        return null;
+                    }
+
+                    return null;
+                }
+            };
+
+            const resolveFromContent = async (): Promise<EpisodeMediaType | null> => {
+                const attempts: RequestInit[] = [
+                    { method: "GET", headers: { Range: SNIFF_RANGE_HEADER } },
+                    { method: "GET" },
+                ];
+
+                for (const attempt of attempts) {
+                    try {
+                        const response = await fetchWithController(attempt);
+
+                        if (!response.ok) {
+                            continue;
+                        }
+
+                        const resolvedType = resolveMediaTypeFromHeaders(response.headers);
+
+                        if (resolvedType !== "external") {
+                            return resolvedType;
+                        }
+
+                        const buffer = await response.arrayBuffer();
+                        const detectedType = detectMediaTypeFromBuffer(buffer);
+
+                        if (detectedType) {
+                            return detectedType;
+                        }
+                    } catch (error) {
+                        if (!isAbortError(error)) {
+                            continue;
+                        }
+
+                        return null;
+                    }
                 }
 
-                const resolvedType = resolveMediaTypeFromHeaders(response.headers);
+                return null;
+            };
+
+            try {
+                const resolvedType = (await resolveFromHead()) ?? (await resolveFromContent()) ?? inferredType;
 
                 if (isActive) {
                     setMediaType(resolvedType);
-                }
-            } catch (error) {
-                if (isActive) {
-                    setMediaType(inferredType);
                 }
             } finally {
                 if (isActive) {
@@ -240,7 +377,7 @@ const CourseDataAndProgressPage: React.FC = () => {
 
         return () => {
             isActive = false;
-            controller.abort();
+            abortControllers.forEach((controller) => controller.abort());
         };
     }, [selectedEpisode]);
 
@@ -509,13 +646,25 @@ const CourseDataAndProgressPage: React.FC = () => {
                                             )}
 
                                             {mediaType === "pdf" && selectedEpisode.link_episode && (
-                                                <Box sx={{ height: { xs: 360, md: 480 }, borderRadius: 2, overflow: "hidden", backgroundColor: "#f0f0f0" }}>
-                                                    <iframe
-                                                        src={`${selectedEpisode.link_episode}#view=FitH`}
-                                                        style={{ border: "none", width: "100%", height: "100%" }}
-                                                        title={selectedEpisode.title}
-                                                    />
-                                                </Box>
+                                                <Stack spacing={1.5}>
+                                                    <Box sx={{ height: { xs: 360, md: 480 }, borderRadius: 2, overflow: "hidden", backgroundColor: "#f0f0f0" }}>
+                                                        <iframe
+                                                            src={`${selectedEpisode.link_episode}#view=FitH`}
+                                                            style={{ border: "none", width: "100%", height: "100%" }}
+                                                            title={selectedEpisode.title}
+                                                        />
+                                                    </Box>
+                                                    <SEGButton
+                                                        colorTheme="outlined"
+                                                        component="a"
+                                                        href={selectedEpisode.link_episode}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        download
+                                                    >
+                                                        Baixar PDF
+                                                    </SEGButton>
+                                                </Stack>
                                             )}
 
                                             {mediaType === "external" && selectedEpisode.link_episode && (
