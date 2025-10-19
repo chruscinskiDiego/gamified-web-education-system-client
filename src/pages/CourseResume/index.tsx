@@ -7,6 +7,7 @@ import {
     Dialog,
     DialogActions,
     DialogContent,
+    DialogContentText,
     DialogTitle,
     Divider,
     Grid,
@@ -22,6 +23,9 @@ import CategoryIcon from "@mui/icons-material/Category";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import HowToRegIcon from '@mui/icons-material/HowToReg';
+import CloseIcon from '@mui/icons-material/Close';
 import StarIcon from "@mui/icons-material/Star";
 import { colors } from "../../theme/colors";
 import SEGButton from "../../components/SEGButton";
@@ -31,6 +35,7 @@ import { api } from "../../lib/axios";
 import { useNavigate, useParams } from "react-router-dom";
 import type { CourseEvaluation, CourseEvaluationNotes, CourseResumeApiResponse, CourseResumeData, CreateEvaluationPayload, DeleteEvaluationPayload, RatingFormValues, UpdateEvaluationPayload } from "./interfaces";
 import { ProfileContext } from "../../contexts/ProfileContext";
+import SEGPrincipalNotificator from "../../components/Notifications/SEGPrincipalNotificator";
 
 
 const CoursesResume: React.FC = () => {
@@ -56,6 +61,11 @@ const CoursesResume: React.FC = () => {
     const [isLoadingDeleteEvaluation, setIsLoadingDeleteEvaluation] = useState<boolean>(false);
     const navigate = useNavigate();
 
+    const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
+    const [modalType, setModalType] = useState<"create-registration" | "cancel-registration">();
+
+    const [loadingRegisterAction, setLoadingRegisterAction] = useState<boolean>(false);
+
     useEffect(() => {
         if (ratingDialogMode === "edit" && userEvaluation) {
             setFormValues(buildInitialFormValues(userEvaluation));
@@ -78,7 +88,11 @@ const CoursesResume: React.FC = () => {
     };
 
     useEffect(() => {
+
         getCourseResume();
+
+        window.scrollTo(0, 0);
+
     }, [id]);
 
     const createCourseEvaluation = async (payload: CreateEvaluationPayload) => {
@@ -122,7 +136,7 @@ const CoursesResume: React.FC = () => {
         try {
 
             setIsLoadingCreateOrUpdateEvaluation(true);
-            
+
             if (ratingDialogMode === "create" && courseResume?.id_course) {
 
                 const payload: CreateEvaluationPayload = {
@@ -208,8 +222,89 @@ const CoursesResume: React.FC = () => {
         }
     };
 
+    const handleRegisterStudentInCourse = async () => {
+
+        try {
+
+            setLoadingRegisterAction(true);
+
+            const response = await api.post("/course-registration/create", {
+                id_course: id
+            });
+
+            if (response.status === 201) {
+
+                SEGPrincipalNotificator('Matrícula realizada', 'success', 'Sucesso!');
+
+                setCourseResume((prev) =>
+                    prev ? { ...prev, registration_state: 'S' } : prev)
+
+            }
+
+        } catch (error) {
+
+            SEGPrincipalNotificator('Tente novamente mais tarde', 'error', 'Erro!');
+
+        }
+        finally {
+
+            handleCloseDialog();
+            setLoadingRegisterAction(false);
+
+        }
+    }
+
+    const handleCancelStudentInCourse = async () => {
+
+        try {
+
+            setLoadingRegisterAction(true);
+
+            const response = await api.patch("/course-registration/remove", {
+                id_course: id
+            });
+
+            if (response.status === 200) {
+
+                SEGPrincipalNotificator('Matrícula cancelada', 'success', 'Sucesso!');
+
+                setCourseResume((prev) =>
+                    prev ? { ...prev, registration_state: null } : prev)
+
+            }
+
+        } catch (error) {
+
+            SEGPrincipalNotificator('Tente novamente mais tarde', 'error', 'Erro!');
+
+        }
+        finally {
+
+            handleCloseDialog();
+            setLoadingRegisterAction(false);
+
+        }
+
+    }
+
     const handleNavigateToCourse = () => {
         navigate(`/course/${id}`);
+    }
+
+    const handleCloseDialog = () => {
+
+        setConfirmDialogOpen(false);
+
+    };
+
+    const handleCreateRegistrationDialog = () => {
+        setModalType('create-registration');
+        setConfirmDialogOpen(true);
+    }
+
+    const handleCancelRegistrationDialog = () => {
+        setModalType('cancel-registration');
+        setConfirmDialogOpen(true);
     }
     // #endregion handlers
 
@@ -314,7 +409,9 @@ const CoursesResume: React.FC = () => {
             <>
                 <SEGButton
                     colorTheme={colorTheme}
-                    onClick={() => console.info(`${registrationLabel} clicado`)}
+                    onClick={() => {
+                        courseResume?.registration_state === null ? handleCreateRegistrationDialog() : handleCancelRegistrationDialog();
+                    }}
                     sx={{ maxWidth: { xs: "100%", sm: 320 } }}
                 >
                     {registrationLabel}
@@ -453,573 +550,650 @@ const CoursesResume: React.FC = () => {
     // #region return
 
     return (
-        <Box sx={{ backgroundColor: "#f5f7fb", minHeight: "calc(100vh - 64px)", pb: 8 }}>
-            <Box
-                sx={{
-                    background: colors.horizontalGradient,
-                    color: "#fff",
-                    py: { xs: 6, md: 8 },
-                    borderTopLeftRadius: { xs: 32, md: 60 },
-                    borderTopRightRadius: { xs: 32, md: 60 },
-                    borderBottomLeftRadius: { xs: 32, md: 60 },
-                    borderBottomRightRadius: { xs: 32, md: 60 },
-                    boxShadow: "0 18px 45px rgba(93, 112, 246, 0.25)",
-                    mb: { xs: 6, md: 10 },
-                }}
-            >
-                <Container maxWidth="lg">
-                    <Grid container spacing={6} alignItems="center">
-                        <Grid item xs={12} md={7}>
-                            <Stack spacing={3}>
-                                <Chip
-                                    label={`Dificuldade: ${mapDifficulty(courseResume?.difficulty_level ?? "")}`}
-                                    sx={{
-                                        alignSelf: "flex-start",
-                                        bgcolor: "rgba(255,255,255,0.15)",
-                                        color: "#fff",
-                                        fontWeight: 600,
-                                        px: 1.5,
-                                        py: 0.75,
-                                        fontSize: "0.85rem",
-                                    }}
-                                />
-                                <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: "0.6px" }}>
-                                    {courseResume?.title?.trim() && courseResume.title.trim().length > 0
-                                        ? courseResume.title
-                                        : "Curso sem título"}
-                                </Typography>
+
+        <>
+
+            <Dialog open={confirmDialogOpen} onClose={handleCloseDialog}>
+                {
+                    modalType === 'create-registration' && (
+                        <>
+                            <DialogTitle>Confirmação</DialogTitle>
+
+                            <DialogContent>
+
+                                <DialogContentText>
+                                    Confirma a MATRÍCULA no curso?
+                                </DialogContentText>
+
+                                <DialogActions>
+                                    <SEGButton
+                                        colorTheme="outlined"
+                                        onClick={handleCloseDialog}
+                                        startIcon={<ArrowBackIcon />}
+                                        sx={{
+                                            height: "55px"
+                                        }}>
+                                        CANCELAR
+                                    </SEGButton>
+
+                                    <SEGButton
+                                        colorTheme="gradient"
+                                        onClick={handleRegisterStudentInCourse}
+                                        loading={loadingRegisterAction}
+                                        startIcon={<HowToRegIcon />}>
+                                        MATRICULAR
+                                    </SEGButton>
+                                </DialogActions>
+                            </DialogContent>
+                        </>
+                    )
+                }
+
+                {
+                    modalType === 'cancel-registration' && (
+                        <>
+                            <DialogTitle>Confirmação</DialogTitle>
+
+                            <DialogContent>
+
+                                <DialogContentText>
+                                    Confirma o CANCELAMENTO DE MATRÍCULA no curso?
+                                </DialogContentText>
+
+                                <DialogActions>
+                                    <SEGButton
+                                        colorTheme="outlined"
+                                        onClick={handleCloseDialog}
+                                        startIcon={<ArrowBackIcon />}
+                                        sx={{
+                                            height: "55px"
+                                        }}>
+                                        VOLTAR
+                                    </SEGButton>
+
+                                    <SEGButton
+                                        colorTheme="gradient"
+                                        onClick={handleCancelStudentInCourse}
+                                        loading={loadingRegisterAction}
+                                        startIcon={<CloseIcon />}>
+                                        CONFIRMAR
+                                    </SEGButton>
+                                </DialogActions>
+                            </DialogContent>
+                        </>
+                    )
+                }
+
+            </Dialog>
+
+            <Box sx={{ backgroundColor: "#f5f7fb", minHeight: "calc(100vh - 64px)", pb: 8 }}>
+                <Box
+                    sx={{
+                        background: colors.horizontalGradient,
+                        color: "#fff",
+                        py: { xs: 6, md: 8 },
+                        borderTopLeftRadius: { xs: 32, md: 60 },
+                        borderTopRightRadius: { xs: 32, md: 60 },
+                        borderBottomLeftRadius: { xs: 32, md: 60 },
+                        borderBottomRightRadius: { xs: 32, md: 60 },
+                        boxShadow: "0 18px 45px rgba(93, 112, 246, 0.25)",
+                        mb: { xs: 6, md: 10 },
+                    }}
+                >
+                    <Container maxWidth="lg">
+                        <Grid container spacing={6} alignItems="center">
+                            <Grid item xs={12} md={7}>
+                                <Stack spacing={3}>
+                                    <Chip
+                                        label={`Dificuldade: ${mapDifficulty(courseResume?.difficulty_level ?? "")}`}
+                                        sx={{
+                                            alignSelf: "flex-start",
+                                            bgcolor: "rgba(255,255,255,0.15)",
+                                            color: "#fff",
+                                            fontWeight: 600,
+                                            px: 1.5,
+                                            py: 0.75,
+                                            fontSize: "0.85rem",
+                                        }}
+                                    />
+                                    <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: "0.6px" }}>
+                                        {courseResume?.title?.trim() && courseResume.title.trim().length > 0
+                                            ? courseResume.title
+                                            : "Curso sem título"}
+                                    </Typography>
+                                    <Paper
+                                        elevation={0}
+                                        sx={{
+                                            display: "flex",
+                                            flexDirection: { xs: "column", sm: "row" },
+                                            alignItems: { xs: "flex-start", sm: "center" },
+                                            gap: { xs: 2, sm: 3 },
+                                            bgcolor: "rgba(255,255,255,0.12)",
+                                            px: { xs: 2.5, sm: 3 },
+                                            py: { xs: 2, sm: 2.5 },
+                                            borderRadius: 3,
+                                            backdropFilter: "blur(12px)",
+                                            border: "1px solid rgba(255,255,255,0.2)",
+                                            color: "#fff",
+                                        }}
+                                    >
+                                        <Stack>
+                                            <Typography variant="overline" sx={{ opacity: 0.7 }}>
+                                                Nota geral dos estudantes
+                                            </Typography>
+                                            <Stack direction="row" spacing={2} alignItems="flex-end">
+                                                <Typography variant="h3" sx={{ fontWeight: 800, lineHeight: 1 }}>
+                                                    {overallRatingAvg !== null && overallRatingAvg !== undefined
+                                                        ? overallRatingAvg.toFixed(2)
+                                                        : "--"}
+                                                </Typography>
+                                                <Rating
+                                                    value={overallRatingAvg ?? 0}
+                                                    precision={0.1}
+                                                    readOnly
+                                                    sx={{
+                                                        color: "#ffdf6d",
+                                                        "& .MuiRating-iconFilled": { color: "#ffdf6d" },
+                                                    }}
+                                                    emptyIcon={<StarIcon fontSize="inherit" sx={{ opacity: 0.4 }} />}
+                                                />
+                                            </Stack>
+                                        </Stack>
+                                        <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                                            {overallRatingCount > 0
+                                                ? `${overallRatingCount} ${overallRatingCount > 1 ? "avaliações registradas" : "avaliação registrada"}`
+                                                : "Ainda não há avaliações registradas"}
+                                        </Typography>
+                                    </Paper>
+                                    <Stack direction={{ xs: "column", sm: "row" }} spacing={3} alignItems={{ xs: "flex-start", sm: "center" }}>
+                                        <Stack direction="row" spacing={2} alignItems="center">
+                                            <Avatar
+                                                src={teacherProfilePicture ?? undefined}
+                                                alt="Usuário"
+                                                sx={{
+                                                    width: { xs: 38, sm: 42, md: 44 },
+                                                    height: { xs: 38, sm: 42, md: 44 },
+                                                    bgcolor: "#fff",
+                                                    color: "#000",
+                                                    boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                                                }}
+                                            >
+                                                {!teacherProfilePicture && <PersonOutlineIcon />}
+                                            </Avatar>
+
+                                            <Box>
+                                                <Typography variant="body2" sx={{ opacity: 0.7 }}>
+                                                    Professor responsável
+                                                </Typography>
+                                                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                                    {teacherName}
+                                                </Typography>
+                                            </Box>
+                                        </Stack>
+
+                                    </Stack>
+                                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "flex-start", sm: "center" }}>
+                                        {renderRegistrationButton()}
+                                    </Stack>
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={12} md={5}>
                                 <Paper
                                     elevation={0}
                                     sx={{
-                                        display: "flex",
-                                        flexDirection: { xs: "column", sm: "row" },
-                                        alignItems: { xs: "flex-start", sm: "center" },
-                                        gap: { xs: 2, sm: 3 },
-                                        bgcolor: "rgba(255,255,255,0.12)",
-                                        px: { xs: 2.5, sm: 3 },
-                                        py: { xs: 2, sm: 2.5 },
-                                        borderRadius: 3,
-                                        backdropFilter: "blur(12px)",
-                                        border: "1px solid rgba(255,255,255,0.2)",
-                                        color: "#fff",
+                                        borderRadius: 6,
+                                        overflow: "hidden",
+                                        position: "relative",
+                                        p: 1.5,
+                                        background: "rgba(255,255,255,0.12)",
+                                        backdropFilter: "blur(10px)",
                                     }}
                                 >
-                                    <Stack>
-                                        <Typography variant="overline" sx={{ opacity: 0.7 }}>
-                                            Nota geral dos estudantes
-                                        </Typography>
-                                        <Stack direction="row" spacing={2} alignItems="flex-end">
-                                            <Typography variant="h3" sx={{ fontWeight: 800, lineHeight: 1 }}>
-                                                {overallRatingAvg !== null && overallRatingAvg !== undefined
-                                                    ? overallRatingAvg.toFixed(2)
-                                                    : "--"}
-                                            </Typography>
-                                            <Rating
-                                                value={overallRatingAvg ?? 0}
-                                                precision={0.1}
-                                                readOnly
-                                                sx={{
-                                                    color: "#ffdf6d",
-                                                    "& .MuiRating-iconFilled": { color: "#ffdf6d" },
-                                                }}
-                                                emptyIcon={<StarIcon fontSize="inherit" sx={{ opacity: 0.4 }} />}
-                                            />
-                                        </Stack>
-                                    </Stack>
-                                    <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                                        {overallRatingCount > 0
-                                            ? `${overallRatingCount} ${overallRatingCount > 1 ? "avaliações registradas" : "avaliação registrada"}`
-                                            : "Ainda não há avaliações registradas"}
-                                    </Typography>
-                                </Paper>
-                                <Stack direction={{ xs: "column", sm: "row" }} spacing={3} alignItems={{ xs: "flex-start", sm: "center" }}>
-                                    <Stack direction="row" spacing={2} alignItems="center">
-                                        <Avatar
-                                            src={teacherProfilePicture ?? undefined}
-                                            alt="Usuário"
+                                    {hasThumbnail ? (
+                                        <Box
+                                            component="img"
+                                            src={thumbnailUrl}
+                                            alt={`Thumb do curso ${courseResume?.title ?? "sem título"}`}
                                             sx={{
-                                                width: { xs: 38, sm: 42, md: 44 },
-                                                height: { xs: 38, sm: 42, md: 44 },
-                                                bgcolor: "#fff",
-                                                color: "#000",
-                                                boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                                                width: "100%",
+                                                height: { xs: 260, md: 320 },
+                                                objectFit: "cover",
+                                                borderRadius: 4,
+                                                boxShadow: "0 24px 45px rgba(0,0,0,0.25)",
+                                            }}
+                                        />
+                                    ) : (
+                                        <Box
+                                            sx={{
+                                                width: "100%",
+                                                height: { xs: 260, md: 320 },
+                                                borderRadius: 4,
+                                                background: "rgba(255,255,255,0.08)",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                color: "#fff",
+                                                fontWeight: 600,
+                                                textAlign: "center",
+                                                px: 3,
                                             }}
                                         >
-                                            {!teacherProfilePicture && <PersonOutlineIcon />}
-                                        </Avatar>
-
-                                        <Box>
-                                            <Typography variant="body2" sx={{ opacity: 0.7 }}>
-                                                Professor responsável
-                                            </Typography>
-                                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                                {teacherName}
-                                            </Typography>
+                                            Thumbnail não disponível
                                         </Box>
-                                    </Stack>
+                                    )}
+                                </Paper>
+                            </Grid>
+                        </Grid>
+                    </Container>
+                </Box>
 
-                                </Stack>
-                                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "flex-start", sm: "center" }}>
-                                    {renderRegistrationButton()}
-                                </Stack>
-                            </Stack>
+                <Container maxWidth="lg">
+                    <Grid container spacing={4}>
+                        <Grid item xs={12} md={7} sx={{ display: { md: "flex" } }}>
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    borderRadius: 4,
+                                    p: { xs: 3, md: 4 },
+                                    bgcolor: "#fff",
+                                    boxShadow: "0 16px 40px rgba(93, 112, 246, 0.08)",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                }}
+                                ref={descriptionPaperRef}
+                            >
+                                <Typography
+                                    variant="h6"
+                                    sx={{ fontWeight: 700, mb: { xs: 2, md: 3 } }}
+                                    ref={descriptionTitleRef}
+                                >
+                                    Sobre o curso
+                                </Typography>
+                                <Box
+                                    sx={{
+                                        flex: 1,
+                                        overflowY: { xs: "visible", md: "auto" },
+                                        pr: { md: 1 },
+                                        scrollbarWidth: "thin",
+                                        scrollbarColor: `${colors.purple} transparent`,
+                                        "&::-webkit-scrollbar": {
+                                            width: 6,
+                                        },
+                                        "&::-webkit-scrollbar-track": {
+                                            backgroundColor: "transparent",
+                                            borderRadius: 999,
+                                        },
+                                        "&::-webkit-scrollbar-thumb": {
+                                            backgroundColor: colors.purple,
+                                            borderRadius: 999,
+                                        },
+                                        "&::-webkit-scrollbar-thumb:hover": {
+                                            backgroundColor: "#4c60e8",
+                                        },
+                                        ...(descriptionContentMaxHeight
+                                            ? { maxHeight: { md: `${descriptionContentMaxHeight}px` } }
+                                            : {}),
+                                    }}
+                                >
+                                    <Typography
+                                        variant="body1"
+                                        sx={{
+                                            color: "#555",
+                                            lineHeight: 1.7,
+                                            whiteSpace: "pre-wrap",
+                                        }}
+                                    >
+                                        {courseResume?.description?.trim()
+                                            ? courseResume.description
+                                            : "Descrição não disponível."}
+                                    </Typography>
+                                </Box>
+
+                            </Paper>
                         </Grid>
                         <Grid item xs={12} md={5}>
                             <Paper
                                 elevation={0}
                                 sx={{
-                                    borderRadius: 6,
-                                    overflow: "hidden",
-                                    position: "relative",
-                                    p: 1.5,
-                                    background: "rgba(255,255,255,0.12)",
-                                    backdropFilter: "blur(10px)",
+                                    borderRadius: 4,
+                                    p: { xs: 3, md: 4 },
+                                    bgcolor: "#fff",
+                                    boxShadow: "0 16px 40px rgba(73, 160, 251, 0.12)",
+                                }}
+                                ref={generalInfoPaperRef}
+                            >
+                                <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+                                    Informações gerais
+                                </Typography>
+                                <Stack spacing={2.5}>
+                                    {detailItems.map((item) => (
+                                        <Stack key={item.label} direction="row" spacing={2} alignItems="flex-start">
+                                            <Box
+                                                sx={{
+                                                    width: 40,
+                                                    height: 40,
+                                                    borderRadius: "12px",
+                                                    background: "rgba(73,160,251,0.12)",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                }}
+                                            >
+                                                {item.icon}
+                                            </Box>
+                                            <Box>
+                                                <Typography variant="caption" sx={{ color: colors.strongGray, textTransform: "uppercase" }}>
+                                                    {item.label}
+                                                </Typography>
+                                                <Typography variant="body1" sx={{ fontWeight: 600, color: "#1d1d1d" }}>
+                                                    {item.value}
+                                                </Typography>
+                                            </Box>
+                                        </Stack>
+                                    ))}
+                                </Stack>
+                            </Paper>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    borderRadius: 4,
+                                    p: { xs: 3, md: 4 },
+                                    bgcolor: "#fff",
+                                    boxShadow: "0 16px 40px rgba(93, 112, 246, 0.08)",
                                 }}
                             >
-                                {hasThumbnail ? (
-                                    <Box
-                                        component="img"
-                                        src={thumbnailUrl}
-                                        alt={`Thumb do curso ${courseResume?.title ?? "sem título"}`}
-                                        sx={{
-                                            width: "100%",
-                                            height: { xs: 260, md: 320 },
-                                            objectFit: "cover",
-                                            borderRadius: 4,
-                                            boxShadow: "0 24px 45px rgba(0,0,0,0.25)",
-                                        }}
-                                    />
+                                <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2}>
+                                    <Box>
+                                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                            Avaliações do curso
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ color: colors.strongGray, mt: 0.5 }}>
+                                            Confira o que os estudantes acharam deste conteúdo.
+                                        </Typography>
+                                    </Box>
+                                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                                        {isUserEnrolled ? (
+                                            courseResume?.user_rated ? (
+                                                <>
+                                                    <SEGButton
+                                                        colorTheme="blue"
+                                                        sx={{ maxWidth: 240, maxHeight: 55 }}
+                                                        onClick={handleOpenEditDialog}
+                                                        disabled={!userEvaluation}
+                                                    >
+                                                        Editar avaliação
+                                                    </SEGButton>
+                                                    <SEGButton
+                                                        colorTheme="outlined"
+                                                        sx={{ maxWidth: 240, mb: 0, maxHeight: 55 }}
+                                                        onClick={() => setDeleteDialogOpen(true)}
+                                                        disabled={!userEvaluation}
+                                                    >
+                                                        Excluir avaliação
+                                                    </SEGButton>
+                                                </>
+                                            ) : (
+                                                <SEGButton colorTheme="gradient" sx={{ maxWidth: 260 }} onClick={handleOpenCreateDialog}>
+                                                    Avaliar curso
+                                                </SEGButton>
+                                            )
+                                        ) : (
+                                            <SEGButton colorTheme="outlined" disabled sx={{ maxWidth: 260, mb: 0 }}>
+                                                Matricule-se para avaliar
+                                            </SEGButton>
+                                        )}
+                                    </Stack>
+                                </Stack>
+
+                                <Divider sx={{ my: 3 }} />
+
+                                {courseResume?.evaluations_by_user && courseResume.evaluations_by_user.length > 0 ? (
+                                    <Stack spacing={3}>
+                                        {courseResume.evaluations_by_user.map((evaluation, index) => {
+                                            const studentName = evaluation.student_full_name?.trim() ?? "Estudante";
+                                            const studentProfilePicture = evaluation.student_profile_picture;
+
+                                            const evaluationAverage = evaluation.avg ?? null;
+
+                                            return (
+                                                <Paper
+                                                    key={`${evaluation.student_id ?? "student"}-${evaluation.last_avaliation_id ?? index}`}
+                                                    elevation={0}
+                                                    sx={{
+                                                        borderRadius: 3,
+                                                        p: { xs: 2.5, md: 3 },
+                                                        bgcolor: "#f9f9ff",
+                                                        border: "1px solid rgba(93,112,246,0.08)",
+                                                    }}
+                                                >
+                                                    <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={2}>
+                                                        <Stack direction="row" spacing={2} alignItems="center">
+                                                            <Avatar
+                                                                src={studentProfilePicture ?? undefined}
+                                                                alt="Usuário"
+                                                                sx={{
+                                                                    width: { xs: 38, sm: 42, md: 44 },
+                                                                    height: { xs: 38, sm: 42, md: 44 },
+                                                                    bgcolor: "#fff",
+                                                                    color: "#000",
+                                                                    boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                                                                }}
+                                                            >
+                                                                {!teacherProfilePicture && <PersonOutlineIcon />}
+                                                            </Avatar>
+                                                            <Box>
+                                                                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                                                                    {studentName}
+                                                                </Typography>
+                                                                <Stack direction="row" spacing={1} alignItems="center">
+                                                                    <Rating
+                                                                        value={evaluationAverage ?? 0}
+                                                                        precision={0.1}
+                                                                        readOnly
+                                                                        size="small"
+                                                                    />
+                                                                    <Typography variant="body2" sx={{ color: colors.strongGray }}>
+                                                                        {evaluationAverage !== null && evaluationAverage !== undefined
+                                                                            ? evaluationAverage.toFixed(2)
+                                                                            : "--"}
+                                                                    </Typography>
+                                                                </Stack>
+                                                            </Box>
+                                                        </Stack>
+                                                    </Stack>
+
+                                                    <Divider sx={{ my: 2.5 }} />
+
+                                                    <Grid container spacing={2.5}>
+                                                        {evaluationCriteria.map(({ key, label }) => {
+                                                            const metric = evaluation.notes?.[key];
+                                                            if (!metric || metric.note == null) return null;
+                                                            return (
+                                                                <Grid item xs={12} md={4} key={key as string}>
+                                                                    <Paper
+                                                                        elevation={0}
+                                                                        sx={{
+                                                                            p: 2,
+                                                                            borderRadius: 2.5,
+                                                                            bgcolor: "#fff",
+                                                                            border: "1px solid rgba(93,112,246,0.06)",
+                                                                        }}
+                                                                    >
+                                                                        <Typography variant="overline" sx={{ color: colors.strongGray }}>
+                                                                            {label}
+                                                                        </Typography>
+                                                                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+                                                                            <Rating value={metric.note ?? 0} readOnly size="small" />
+                                                                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                                                                                {(metric.note ?? 0).toFixed(1)}
+                                                                            </Typography>
+                                                                        </Stack>
+                                                                    </Paper>
+                                                                </Grid>
+                                                            );
+                                                        })}
+                                                    </Grid>
+
+                                                    {(() => {
+                                                        const commentaryRaw = evaluation.notes?.commentary ?? evaluation.commentary ?? null;
+                                                        const commentText = commentaryRaw?.comment?.trim() ?? "";
+                                                        const commentaryNoteText = typeof commentaryRaw?.note === "string"
+                                                            ? commentaryRaw.note.trim()
+                                                            : "";
+                                                        const commentaryText = commentText || commentaryNoteText;
+                                                        if (!commentaryText) return null;
+
+                                                        return (
+                                                            <Box sx={{ mt: 3 }}>
+                                                                <Typography variant="overline" sx={{ color: colors.strongGray }}>
+                                                                    Comentário sobre o curso
+                                                                </Typography>
+                                                                <Typography variant="body1" sx={{ mt: 1, lineHeight: 1.7, color: "#4b4b4b" }}>
+                                                                    {commentaryText}
+                                                                </Typography>
+                                                            </Box>
+                                                        );
+                                                    })()}
+                                                </Paper>
+                                            );
+                                        })}
+                                    </Stack>
                                 ) : (
                                     <Box
                                         sx={{
-                                            width: "100%",
-                                            height: { xs: 260, md: 320 },
-                                            borderRadius: 4,
-                                            background: "rgba(255,255,255,0.08)",
                                             display: "flex",
+                                            flexDirection: "column",
                                             alignItems: "center",
                                             justifyContent: "center",
-                                            color: "#fff",
-                                            fontWeight: 600,
                                             textAlign: "center",
-                                            px: 3,
+                                            py: 6,
+                                            bgcolor: "rgba(93,112,246,0.04)",
+                                            borderRadius: 3,
                                         }}
                                     >
-                                        Thumbnail não disponível
+                                        <StarIcon sx={{ fontSize: 40, color: colors.blue, mb: 1 }} />
+                                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                            Ainda não há avaliações registradas
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ color: colors.strongGray, maxWidth: 420 }}>
+                                            Seja o primeiro a compartilhar sua experiência com este curso assim que estiver matriculado.
+                                        </Typography>
                                     </Box>
                                 )}
                             </Paper>
                         </Grid>
                     </Grid>
                 </Container>
-            </Box>
 
-            <Container maxWidth="lg">
-                <Grid container spacing={4}>
-                    <Grid item xs={12} md={7} sx={{ display: { md: "flex" } }}>
-                        <Paper
-                            elevation={0}
-                            sx={{
-                                borderRadius: 4,
-                                p: { xs: 3, md: 4 },
-                                bgcolor: "#fff",
-                                boxShadow: "0 16px 40px rgba(93, 112, 246, 0.08)",
-                                display: "flex",
-                                flexDirection: "column",
-                            }}
-                            ref={descriptionPaperRef}
-                        >
-                            <Typography
-                                variant="h6"
-                                sx={{ fontWeight: 700, mb: { xs: 2, md: 3 } }}
-                                ref={descriptionTitleRef}
-                            >
-                                Sobre o curso
+                <Dialog
+                    open={Boolean(ratingDialogMode)}
+                    onClose={handleCloseRatingDialog}
+                    fullWidth
+                    maxWidth="sm"
+                    PaperProps={{ sx: { borderRadius: 4, p: 0 } }}
+                >
+                    <DialogTitle sx={{ fontWeight: 700, pb: 1.5 }}>
+                        {ratingDialogMode === "edit" ? "Editar avaliação" : "Avaliar curso"}
+                    </DialogTitle>
+                    <Box component="form" onSubmit={handleSubmitRating}>
+                        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                            <Typography variant="body2" sx={{ color: colors.strongGray }}>
+                                Compartilhe sua experiência com a comunidade atribuindo notas para cada aspecto do curso.
                             </Typography>
-                            <Box
-                                sx={{
-                                    flex: 1,
-                                    overflowY: { xs: "visible", md: "auto" },
-                                    pr: { md: 1 },
-                                    scrollbarWidth: "thin",
-                                    scrollbarColor: `${colors.purple} transparent`,
-                                    "&::-webkit-scrollbar": {
-                                        width: 6,
-                                    },
-                                    "&::-webkit-scrollbar-track": {
-                                        backgroundColor: "transparent",
-                                        borderRadius: 999,
-                                    },
-                                    "&::-webkit-scrollbar-thumb": {
-                                        backgroundColor: colors.purple,
-                                        borderRadius: 999,
-                                    },
-                                    "&::-webkit-scrollbar-thumb:hover": {
-                                        backgroundColor: "#4c60e8",
-                                    },
-                                    ...(descriptionContentMaxHeight
-                                        ? { maxHeight: { md: `${descriptionContentMaxHeight}px` } }
-                                        : {}),
-                                }}
-                            >
-                                <Typography
-                                    variant="body1"
-                                    sx={{
-                                        color: "#555",
-                                        lineHeight: 1.7,
-                                        whiteSpace: "pre-wrap",
-                                    }}
-                                >
-                                    {courseResume?.description?.trim()
-                                        ? courseResume.description
-                                        : "Descrição não disponível."}
-                                </Typography>
-                            </Box>
-
-                        </Paper>
-                    </Grid>
-                    <Grid item xs={12} md={5}>
-                        <Paper
-                            elevation={0}
-                            sx={{
-                                borderRadius: 4,
-                                p: { xs: 3, md: 4 },
-                                bgcolor: "#fff",
-                                boxShadow: "0 16px 40px rgba(73, 160, 251, 0.12)",
-                            }}
-                            ref={generalInfoPaperRef}
-                        >
-                            <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
-                                Informações gerais
-                            </Typography>
-                            <Stack spacing={2.5}>
-                                {detailItems.map((item) => (
-                                    <Stack key={item.label} direction="row" spacing={2} alignItems="flex-start">
-                                        <Box
-                                            sx={{
-                                                width: 40,
-                                                height: 40,
-                                                borderRadius: "12px",
-                                                background: "rgba(73,160,251,0.12)",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                            }}
-                                        >
-                                            {item.icon}
-                                        </Box>
-                                        <Box>
-                                            <Typography variant="caption" sx={{ color: colors.strongGray, textTransform: "uppercase" }}>
-                                                {item.label}
-                                            </Typography>
-                                            <Typography variant="body1" sx={{ fontWeight: 600, color: "#1d1d1d" }}>
-                                                {item.value}
-                                            </Typography>
-                                        </Box>
-                                    </Stack>
-                                ))}
-                            </Stack>
-                        </Paper>
-                    </Grid>
-                    <Grid item xs={12}>
-                        <Paper
-                            elevation={0}
-                            sx={{
-                                borderRadius: 4,
-                                p: { xs: 3, md: 4 },
-                                bgcolor: "#fff",
-                                boxShadow: "0 16px 40px rgba(93, 112, 246, 0.08)",
-                            }}
-                        >
-                            <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2}>
+                            <Stack spacing={3}>
                                 <Box>
-                                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                                        Avaliações do curso
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                        Qualidade do Material
                                     </Typography>
-                                    <Typography variant="body2" sx={{ color: colors.strongGray, mt: 0.5 }}>
-                                        Confira o que os estudantes acharam deste conteúdo.
-                                    </Typography>
+                                    <Rating
+                                        value={formValues.materialQualityNote}
+                                        onChange={(_, value) =>
+                                            setFormValues((prev) => ({ ...prev, materialQualityNote: value ?? prev.materialQualityNote }))
+                                        }
+                                    />
                                 </Box>
-                                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                                    {isUserEnrolled ? (
-                                        courseResume?.user_rated ? (
-                                            <>
-                                                <SEGButton
-                                                    colorTheme="blue"
-                                                    sx={{ maxWidth: 240, maxHeight: 55 }}
-                                                    onClick={handleOpenEditDialog}
-                                                    disabled={!userEvaluation}
-                                                >
-                                                    Editar avaliação
-                                                </SEGButton>
-                                                <SEGButton
-                                                    colorTheme="outlined"
-                                                    sx={{ maxWidth: 240, mb: 0, maxHeight: 55 }}
-                                                    onClick={() => setDeleteDialogOpen(true)}
-                                                    disabled={!userEvaluation}
-                                                >
-                                                    Excluir avaliação
-                                                </SEGButton>
-                                            </>
-                                        ) : (
-                                            <SEGButton colorTheme="gradient" sx={{ maxWidth: 260 }} onClick={handleOpenCreateDialog}>
-                                                Avaliar curso
-                                            </SEGButton>
-                                        )
-                                    ) : (
-                                        <SEGButton colorTheme="outlined" disabled sx={{ maxWidth: 260, mb: 0 }}>
-                                            Matricule-se para avaliar
-                                        </SEGButton>
-                                    )}
-                                </Stack>
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                        Didática do Professor
+                                    </Typography>
+                                    <Rating
+                                        value={formValues.didaticsNote}
+                                        onChange={(_, value) =>
+                                            setFormValues((prev) => ({ ...prev, didaticsNote: value ?? prev.didaticsNote }))
+                                        }
+                                    />
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                        Metodologia de Ensino
+                                    </Typography>
+                                    <Rating
+                                        value={formValues.teachingMethodologyNote}
+                                        onChange={(_, value) =>
+                                            setFormValues((prev) => ({ ...prev, teachingMethodologyNote: value ?? prev.teachingMethodologyNote }))
+                                        }
+                                    />
+                                </Box>
+                                <TextField
+                                    label="Comentário sobre o curso"
+                                    value={formValues.commentary}
+                                    onChange={(event) =>
+                                        setFormValues((prev) => ({ ...prev, commentary: event.target.value }))
+                                    }
+                                    multiline
+                                    minRows={4}
+                                    placeholder="Conte para outros estudantes como foi sua experiência"
+                                />
                             </Stack>
+                        </DialogContent>
+                        <DialogActions sx={{ px: 3, pb: 3 }}>
+                            <SEGButton
+                                colorTheme="outlined"
+                                onClick={handleCloseRatingDialog}
+                                sx={{ maxWidth: 180, mb: 0 }}
+                                type="button"
+                            >
+                                Cancelar
+                            </SEGButton>
+                            <SEGButton loading={isLoadingCreateOrUpdateEvaluation} colorTheme="gradient" sx={{ maxWidth: 220, mb: 0 }} type="submit">
+                                {ratingDialogMode === "edit" ? "Salvar alterações" : "Enviar avaliação"}
+                            </SEGButton>
+                        </DialogActions>
+                    </Box>
+                </Dialog>
 
-                            <Divider sx={{ my: 3 }} />
-
-                            {courseResume?.evaluations_by_user && courseResume.evaluations_by_user.length > 0 ? (
-                                <Stack spacing={3}>
-                                    {courseResume.evaluations_by_user.map((evaluation, index) => {
-                                        const studentName = evaluation.student_full_name?.trim() ?? "Estudante";
-                                        const studentProfilePicture = evaluation.student_profile_picture;
-
-                                        const evaluationAverage = evaluation.avg ?? null;
-
-                                        return (
-                                            <Paper
-                                                key={`${evaluation.student_id ?? "student"}-${evaluation.last_avaliation_id ?? index}`}
-                                                elevation={0}
-                                                sx={{
-                                                    borderRadius: 3,
-                                                    p: { xs: 2.5, md: 3 },
-                                                    bgcolor: "#f9f9ff",
-                                                    border: "1px solid rgba(93,112,246,0.08)",
-                                                }}
-                                            >
-                                                <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={2}>
-                                                    <Stack direction="row" spacing={2} alignItems="center">
-                                                        <Avatar
-                                                            src={studentProfilePicture ?? undefined}
-                                                            alt="Usuário"
-                                                            sx={{
-                                                                width: { xs: 38, sm: 42, md: 44 },
-                                                                height: { xs: 38, sm: 42, md: 44 },
-                                                                bgcolor: "#fff",
-                                                                color: "#000",
-                                                                boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-                                                            }}
-                                                        >
-                                                            {!teacherProfilePicture && <PersonOutlineIcon />}
-                                                        </Avatar>
-                                                        <Box>
-                                                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                                                                {studentName}
-                                                            </Typography>
-                                                            <Stack direction="row" spacing={1} alignItems="center">
-                                                                <Rating
-                                                                    value={evaluationAverage ?? 0}
-                                                                    precision={0.1}
-                                                                    readOnly
-                                                                    size="small"
-                                                                />
-                                                                <Typography variant="body2" sx={{ color: colors.strongGray }}>
-                                                                    {evaluationAverage !== null && evaluationAverage !== undefined
-                                                                        ? evaluationAverage.toFixed(2)
-                                                                        : "--"}
-                                                                </Typography>
-                                                            </Stack>
-                                                        </Box>
-                                                    </Stack>
-                                                </Stack>
-
-                                                <Divider sx={{ my: 2.5 }} />
-
-                                                <Grid container spacing={2.5}>
-                                                    {evaluationCriteria.map(({ key, label }) => {
-                                                        const metric = evaluation.notes?.[key];
-                                                        if (!metric || metric.note == null) return null;
-                                                        return (
-                                                            <Grid item xs={12} md={4} key={key as string}>
-                                                                <Paper
-                                                                    elevation={0}
-                                                                    sx={{
-                                                                        p: 2,
-                                                                        borderRadius: 2.5,
-                                                                        bgcolor: "#fff",
-                                                                        border: "1px solid rgba(93,112,246,0.06)",
-                                                                    }}
-                                                                >
-                                                                    <Typography variant="overline" sx={{ color: colors.strongGray }}>
-                                                                        {label}
-                                                                    </Typography>
-                                                                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
-                                                                        <Rating value={metric.note ?? 0} readOnly size="small" />
-                                                                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                                                                            {(metric.note ?? 0).toFixed(1)}
-                                                                        </Typography>
-                                                                    </Stack>
-                                                                </Paper>
-                                                            </Grid>
-                                                        );
-                                                    })}
-                                                </Grid>
-
-                                                {(() => {
-                                                    const commentaryRaw = evaluation.notes?.commentary ?? evaluation.commentary ?? null;
-                                                    const commentText = commentaryRaw?.comment?.trim() ?? "";
-                                                    const commentaryNoteText = typeof commentaryRaw?.note === "string"
-                                                        ? commentaryRaw.note.trim()
-                                                        : "";
-                                                    const commentaryText = commentText || commentaryNoteText;
-                                                    if (!commentaryText) return null;
-
-                                                    return (
-                                                        <Box sx={{ mt: 3 }}>
-                                                            <Typography variant="overline" sx={{ color: colors.strongGray }}>
-                                                                Comentário sobre o curso
-                                                            </Typography>
-                                                            <Typography variant="body1" sx={{ mt: 1, lineHeight: 1.7, color: "#4b4b4b" }}>
-                                                                {commentaryText}
-                                                            </Typography>
-                                                        </Box>
-                                                    );
-                                                })()}
-                                            </Paper>
-                                        );
-                                    })}
-                                </Stack>
-                            ) : (
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        textAlign: "center",
-                                        py: 6,
-                                        bgcolor: "rgba(93,112,246,0.04)",
-                                        borderRadius: 3,
-                                    }}
-                                >
-                                    <StarIcon sx={{ fontSize: 40, color: colors.blue, mb: 1 }} />
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                                        Ainda não há avaliações registradas
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ color: colors.strongGray, maxWidth: 420 }}>
-                                        Seja o primeiro a compartilhar sua experiência com este curso assim que estiver matriculado.
-                                    </Typography>
-                                </Box>
-                            )}
-                        </Paper>
-                    </Grid>
-                </Grid>
-            </Container>
-
-            <Dialog
-                open={Boolean(ratingDialogMode)}
-                onClose={handleCloseRatingDialog}
-                fullWidth
-                maxWidth="sm"
-                PaperProps={{ sx: { borderRadius: 4, p: 0 } }}
-            >
-                <DialogTitle sx={{ fontWeight: 700, pb: 1.5 }}>
-                    {ratingDialogMode === "edit" ? "Editar avaliação" : "Avaliar curso"}
-                </DialogTitle>
-                <Box component="form" onSubmit={handleSubmitRating}>
-                    <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <Dialog
+                    open={deleteDialogOpen}
+                    onClose={() => setDeleteDialogOpen(false)}
+                    maxWidth="xs"
+                    fullWidth
+                    PaperProps={{ sx: { borderRadius: 4, p: 0 } }}
+                >
+                    <DialogTitle sx={{ fontWeight: 700 }}>Excluir avaliação</DialogTitle>
+                    <DialogContent>
                         <Typography variant="body2" sx={{ color: colors.strongGray }}>
-                            Compartilhe sua experiência com a comunidade atribuindo notas para cada aspecto do curso.
+                            Tem certeza de que deseja excluir sua avaliação? Essa ação não poderá ser desfeita.
                         </Typography>
-                        <Stack spacing={3}>
-                            <Box>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                    Qualidade do Material
-                                </Typography>
-                                <Rating
-                                    value={formValues.materialQualityNote}
-                                    onChange={(_, value) =>
-                                        setFormValues((prev) => ({ ...prev, materialQualityNote: value ?? prev.materialQualityNote }))
-                                    }
-                                />
-                            </Box>
-                            <Box>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                    Didática do Professor
-                                </Typography>
-                                <Rating
-                                    value={formValues.didaticsNote}
-                                    onChange={(_, value) =>
-                                        setFormValues((prev) => ({ ...prev, didaticsNote: value ?? prev.didaticsNote }))
-                                    }
-                                />
-                            </Box>
-                            <Box>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                    Metodologia de Ensino
-                                </Typography>
-                                <Rating
-                                    value={formValues.teachingMethodologyNote}
-                                    onChange={(_, value) =>
-                                        setFormValues((prev) => ({ ...prev, teachingMethodologyNote: value ?? prev.teachingMethodologyNote }))
-                                    }
-                                />
-                            </Box>
-                            <TextField
-                                label="Comentário sobre o curso"
-                                value={formValues.commentary}
-                                onChange={(event) =>
-                                    setFormValues((prev) => ({ ...prev, commentary: event.target.value }))
-                                }
-                                multiline
-                                minRows={4}
-                                placeholder="Conte para outros estudantes como foi sua experiência"
-                            />
-                        </Stack>
                     </DialogContent>
                     <DialogActions sx={{ px: 3, pb: 3 }}>
                         <SEGButton
                             colorTheme="outlined"
-                            onClick={handleCloseRatingDialog}
+                            onClick={() => setDeleteDialogOpen(false)}
                             sx={{ maxWidth: 180, mb: 0 }}
-                            type="button"
                         >
                             Cancelar
                         </SEGButton>
-                        <SEGButton loading={isLoadingCreateOrUpdateEvaluation} colorTheme="gradient" sx={{ maxWidth: 220, mb: 0 }} type="submit">
-                            {ratingDialogMode === "edit" ? "Salvar alterações" : "Enviar avaliação"}
+                        <SEGButton loading={isLoadingDeleteEvaluation} colorTheme="purple" sx={{ maxWidth: 220, mb: 0 }} onClick={handleConfirmDelete}>
+                            Excluir
                         </SEGButton>
                     </DialogActions>
-                </Box>
-            </Dialog>
-
-            <Dialog
-                open={deleteDialogOpen}
-                onClose={() => setDeleteDialogOpen(false)}
-                maxWidth="xs"
-                fullWidth
-                PaperProps={{ sx: { borderRadius: 4, p: 0 } }}
-            >
-                <DialogTitle sx={{ fontWeight: 700 }}>Excluir avaliação</DialogTitle>
-                <DialogContent>
-                    <Typography variant="body2" sx={{ color: colors.strongGray }}>
-                        Tem certeza de que deseja excluir sua avaliação? Essa ação não poderá ser desfeita.
-                    </Typography>
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 3 }}>
-                    <SEGButton
-                        colorTheme="outlined"
-                        onClick={() => setDeleteDialogOpen(false)}
-                        sx={{ maxWidth: 180, mb: 0 }}
-                    >
-                        Cancelar
-                    </SEGButton>
-                    <SEGButton loading={isLoadingDeleteEvaluation} colorTheme="purple" sx={{ maxWidth: 220, mb: 0 }} onClick={handleConfirmDelete}>
-                        Excluir
-                    </SEGButton>
-                </DialogActions>
-            </Dialog>
-        </Box>
+                </Dialog>
+            </Box>
+        </>
     );
-    // #endregion return
+
 };
 
 export default CoursesResume;
