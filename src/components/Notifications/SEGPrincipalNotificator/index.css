@@ -2,6 +2,7 @@
 .swal2-container,
 .swal2-container * {
   overflow: visible !important;
+  z-index: 2000 !important;
 }
 .swal2-popup::before,
 .swal2-popup::after {

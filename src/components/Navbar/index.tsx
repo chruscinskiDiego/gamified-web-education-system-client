@@ -21,7 +21,7 @@ import { api } from "../../lib/axios";
 import { useNavigate } from "react-router-dom";
 import { colors } from "../../theme/colors";
 import { logout } from "../../services/AuthService";
-import XpDetailsModal from "./XpDetailsModal";
+import XpDetailsModal from "../XpDetailsModal";
 
 const Navbar: React.FC = () => {
 

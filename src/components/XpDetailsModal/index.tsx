@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     Box,
-    Button,
     Chip,
     Dialog,
     DialogContent,
@@ -28,6 +27,11 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import PendingActionsRoundedIcon from "@mui/icons-material/PendingActionsRounded";
 import type { getXpInfo } from "../../services/XpService";
+import { api } from "../../lib/axios";
+import SEGPrincipalNotificator from "../Notifications/SEGPrincipalNotificator";
+import SEGButton from "../SEGButton";
+import CloseIcon from '@mui/icons-material/Close';
+
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "short",
@@ -60,26 +64,6 @@ const Transition = React.forwardRef(function Transition(
     return <Slide direction="up" ref={ref} {...props} />;
 });
 
-const mockGoals: Goal[] = [
-    {
-        id_goal: 1,
-        description: "desafio teste teste",
-        completed: false,
-        created_at: "2025-10-19T02:33:43.658Z",
-    },
-    {
-        id_goal: 2,
-        description: "desafio teste teste",
-        completed: false,
-        created_at: "2025-10-19T02:33:44.773Z",
-    },
-    {
-        id_goal: 3,
-        description: "desafio teste teste",
-        completed: false,
-        created_at: "2025-10-19T02:33:45.522Z",
-    },
-];
 
 const XpDetailsModal: React.FC<XpDetailsModalProps> = ({
     open,
@@ -89,7 +73,8 @@ const XpDetailsModal: React.FC<XpDetailsModalProps> = ({
     totalXp,
 }) => {
     const theme = useTheme();
-    const [goals, setGoals] = useState<Goal[]>(mockGoals);
+    const [goals, setGoals] = useState<Goal[]>([]);
+    const [fetchedGoals, setFetchedGoals] = useState<boolean>(false);
     const [page, setPage] = useState(1);
     const [newGoalDescription, setNewGoalDescription] = useState("");
     const [editingGoalId, setEditingGoalId] = useState<number | null>(null);
@@ -112,33 +97,97 @@ const XpDetailsModal: React.FC<XpDetailsModalProps> = ({
         setEditingDescription("");
     };
 
-    const handleCreateGoal = () => {
-        const trimmed = newGoalDescription.trim();
-        if (!trimmed) return;
+    const getGoals = async () => {
 
-        // TODO: Substituir por requisição real para criar meta
-        setGoals((prev) => [
-            {
-                id_goal: Date.now(),
-                description: trimmed,
-                completed: false,
-                created_at: new Date().toISOString(),
-            },
-            ...prev,
-        ]);
-        setNewGoalDescription("");
-        setPage(1);
+        const response = await api.get("/goal/view-by-user");
+
+        if (response.status === 200) {
+
+            setGoals(response?.data || []);
+            setFetchedGoals(true);
+        }
     };
 
-    const handleToggleGoal = (goalId: number) => {
-        // TODO: Substituir por requisição real para atualizar meta
-        setGoals((prev) =>
-            prev.map((goal) =>
-                goal.id_goal === goalId
-                    ? { ...goal, completed: !goal.completed }
-                    : goal,
-            ),
-        );
+    useEffect(() => {
+
+        if (goals.length > 0 && fetchedGoals) return;
+
+        getGoals();
+
+    }, []);
+
+    const handleCreateGoal = async () => {
+
+        const description = newGoalDescription.trim();
+
+        if (!description) return;
+
+        try {
+
+            const response = await api.post("/goal/create", {
+                description: description
+            });
+
+            if (response.status === 201) {
+
+                const createdGoalId = response.data.created_goal_id;
+
+                setGoals((prev) => [
+                    {
+                        id_goal: createdGoalId,
+                        description: description,
+                        completed: false,
+                        created_at: new Date().toISOString(),
+                    },
+                    ...prev,
+                ]);
+
+                SEGPrincipalNotificator('Meta criada', 'success', 'Sucesso!');
+
+                setNewGoalDescription("");
+                setPage(1);
+
+            }
+
+
+        } catch (error) {
+
+            SEGPrincipalNotificator('Erro ao criar meta', 'error', 'Erro!');
+
+        }
+
+    };
+
+    const handleToggleGoal = async (goalId: number) => {
+
+        try {
+
+            const findedGoal = goals.find((goal) => goal.id_goal === goalId);
+
+            const response = await api.patch(`/goal/update/${goalId}`, {
+                completed: findedGoal?.completed ? false : true
+            });
+
+            if (response.status === 200) {
+                setGoals((prev) =>
+                    prev.map((goal) =>
+                        goal.id_goal === goalId
+                            ? { ...goal, completed: !goal.completed }
+                            : goal,
+                    ),
+                );
+            }
+
+            const notificationMessage = findedGoal?.completed ? 'Meta em andamento' : 'Meta finalizada';
+
+            SEGPrincipalNotificator(notificationMessage, 'success', 'Sucesso!');
+
+        } catch (error) {
+
+            SEGPrincipalNotificator('Erro ao finalizar meta', 'error', 'Erro!');
+
+        }
+
     };
 
     const handleEditGoal = (goal: Goal) => {
@@ -150,29 +199,63 @@ const XpDetailsModal: React.FC<XpDetailsModalProps> = ({
         resetEditingState();
     };
 
-    const handleSaveGoal = (goalId: number) => {
-        const trimmed = editingDescription.trim();
-        if (!trimmed) return;
+    const handleSaveGoal = async (goalId: number) => {
 
-        // TODO: Substituir por requisição real para atualizar meta
-        setGoals((prev) =>
-            prev.map((goal) =>
-                goal.id_goal === goalId
-                    ? { ...goal, description: trimmed }
-                    : goal,
-            ),
-        );
-        resetEditingState();
+        const description = editingDescription.trim();
+
+        if (!description) return;
+
+        try {
+
+            const response = await api.patch(`/goal/update/${goalId}`, {
+                description: description
+            });
+
+            if (response.status === 200) {
+                setGoals((prev) =>
+                    prev.map((goal) =>
+                        goal.id_goal === goalId
+                            ? { ...goal, description: description }
+                            : goal,
+                    ),
+                );
+                resetEditingState();
+
+                SEGPrincipalNotificator('Meta atualizada', 'success', 'Sucesso!');
+            }
+        } catch (error) {
+
+            SEGPrincipalNotificator('Erro ao atualizar meta', 'error', 'Erro!');
+
+        }
+
     };
 
-    const handleDeleteGoal = (goalId: number) => {
-        // TODO: Substituir por requisição real para remover meta
-        setGoals((prev) => {
-            const updatedGoals = prev.filter((goal) => goal.id_goal !== goalId);
-            const newTotalPages = Math.max(1, Math.ceil(updatedGoals.length / rowsPerPage));
-            setPage((current) => Math.min(current, newTotalPages));
-            return updatedGoals;
-        });
+    const handleDeleteGoal = async (goalId: number) => {
+
+        try {
+
+            const response = await api.delete(`/goal/delete/${goalId}`);
+
+            if (response.status === 200) {
+
+                setGoals((prev) => {
+                    const updatedGoals = prev.filter((goal) => goal.id_goal !== goalId);
+                    const newTotalPages = Math.max(1, Math.ceil(updatedGoals.length / rowsPerPage));
+                    setPage((current) => Math.min(current, newTotalPages));
+                    return updatedGoals;
+                });
+
+                SEGPrincipalNotificator('Meta Removida', 'success', 'Sucesso!');
+
+            }
+
+
+        } catch (error) {
+
+            SEGPrincipalNotificator('Não foi possível remover a meta', 'error', 'Erro!');
+        }
+
     };
 
     const renderGoalStatusChip = (completed: boolean) => (
@@ -254,11 +337,10 @@ const XpDetailsModal: React.FC<XpDetailsModalProps> = ({
                     maxHeight: { xs: "calc(100vh - 160px)", md: "70vh" },
                     overflowY: "auto",
                     scrollbarWidth: "thin",
-                    scrollbarColor: `${theme.palette.primary.main} ${
-                        theme.palette.mode === "dark"
-                            ? alpha("#0e1026", 0.9)
-                            : alpha("#e2e6ff", 0.9)
-                    }`,
+                    scrollbarColor: `${theme.palette.primary.main} ${theme.palette.mode === "dark"
+                        ? alpha("#0e1026", 0.9)
+                        : alpha("#e2e6ff", 0.9)
+                        }`,
                     "&::-webkit-scrollbar": {
                         width: 10,
                     },
@@ -275,11 +357,10 @@ const XpDetailsModal: React.FC<XpDetailsModalProps> = ({
                                 ? "linear-gradient(180deg, rgba(102,94,255,0.95) 0%, rgba(84,217,255,0.95) 100%)"
                                 : "linear-gradient(180deg, rgba(84,94,255,0.9) 0%, rgba(84,217,255,0.9) 100%)",
                         borderRadius: 999,
-                        border: `2px solid ${
-                            theme.palette.mode === "dark"
-                                ? alpha("#0e1026", 0.8)
-                                : alpha("#eff2ff", 0.9)
-                        }`,
+                        border: `2px solid ${theme.palette.mode === "dark"
+                            ? alpha("#0e1026", 0.8)
+                            : alpha("#eff2ff", 0.9)
+                            }`,
                     },
                     "&::-webkit-scrollbar-thumb:hover": {
                         background:
@@ -372,19 +453,21 @@ const XpDetailsModal: React.FC<XpDetailsModalProps> = ({
                                     ),
                                 }}
                             />
-                            <Button
-                                variant="contained"
+                            <SEGButton
+                                disabled={newGoalDescription.length < 5}
+                                colorTheme="gradient"
                                 startIcon={<AddRoundedIcon />}
                                 onClick={handleCreateGoal}
                                 sx={{
-                                    minWidth: { xs: "100%", sm: 160 },
+                                    maxWidth: {md: 200},
+                                    minWidth: { xs: "100%", sm: 160},
                                     borderRadius: 2,
                                     textTransform: "none",
                                     fontWeight: 700,
                                 }}
                             >
                                 Adicionar meta
-                            </Button>
+                            </SEGButton>
                         </Stack>
 
                         <Stack spacing={2}>
@@ -446,8 +529,10 @@ const XpDetailsModal: React.FC<XpDetailsModalProps> = ({
                                                 ) : (
                                                     <>
                                                         <Tooltip title={goal.completed ? "Marcar como pendente" : "Marcar como concluída"}>
-                                                            <IconButton color="success" onClick={() => handleToggleGoal(goal.id_goal)}>
-                                                                <CheckRoundedIcon />
+                                                            <IconButton color={goal.completed ? "warning" : "success"} onClick={() => handleToggleGoal(goal.id_goal)}>
+                                                                
+                                                                {goal.completed ? <CloseIcon/> : <CheckRoundedIcon/>}
+
                                                             </IconButton>
                                                         </Tooltip>
                                                         <Tooltip title="Editar">
