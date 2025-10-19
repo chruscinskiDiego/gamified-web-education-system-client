@@ -45,14 +45,20 @@ const CoursesResume: React.FC = () => {
     const generalInfoPaperRef = useRef<HTMLDivElement | null>(null);
     const [descriptionContentMaxHeight, setDescriptionContentMaxHeight] = useState<number | null>(null);
     const [formValues, setFormValues] = useState<RatingFormValues>(() => buildInitialFormValues());
-    const {userId} = useContext(ProfileContext)!;
+    const profileContext = useContext(ProfileContext);
+    const userId = profileContext?.userId ?? null;
+    const normalizedUserId = userId != null ? String(userId) : null;
+    const userEvaluation = courseResume?.evaluations_by_user?.find((evaluation) => {
+        const evaluationStudentId = evaluation.student_id != null ? String(evaluation.student_id) : null;
+        return normalizedUserId !== null && evaluationStudentId === normalizedUserId;
+    }) ?? null;
 
     useEffect(() => {
-        if (ratingDialogMode === "edit") {
-            setFormValues(buildInitialFormValues());
+        if (ratingDialogMode === "edit" && userEvaluation) {
+            setFormValues(buildInitialFormValues(userEvaluation));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [courseResume]);
+    }, [courseResume, userEvaluation]);
     // #endregion states
 
     // #region fetchs
@@ -97,7 +103,8 @@ const CoursesResume: React.FC = () => {
     };
 
     const handleOpenEditDialog = () => {
-        setFormValues(buildInitialFormValues());
+        if (!userEvaluation) return;
+        setFormValues(buildInitialFormValues(userEvaluation));
         setRatingDialogMode("edit");
     };
 
@@ -188,7 +195,6 @@ const CoursesResume: React.FC = () => {
     // #endregion handlers
 
     // #region utils
-    const userEvaluation = courseResume?.evaluations_by_user?.[0] ?? null;
     const teacherNameRaw = courseResume?.teacher_full_name?.trim();
     const teacherProfilePicture = courseResume?.teacher_profile_picture?.trim() || null;
     const teacherName = teacherNameRaw && teacherNameRaw.length > 0 ? teacherNameRaw : "Professor não informado";
@@ -364,8 +370,7 @@ const CoursesResume: React.FC = () => {
         };
     }
 
-    function buildInitialFormValues(): RatingFormValues {
-        const evaluation = courseResume?.evaluations_by_user?.[0];
+    function buildInitialFormValues(evaluation: CourseEvaluation | null = null): RatingFormValues {
         const commentary = evaluation?.notes?.commentary ?? evaluation?.commentary ?? null;
 
         const trimmedComment = commentary?.comment?.trim();
@@ -720,13 +725,19 @@ const CoursesResume: React.FC = () => {
                                     {isUserEnrolled ? (
                                         courseResume?.user_rated ? (
                                             <>
-                                                <SEGButton colorTheme="blue" sx={{ maxWidth: 240, maxHeight: 55 }} onClick={handleOpenEditDialog}>
+                                                <SEGButton
+                                                    colorTheme="blue"
+                                                    sx={{ maxWidth: 240, maxHeight: 55 }}
+                                                    onClick={handleOpenEditDialog}
+                                                    disabled={!userEvaluation}
+                                                >
                                                     Editar avaliação
                                                 </SEGButton>
                                                 <SEGButton
                                                     colorTheme="outlined"
                                                     sx={{ maxWidth: 240, mb: 0, maxHeight: 55 }}
                                                     onClick={() => setDeleteDialogOpen(true)}
+                                                    disabled={!userEvaluation}
                                                 >
                                                     Excluir avaliação
                                                 </SEGButton>
