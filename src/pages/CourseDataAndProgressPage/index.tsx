@@ -4,6 +4,7 @@ import {
     AccordionDetails,
     AccordionSummary,
     Box,
+    Button,
     Chip,
     Container,
     Divider,
@@ -56,7 +57,7 @@ interface CourseData {
     difficulty_level: string;
 }
 
-type EpisodeMediaType = "text" | "video" | "image" | "pdf";
+type EpisodeMediaType = "text" | "video" | "image" | "pdf" | "external";
 
 const courseMock: CourseData = {
     "title": "PostgreSQL: Do básico ao Avançado!",
@@ -173,21 +174,35 @@ const initialEpisodeId = initialModulesOrdered[0]?.episodes[0]?.id_module_episod
 const getEpisodeMediaType = (link: string | null): EpisodeMediaType => {
     if (!link) return "text";
 
-    const normalized = link.toLowerCase();
+    let pathname = link;
 
-    if (normalized.endsWith(".pdf")) {
-        return "pdf";
+    try {
+        const url = new URL(link);
+        pathname = url.pathname;
+    } catch (error) {
+        // ignore invalid URL parsing and fallback to the raw string
     }
 
-    if (normalized.match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/)) {
-        return "image";
-    }
+    const cleanPath = pathname.split("?")[0];
+    const extension = cleanPath.includes(".") ? cleanPath.split(".").pop()?.toLowerCase() ?? "" : "";
 
-    if (normalized.match(/\.(mp4|webm|ogg|mov|m4v)$/)) {
+    if (["mp4", "webm", "ogg", "mov", "m4v"].includes(extension)) {
         return "video";
     }
 
-    return "video";
+    if (["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"].includes(extension)) {
+        return "image";
+    }
+
+    if (extension === "pdf") {
+        return "pdf";
+    }
+
+    if (link.includes("youtube.com") || link.includes("youtu.be") || link.includes("vimeo.com")) {
+        return "video";
+    }
+
+    return "external";
 };
 
 const CourseDataAndProgressPage: React.FC = () => {
@@ -198,6 +213,7 @@ const CourseDataAndProgressPage: React.FC = () => {
     const [expandedModuleId, setExpandedModuleId] = useState<number | null>(initialModuleId);
     const [selectedModuleId, setSelectedModuleId] = useState<number | null>(initialModuleId);
     const [selectedEpisodeId, setSelectedEpisodeId] = useState<number | null>(initialEpisodeId);
+    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
     const orderedModules = useMemo(() => courseData.modules.slice().sort((a, b) => a.order - b.order), [courseData.modules]);
 
@@ -210,12 +226,6 @@ const CourseDataAndProgressPage: React.FC = () => {
     const selectedModule = useMemo(() => orderedModules.find((module) => module.id_course_module === selectedModuleId) ?? null, [orderedModules, selectedModuleId]);
 
     const selectedEpisode = useMemo(() => selectedModule?.episodes.find((episode) => episode.id_module_episode === selectedEpisodeId) ?? null, [selectedModule, selectedEpisodeId]);
-
-    const isSelectedEpisodeLocked = useMemo(() => {
-        if (!selectedModule || !selectedEpisode) return true;
-
-        return isEpisodeLocked(selectedModule.id_course_module, selectedEpisode.id_module_episode);
-    }, [isEpisodeLocked, selectedEpisode, selectedModule]);
 
     const isModuleLocked = useCallback((moduleId: number, modulesList: CourseModule[] = orderedModules) => {
         const modulesSorted = modulesList.slice().sort((a, b) => a.order - b.order);
@@ -248,6 +258,12 @@ const CourseDataAndProgressPage: React.FC = () => {
 
         return !previousEpisodes.every((episode) => episode.completed);
     }, [isModuleLocked, orderedModules]);
+
+    const isSelectedEpisodeLocked = useMemo(() => {
+        if (!selectedModule || !selectedEpisode) return true;
+
+        return isEpisodeLocked(selectedModule.id_course_module, selectedEpisode.id_module_episode);
+    }, [isEpisodeLocked, selectedEpisode, selectedModule]);
 
     const handleExpandModule = (_: React.SyntheticEvent, isExpanded: boolean, moduleId: number) => {
         setExpandedModuleId(isExpanded ? moduleId : null);
@@ -337,16 +353,40 @@ const CourseDataAndProgressPage: React.FC = () => {
             return <ImageIcon color="secondary" />;
         case "video":
             return <OndemandVideoIcon color="secondary" />;
+        case "external":
+            return <ArticleIcon color="secondary" />;
         default:
             return <ArticleIcon color="secondary" />;
         }
     })();
 
+    const shouldTruncateDescription = courseData.description.length > 480;
+
+    const toggleDescription = () => {
+        setIsDescriptionExpanded((previous) => !previous);
+    };
+
+    const handleOpenExternalEpisode = () => {
+        if (!selectedEpisode?.link_episode) return;
+
+        window.open(selectedEpisode.link_episode, "_blank", "noopener,noreferrer");
+    };
+
     return (
         <Box sx={{ backgroundColor: "#f6f7fb", minHeight: "calc(100vh - 64px)", py: { xs: 3, md: 5 } }}>
             <Container maxWidth="lg">
                 <Stack spacing={4}>
-                    <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: 3, boxShadow: "0 12px 34px rgba(93,112,246,0.12)" }}>
+                    <Paper
+                        elevation={0}
+                        sx={{
+                            p: { xs: 3, md: 4 },
+                            borderRadius: 3,
+                            boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 2,
+                        }}
+                    >
                         <Stack spacing={2}>
                             <Typography variant="overline" sx={{ color: colors.purple, fontWeight: 700 }}>
                                 Curso #{id ?? courseData.id_course}
@@ -370,10 +410,20 @@ const CourseDataAndProgressPage: React.FC = () => {
                         </Stack>
                     </Paper>
 
-                    <Grid container spacing={4}>
+                    <Grid container spacing={4} alignItems="flex-start">
                         <Grid item xs={12} md={8}>
-                            <Stack spacing={3}>
-                                <Paper elevation={0} sx={{ p: { xs: 2.5, md: 3 }, borderRadius: 3, boxShadow: "0 12px 34px rgba(93,112,246,0.12)" }}>
+                            <Stack spacing={3} sx={{ height: "100%" }}>
+                                <Paper
+                                    elevation={0}
+                                    sx={{
+                                        p: { xs: 2.5, md: 3 },
+                                        borderRadius: 3,
+                                        boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 2.5,
+                                    }}
+                                >
                                     <Stack spacing={2}>
                                         <Stack direction="row" spacing={1.5} alignItems="center">
                                             {mediaIcon}
@@ -384,46 +434,58 @@ const CourseDataAndProgressPage: React.FC = () => {
 
                                         <Divider />
 
-                                        {mediaType === "video" && selectedEpisode?.link_episode && (
-                                            <Box sx={{ borderRadius: 2, overflow: "hidden", backgroundColor: "black" }}>
-                                                <video
-                                                    src={selectedEpisode.link_episode}
-                                                    controls
-                                                    style={{ width: "100%", display: "block" }}
-                                                >
-                                                    Seu navegador não suporta a reprodução de vídeo.
-                                                </video>
-                                            </Box>
-                                        )}
+                                        {selectedEpisode ? (
+                                            <Stack spacing={2.5}>
+                                                {mediaType === "video" && selectedEpisode.link_episode && (
+                                                    <Box sx={{ borderRadius: 2, overflow: "hidden", backgroundColor: "black" }}>
+                                                        <video
+                                                            src={selectedEpisode.link_episode}
+                                                            controls
+                                                            style={{ width: "100%", display: "block" }}
+                                                        >
+                                                            Seu navegador não suporta a reprodução de vídeo.
+                                                        </video>
+                                                    </Box>
+                                                )}
 
-                                        {mediaType === "image" && selectedEpisode?.link_episode && (
-                                            <Box
-                                                component="img"
-                                                src={selectedEpisode.link_episode}
-                                                alt={selectedEpisode.title}
-                                                sx={{ width: "100%", borderRadius: 2, objectFit: "cover" }}
-                                            />
-                                        )}
+                                                {mediaType === "image" && selectedEpisode.link_episode && (
+                                                    <Box
+                                                        component="img"
+                                                        src={selectedEpisode.link_episode}
+                                                        alt={selectedEpisode.title}
+                                                        loading="lazy"
+                                                        sx={{ width: "100%", borderRadius: 2, objectFit: "cover" }}
+                                                    />
+                                                )}
 
-                                        {mediaType === "pdf" && selectedEpisode?.link_episode && (
-                                            <Box sx={{ height: { xs: 360, md: 480 }, borderRadius: 2, overflow: "hidden", backgroundColor: "#f0f0f0" }}>
-                                                <iframe
-                                                    src={`${selectedEpisode.link_episode}#view=FitH`}
-                                                    style={{ border: "none", width: "100%", height: "100%" }}
-                                                    title={selectedEpisode.title}
-                                                />
-                                            </Box>
-                                        )}
+                                                {mediaType === "pdf" && selectedEpisode.link_episode && (
+                                                    <Box sx={{ height: { xs: 360, md: 480 }, borderRadius: 2, overflow: "hidden", backgroundColor: "#f0f0f0" }}>
+                                                        <iframe
+                                                            src={`${selectedEpisode.link_episode}#view=FitH`}
+                                                            style={{ border: "none", width: "100%", height: "100%" }}
+                                                            title={selectedEpisode.title}
+                                                        />
+                                                    </Box>
+                                                )}
 
-                                        {mediaType === "text" && (
+                                                {mediaType === "external" && selectedEpisode.link_episode && (
+                                                    <Stack spacing={1.5}>
+                                                        <Typography variant="body1" sx={{ color: "text.secondary" }}>
+                                                            Abrimos este conteúdo em uma nova aba porque o formato não pôde ser identificado automaticamente.
+                                                        </Typography>
+                                                        <SEGButton colorTheme="outlined" onClick={handleOpenExternalEpisode}>
+                                                            Abrir conteúdo em nova aba
+                                                        </SEGButton>
+                                                    </Stack>
+                                                )}
+
+                                                <Typography variant="body1" sx={{ color: "text.secondary" }}>
+                                                    {selectedEpisode.description}
+                                                </Typography>
+                                            </Stack>
+                                        ) : (
                                             <Typography variant="body1" sx={{ color: "text.secondary" }}>
-                                                {selectedEpisode?.description ?? "Selecione uma aula para visualizar o conteúdo."}
-                                            </Typography>
-                                        )}
-
-                                        {(mediaType === "video" || mediaType === "image" || mediaType === "pdf") && (
-                                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                                {selectedEpisode?.description}
+                                                Selecione uma aula para visualizar o conteúdo.
                                             </Typography>
                                         )}
 
@@ -432,6 +494,7 @@ const CourseDataAndProgressPage: React.FC = () => {
                                                 colorTheme="gradient"
                                                 onClick={handleCompleteEpisode}
                                                 disabled={selectedEpisode.completed || isSelectedEpisodeLocked}
+                                                sx={{ mt: 1 }}
                                             >
                                                 {selectedEpisode.completed ? "Aula concluída" : "Marcar aula como concluída"}
                                             </SEGButton>
@@ -439,21 +502,73 @@ const CourseDataAndProgressPage: React.FC = () => {
                                     </Stack>
                                 </Paper>
 
-                                <Paper elevation={0} sx={{ p: { xs: 2.5, md: 3 }, borderRadius: 3, boxShadow: "0 12px 34px rgba(93,112,246,0.12)" }}>
+                                <Paper
+                                    elevation={0}
+                                    sx={{
+                                        p: { xs: 2.5, md: 3 },
+                                        borderRadius: 3,
+                                        boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 2,
+                                    }}
+                                >
                                     <Stack spacing={2}>
                                         <Typography variant="h6" sx={{ fontWeight: 700 }}>
                                             Sobre o curso
                                         </Typography>
-                                        <Typography variant="body2" sx={{ color: "text.secondary", whiteSpace: "pre-line" }}>
-                                            {courseData.description}
-                                        </Typography>
+                                        <Box sx={{ position: "relative" }}>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: "text.secondary",
+                                                    whiteSpace: "pre-line",
+                                                    display: "-webkit-box",
+                                                    WebkitBoxOrient: "vertical",
+                                                    WebkitLineClamp: isDescriptionExpanded || !shouldTruncateDescription ? "unset" : 6,
+                                                    overflow: "hidden",
+                                                }}
+                                            >
+                                                {courseData.description}
+                                            </Typography>
+                                            {!isDescriptionExpanded && shouldTruncateDescription && (
+                                                <Box
+                                                    sx={{
+                                                        position: "absolute",
+                                                        bottom: 0,
+                                                        left: 0,
+                                                        right: 0,
+                                                        height: 96,
+                                                        background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 80%)",
+                                                    }}
+                                                />
+                                            )}
+                                        </Box>
+                                        {shouldTruncateDescription && (
+                                            <Button
+                                                variant="text"
+                                                onClick={toggleDescription}
+                                                sx={{ alignSelf: "flex-start", fontWeight: 600, textTransform: "none" }}
+                                            >
+                                                {isDescriptionExpanded ? "Ver menos" : "Ver mais..."}
+                                            </Button>
+                                        )}
                                     </Stack>
                                 </Paper>
                             </Stack>
                         </Grid>
 
                         <Grid item xs={12} md={4}>
-                            <Paper elevation={0} sx={{ p: { xs: 2.5, md: 3 }, borderRadius: 3, boxShadow: "0 12px 34px rgba(93,112,246,0.12)" }}>
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    p: { xs: 2.5, md: 3 },
+                                    borderRadius: 3,
+                                    boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
+                                    position: { md: "sticky" },
+                                    top: { md: 104 },
+                                }}
+                            >
                                 <Stack spacing={2}>
                                     <Typography variant="h6" sx={{ fontWeight: 700 }}>
                                         Conteúdo do curso
