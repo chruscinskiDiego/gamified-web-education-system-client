@@ -4,6 +4,7 @@ import {
     AccordionDetails,
     AccordionSummary,
     Box,
+    CircularProgress,
     Button,
     Chip,
     Container,
@@ -103,6 +104,38 @@ const getEpisodeMediaType = (link: string | null): EpisodeMediaType => {
 
 };
 
+const resolveMediaTypeFromHeaders = (headers: Headers): EpisodeMediaType => {
+    const contentType = headers.get("content-type")?.toLowerCase() ?? "";
+
+    if (contentType.startsWith("video/")) {
+        return "video";
+    }
+
+    if (contentType.startsWith("image/")) {
+        return "image";
+    }
+
+    if (contentType.includes("pdf")) {
+        return "pdf";
+    }
+
+    if (contentType.startsWith("text/")) {
+        return "text";
+    }
+
+    const contentDisposition = headers.get("content-disposition") ?? "";
+    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
+
+    if (filenameMatch) {
+        const filename = filenameMatch[1]?.replace(/['"]/g, "").trim();
+        if (filename) {
+            return getEpisodeMediaType(filename);
+        }
+    }
+
+    return "external";
+};
+
 const sanitizeCourse = (course: CourseData): CourseData => ({
         ...course,
         modules: course.modules.map((module) => {
@@ -147,6 +180,69 @@ const CourseDataAndProgressPage: React.FC = () => {
     const selectedModule = useMemo(() => orderedModules.find((module) => module.id_course_module === selectedModuleId) ?? null, [orderedModules, selectedModuleId]);
 
     const selectedEpisode = useMemo(() => selectedModule?.episodes.find((episode) => episode.id_module_episode === selectedEpisodeId) ?? null, [selectedModule, selectedEpisodeId]);
+
+    const [mediaType, setMediaType] = useState<EpisodeMediaType>("text");
+    const [isResolvingMediaType, setIsResolvingMediaType] = useState(false);
+
+    useEffect(() => {
+        if (!selectedEpisode) {
+            setMediaType("text");
+            setIsResolvingMediaType(false);
+            return;
+        }
+
+        const { link_episode: linkEpisode } = selectedEpisode;
+
+        if (!linkEpisode) {
+            setMediaType("text");
+            setIsResolvingMediaType(false);
+            return;
+        }
+
+        const inferredType = getEpisodeMediaType(linkEpisode);
+        setMediaType(inferredType);
+
+        if (inferredType !== "external") {
+            setIsResolvingMediaType(false);
+            return;
+        }
+
+        let isActive = true;
+        const controller = new AbortController();
+
+        const resolveMediaType = async () => {
+            setIsResolvingMediaType(true);
+
+            try {
+                const response = await fetch(linkEpisode, { method: "HEAD", signal: controller.signal });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch media metadata");
+                }
+
+                const resolvedType = resolveMediaTypeFromHeaders(response.headers);
+
+                if (isActive) {
+                    setMediaType(resolvedType);
+                }
+            } catch (error) {
+                if (isActive) {
+                    setMediaType(inferredType);
+                }
+            } finally {
+                if (isActive) {
+                    setIsResolvingMediaType(false);
+                }
+            }
+        };
+
+        void resolveMediaType();
+
+        return () => {
+            isActive = false;
+            controller.abort();
+        };
+    }, [selectedEpisode]);
 
     const getCourseDataAndProgress = useCallback(async () => {
         if (!id) return;
@@ -289,9 +385,11 @@ const CourseDataAndProgressPage: React.FC = () => {
         setExpandedModuleId(nextModuleId);
     };
 
-    const mediaType = getEpisodeMediaType(selectedEpisode?.link_episode ?? null);
-
     const mediaIcon = (() => {
+        if (isResolvingMediaType) {
+            return <ArticleIcon color="secondary" />;
+        }
+
         switch (mediaType) {
             case "pdf":
                 return <PictureAsPdfIcon color="secondary" />;
@@ -382,11 +480,16 @@ const CourseDataAndProgressPage: React.FC = () => {
                                     <Divider />
 
                                     {selectedEpisode ? (
-                                        <Stack spacing={2.5}>
-                                            {mediaType === "video" && selectedEpisode.link_episode && (
-                                                <Box sx={{ borderRadius: 2, overflow: "hidden", backgroundColor: "black" }}>
-                                                    <video
-                                                        src={selectedEpisode.link_episode}
+                                        isResolvingMediaType ? (
+                                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", py: 8 }}>
+                                                <CircularProgress color="secondary" />
+                                            </Box>
+                                        ) : (
+                                            <Stack spacing={2.5}>
+                                                {mediaType === "video" && selectedEpisode.link_episode && (
+                                                    <Box sx={{ borderRadius: 2, overflow: "hidden", backgroundColor: "black" }}>
+                                                        <video
+                                                            src={selectedEpisode.link_episode}
                                                         controls
                                                         style={{ width: "100%", display: "block" }}
                                                     >
@@ -429,7 +532,8 @@ const CourseDataAndProgressPage: React.FC = () => {
                                             <Typography variant="body1" sx={{ color: "text.secondary" }}>
                                                 {selectedEpisode.description}
                                             </Typography>
-                                        </Stack>
+                                            </Stack>
+                                        )
                                     ) : (
                                         <Typography variant="body1" sx={{ color: "text.secondary" }}>
                                             Selecione uma aula para visualizar o conteúdo.
