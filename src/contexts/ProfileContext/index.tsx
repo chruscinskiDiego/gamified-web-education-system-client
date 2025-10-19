@@ -40,23 +40,26 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     const [userProfilePic, setUserProfilePic] = useState<string | null>(() => {
-
         const url = Cookies.get('pic');
-
         return url !== undefined ? url : null;
-    })
+    });
 
     useEffect(() => {
         const handler = (e: Event) => {
-            const custom = e as CustomEvent<{ userId: string }>;
+            const custom = e as CustomEvent<{ userId: string; userType?: 'S' | 'T' | 'A'; userProfilePic?: string | null }>;
             setUserId(custom.detail.userId);
+            const { userType: detailType, userProfilePic: detailPic } = custom.detail;
+            if (detailType === 'S' || detailType === 'T' || detailType === 'A') {
+                setUserType(detailType);
+            } else {
+                setUserType(null);
+            }
+            setUserProfilePic(detailPic ?? null);
             setIsAuthenticated(true);
         };
         window.addEventListener('userLoggedIn', handler);
         return () => window.removeEventListener('userLoggedIn', handler);
     }, []);
-
-    console.log('autenticado? ' + isAuthenticated);
     return (
         <ProfileContext.Provider value={{ isAuthenticated, setIsAuthenticated, userId, setUserId, userType, setUserType, userProfilePic, setUserProfilePic }}>
             {children}

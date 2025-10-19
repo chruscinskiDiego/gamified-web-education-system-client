@@ -30,7 +30,13 @@ export const signIn = async (data: ISignIn) => {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
         window.dispatchEvent(
-            new CustomEvent('userLoggedIn', { detail: { userId } })
+            new CustomEvent('userLoggedIn', {
+                detail: {
+                    userId: String(userId),
+                    userType,
+                    userProfilePic: profilePicture ?? null,
+                }
+            })
         );
 
         return response;

@@ -41,7 +41,7 @@ export const LoginPage: React.FC = () => {
     const [snackOpen, setSnackOpen] = useState(false);
     const [snackType, setSnackType] = useState<'success' | 'warning' | null>(null);
     const profileContext = useContext(ProfileContext);
-    const { setIsAuthenticated } = profileContext!;
+    const { setIsAuthenticated, setUserId, setUserType, setUserProfilePic } = profileContext!;
 
 
     const emailRef = useRef<HTMLInputElement | null>(null);
@@ -93,9 +93,21 @@ export const LoginPage: React.FC = () => {
                 return;
             }
 
-            console.log('A');
-            
             setIsAuthenticated(true);
+
+            const { user_id: responseUserId, user_type: responseUserType, user_profile_pic: responseProfilePic } = response?.data ?? {};
+
+            if (responseUserId !== undefined && responseUserId !== null) {
+                setUserId(String(responseUserId));
+            }
+
+            if (responseUserType === 'S' || responseUserType === 'T' || responseUserType === 'A') {
+                setUserType(responseUserType);
+            } else {
+                setUserType(null);
+            }
+
+            setUserProfilePic(responseProfilePic ?? null);
 
             navigate("/homepage");
 
