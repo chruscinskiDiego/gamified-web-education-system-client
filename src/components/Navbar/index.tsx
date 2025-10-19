@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Box from "@mui/material/Box";
@@ -31,18 +31,16 @@ const Navbar: React.FC = () => {
     const isSmUp = useMediaQuery(theme.breakpoints.up("sm"));
     const navigate = useNavigate();
 
-    const [userXp, setUserXp] = useState<number>(0);
     const [level, setLevel] = useState<number>(0);
     const [infoXp, setInfoXp] = useState<any>(null);
     const [loadingXp, setLoadingXp] = useState<boolean>(true);
 
-    const getUserXp = async () => {
+    const getUserXp = useCallback(async () => {
         setLoadingXp(true);
 
         try {
             const response = await api.get("/user-xp");
             const points: number = response?.data?.points ?? 0;
-            setUserXp(points);
             const xpStatistics = getXpInfo(points);
             setLevel(xpStatistics.level);
             setInfoXp(xpStatistics);
@@ -50,21 +48,20 @@ const Navbar: React.FC = () => {
             if ((err as any)?.name === "CanceledError" || (err as any)?.message === "canceled") {
                 return;
             }
-            setUserXp(0);
             setLevel(0);
             setInfoXp(null);
         } finally {
             setLoadingXp(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
 
-        if (userXp > 0 || userType !== 'S') return;
+        if (!userType || userType !== 'S') return;
 
         getUserXp();
 
-    }, []);
+    }, [getUserXp, userType]);
 
     const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
     const openUserMenu = Boolean(anchorElUser);
