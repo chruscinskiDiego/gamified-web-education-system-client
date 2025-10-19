@@ -52,6 +52,8 @@ const CoursesResume: React.FC = () => {
         const evaluationStudentId = evaluation.student_id != null ? String(evaluation.student_id) : null;
         return normalizedUserId !== null && evaluationStudentId === normalizedUserId;
     }) ?? null;
+    const [isLoadingCreateOrUpdateEvaluation, setIsLoadingCreateOrUpdateEvaluation] = useState<boolean>(false);
+    const [isLoadingDeleteEvaluation, setIsLoadingDeleteEvaluation] = useState<boolean>(false);
 
     useEffect(() => {
         if (ratingDialogMode === "edit" && userEvaluation) {
@@ -117,6 +119,9 @@ const CoursesResume: React.FC = () => {
         if (!ratingDialogMode) return;
 
         try {
+
+            setIsLoadingCreateOrUpdateEvaluation(true);
+            
             if (ratingDialogMode === "create" && courseResume?.id_course) {
 
                 const payload: CreateEvaluationPayload = {
@@ -128,8 +133,11 @@ const CoursesResume: React.FC = () => {
                 };
 
                 await createCourseEvaluation(payload);
+
             } else if (ratingDialogMode === "edit" && userEvaluation) {
+
                 const userCommentary = userEvaluation.notes?.commentary ?? userEvaluation.commentary ?? null;
+
                 const payload: UpdateEvaluationPayload = {
                     materialQualityAvaliationId: userEvaluation.notes.material_quality?.id_avaliation ?? null,
                     materialQualityNote: formValues.materialQualityNote,
@@ -149,6 +157,7 @@ const CoursesResume: React.FC = () => {
             console.error("Erro ao enviar avaliação do curso", error);
         } finally {
             handleCloseRatingDialog();
+            setIsLoadingCreateOrUpdateEvaluation(false);
         }
     };
 
@@ -182,6 +191,9 @@ const CoursesResume: React.FC = () => {
         };
 
         try {
+
+            setIsLoadingDeleteEvaluation(true);
+
             if (payload.avaliations.length > 0) {
                 await deleteCourseEvaluation(payload);
                 await getCourseResume();
@@ -189,7 +201,9 @@ const CoursesResume: React.FC = () => {
         } catch (error) {
             console.error("Erro ao excluir avaliação do curso", error);
         } finally {
+
             setDeleteDialogOpen(false);
+            setIsLoadingDeleteEvaluation(false);
         }
     };
     // #endregion handlers
@@ -965,7 +979,7 @@ const CoursesResume: React.FC = () => {
                         >
                             Cancelar
                         </SEGButton>
-                        <SEGButton colorTheme="gradient" sx={{ maxWidth: 220, mb: 0 }} type="submit">
+                        <SEGButton loading={isLoadingCreateOrUpdateEvaluation} colorTheme="gradient" sx={{ maxWidth: 220, mb: 0 }} type="submit">
                             {ratingDialogMode === "edit" ? "Salvar alterações" : "Enviar avaliação"}
                         </SEGButton>
                     </DialogActions>
@@ -993,7 +1007,7 @@ const CoursesResume: React.FC = () => {
                     >
                         Cancelar
                     </SEGButton>
-                    <SEGButton colorTheme="purple" sx={{ maxWidth: 220, mb: 0 }} onClick={handleConfirmDelete}>
+                    <SEGButton loading={isLoadingDeleteEvaluation} colorTheme="purple" sx={{ maxWidth: 220, mb: 0 }} onClick={handleConfirmDelete}>
                         Excluir
                     </SEGButton>
                 </DialogActions>
