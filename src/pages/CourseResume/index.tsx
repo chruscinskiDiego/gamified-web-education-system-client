@@ -132,6 +132,7 @@ interface DeleteEvaluationPayload {
 
 const CoursesResume: React.FC = () => {
 
+    // #region states
     const [ratingDialogMode, setRatingDialogMode] = useState<"create" | "edit" | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [courseResume, setCourseResume] = useState<CourseResumeData | null>(null);
@@ -140,121 +141,17 @@ const CoursesResume: React.FC = () => {
     const descriptionTitleRef = useRef<HTMLHeadingElement | null>(null);
     const generalInfoPaperRef = useRef<HTMLDivElement | null>(null);
     const [descriptionContentMaxHeight, setDescriptionContentMaxHeight] = useState<number | null>(null);
-
-    const updateDescriptionContentHeight = useCallback(() => {
-        if (typeof window === "undefined") return;
-
-        const isMdUp = window.matchMedia("(min-width:900px)").matches;
-        if (!isMdUp) {
-            setDescriptionContentMaxHeight(null);
-            return;
-        }
-
-        const generalInfoElement = generalInfoPaperRef.current;
-        const descriptionPaperElement = descriptionPaperRef.current;
-        const descriptionTitleElement = descriptionTitleRef.current;
-
-        if (!generalInfoElement || !descriptionPaperElement) {
-            setDescriptionContentMaxHeight(null);
-            return;
-        }
-
-        const generalInfoHeight = generalInfoElement.offsetHeight;
-        const { paddingTop, paddingBottom } = window.getComputedStyle(descriptionPaperElement);
-        const verticalPadding = (parseFloat(paddingTop) || 0) + (parseFloat(paddingBottom) || 0);
-        let titleHeight = 0;
-
-        if (descriptionTitleElement) {
-            const { marginTop, marginBottom } = window.getComputedStyle(descriptionTitleElement);
-            titleHeight =
-                descriptionTitleElement.offsetHeight +
-                (parseFloat(marginTop) || 0) +
-                (parseFloat(marginBottom) || 0);
-        }
-
-        const availableHeight = generalInfoHeight - verticalPadding - titleHeight;
-
-        setDescriptionContentMaxHeight(availableHeight > 0 ? availableHeight : null);
-    }, []);
+    const [formValues, setFormValues] = useState<RatingFormValues>(() => buildInitialFormValues());
 
     useEffect(() => {
-        updateDescriptionContentHeight();
-
-        if (typeof window === "undefined") return;
-
-        const handleResize = () => updateDescriptionContentHeight();
-        window.addEventListener("resize", handleResize);
-
-        const generalInfoElement = generalInfoPaperRef.current;
-        let resizeObserver: ResizeObserver | null = null;
-
-        if (generalInfoElement && typeof ResizeObserver !== "undefined") {
-            resizeObserver = new ResizeObserver(() => {
-                updateDescriptionContentHeight();
-            });
-            resizeObserver.observe(generalInfoElement);
+        if (ratingDialogMode === "edit") {
+            setFormValues(buildInitialFormValues());
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [courseResume]);
+    // #endregion states
 
-        return () => {
-            window.removeEventListener("resize", handleResize);
-            resizeObserver?.disconnect();
-        };
-    }, [updateDescriptionContentHeight, courseResume]);
-
-    const sanitizeCourseResume = (data: CourseResumeApiResponse | null | undefined): CourseResumeData | null => {
-        if (!data) return null;
-
-        const evaluations = Array.isArray(data.evaluations_by_user)
-            ? data.evaluations_by_user.filter((evaluation): evaluation is CourseEvaluation => Boolean(evaluation))
-            : [];
-
-        return {
-            id_course: data.id_course ?? null,
-            title: data.title ?? null,
-            description: data.description ?? null,
-            link_thumbnail: data.link_thumbnail ?? null,
-            difficulty_level: data.difficulty_level ?? null,
-            created_at: data.created_at ?? null,
-            registration_state: data.registration_state ?? null,
-            teacher_full_name: data.teacher_full_name ?? null,
-            teacher_profile_picture:
-                typeof data.teacher_profile_picture === "string"
-                    ? data.teacher_profile_picture.trim() || null
-                    : data.teacher_profile_picture ?? null,
-            category: data.category ?? null,
-            modules_count: data.modules_count ?? null,
-            overall_rating: {
-                avg: data.overall_rating?.avg ?? null,
-                count: data.overall_rating?.count ?? 0,
-            },
-            user_rated: Boolean(data.user_rated),
-            evaluations_by_user: evaluations.map((evaluation) => {
-                const commentary = evaluation?.notes?.commentary ?? evaluation?.commentary ?? null;
-
-                const notes: CourseEvaluationNotes = evaluation?.notes
-                    ? {
-                        didatics: evaluation.notes.didatics ?? undefined,
-                        material_quality: evaluation.notes.material_quality ?? undefined,
-                        teaching_methodology: evaluation.notes.teaching_methodology ?? undefined,
-                        commentary,
-                    }
-                    : commentary
-                        ? { commentary }
-                        : {};
-
-                return {
-                    avg: evaluation?.avg ?? null,
-                    notes,
-                    commentary,
-                    student_id: evaluation?.student_id ?? null,
-                    student_full_name: evaluation?.student_full_name ?? null,
-                    student_profile_picture: evaluation?.student_profile_picture ?? null,
-                    last_avaliation_id: evaluation?.last_avaliation_id ?? null,
-                };
-            }),
-        };
-    };
-
+    // #region fetchs
     const getCourseResume = async () => {
         if (!id) return;
 
@@ -282,62 +179,9 @@ const CoursesResume: React.FC = () => {
     const deleteCourseEvaluation = async (payload: DeleteEvaluationPayload) => {
         await api.delete("/course/avaliation", { data: payload });
     };
+    // #endregion fetchs
 
-    const buildInitialFormValues = (): RatingFormValues => {
-        const evaluation = courseResume?.evaluations_by_user?.[0];
-        const commentary = evaluation?.notes?.commentary ?? evaluation?.commentary ?? null;
-
-        const trimmedComment = commentary?.comment?.trim();
-
-        return {
-            materialQualityNote: evaluation?.notes?.material_quality?.note ?? 3,
-            didaticsNote: evaluation?.notes?.didatics?.note ?? 3,
-            teachingMethodologyNote: evaluation?.notes?.teaching_methodology?.note ?? 3,
-            commentary:
-                (trimmedComment && trimmedComment.length > 0
-                    ? trimmedComment
-                    : typeof commentary?.note === "string"
-                        ? commentary.note
-                        : "") ?? "",
-        };
-    };
-
-    const [formValues, setFormValues] = useState<RatingFormValues>(() => buildInitialFormValues());
-
-    useEffect(() => {
-        if (ratingDialogMode === "edit") {
-            setFormValues(buildInitialFormValues());
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [courseResume]);
-
-    const registrationLabel = courseResume?.registration_state === null
-        ? "MATRICULAR"
-        : courseResume?.registration_state === "S"
-            ? "CANCELAR MATRÍCULA"
-            : null;
-
-    const isUserEnrolled = courseResume?.registration_state === "S" || courseResume?.registration_state === "F";
-    const userEvaluation = courseResume?.evaluations_by_user?.[0] ?? null;
-    const teacherNameRaw = courseResume?.teacher_full_name?.trim();
-    const teacherProfilePicture = courseResume?.teacher_profile_picture?.trim() || null;
-    const teacherName = teacherNameRaw && teacherNameRaw.length > 0 ? teacherNameRaw : "Professor não informado";
-    const overallRatingAvg = courseResume?.overall_rating?.avg ?? null;
-    const overallRatingCount = courseResume?.overall_rating?.count ?? 0;
-    const thumbnailUrl = courseResume?.link_thumbnail?.trim() ?? "";
-    const hasThumbnail = thumbnailUrl.length > 0;
-
-    type EvaluationMetricKey = "material_quality" | "didatics" | "teaching_methodology";
-
-    const evaluationCriteria: Array<{
-        key: EvaluationMetricKey;
-        label: string;
-    }> = [
-            { key: "material_quality", label: "Qualidade do Material" },
-            { key: "didatics", label: "Didática do Professor" },
-            { key: "teaching_methodology", label: "Metodologia de Ensino" },
-        ];
-
+    // #region handlers
     const handleOpenCreateDialog = () => {
         setFormValues({
             materialQualityNote: 3,
@@ -436,6 +280,100 @@ const CoursesResume: React.FC = () => {
             setDeleteDialogOpen(false);
         }
     };
+    // #endregion handlers
+
+    // #region ultils
+    const userEvaluation = courseResume?.evaluations_by_user?.[0] ?? null;
+    const teacherNameRaw = courseResume?.teacher_full_name?.trim();
+    const teacherProfilePicture = courseResume?.teacher_profile_picture?.trim() || null;
+    const teacherName = teacherNameRaw && teacherNameRaw.length > 0 ? teacherNameRaw : "Professor não informado";
+    const overallRatingAvg = courseResume?.overall_rating?.avg ?? null;
+    const overallRatingCount = courseResume?.overall_rating?.count ?? 0;
+    const thumbnailUrl = courseResume?.link_thumbnail?.trim() ?? "";
+    const hasThumbnail = thumbnailUrl.length > 0;
+    const registrationLabel = courseResume?.registration_state === null
+        ? "MATRICULAR"
+        : courseResume?.registration_state === "S"
+            ? "CANCELAR MATRÍCULA"
+            : null;
+    const isUserEnrolled = courseResume?.registration_state === "S" || courseResume?.registration_state === "F";
+
+    type EvaluationMetricKey = "material_quality" | "didatics" | "teaching_methodology";
+
+    const evaluationCriteria: Array<{
+        key: EvaluationMetricKey;
+        label: string;
+    }> = [
+            { key: "material_quality", label: "Qualidade do Material" },
+            { key: "didatics", label: "Didática do Professor" },
+            { key: "teaching_methodology", label: "Metodologia de Ensino" },
+        ];
+
+    const updateDescriptionContentHeight = useCallback(() => {
+        if (typeof window === "undefined") return;
+
+        const isMdUp = window.matchMedia("(min-width:900px)").matches;
+        if (!isMdUp) {
+            setDescriptionContentMaxHeight(null);
+            return;
+        }
+
+        const generalInfoElement = generalInfoPaperRef.current;
+        const descriptionPaperElement = descriptionPaperRef.current;
+        const descriptionTitleElement = descriptionTitleRef.current;
+
+        if (!generalInfoElement || !descriptionPaperElement) {
+            setDescriptionContentMaxHeight(null);
+            return;
+        }
+
+        const generalInfoHeight = generalInfoElement.offsetHeight;
+        const { paddingTop, paddingBottom } = window.getComputedStyle(descriptionPaperElement);
+        const verticalPadding = (parseFloat(paddingTop) || 0) + (parseFloat(paddingBottom) || 0);
+        let titleHeight = 0;
+
+        if (descriptionTitleElement) {
+            const { marginTop, marginBottom } = window.getComputedStyle(descriptionTitleElement);
+            titleHeight =
+                descriptionTitleElement.offsetHeight +
+                (parseFloat(marginTop) || 0) +
+                (parseFloat(marginBottom) || 0);
+        }
+
+        const availableHeight = generalInfoHeight - verticalPadding - titleHeight;
+
+        setDescriptionContentMaxHeight(availableHeight > 0 ? availableHeight : null);
+    }, []);
+
+    useEffect(() => {
+        updateDescriptionContentHeight();
+
+        if (typeof window === "undefined") return;
+
+        const handleResize = () => updateDescriptionContentHeight();
+        window.addEventListener("resize", handleResize);
+
+        const generalInfoElement = generalInfoPaperRef.current;
+        let resizeObserver: ResizeObserver | null = null;
+
+        if (generalInfoElement && typeof ResizeObserver !== "undefined") {
+            resizeObserver = new ResizeObserver(() => {
+                updateDescriptionContentHeight();
+            });
+            resizeObserver.observe(generalInfoElement);
+        }
+
+        return () => {
+            window.removeEventListener("resize", handleResize);
+            resizeObserver?.disconnect();
+        };
+    }, [updateDescriptionContentHeight, courseResume]);
+
+    const resolveDetailValue = (value: string | number | null | undefined) => {
+        if (value === null || value === undefined) return "Não informado";
+        if (typeof value === "string" && value.trim().length === 0) return "Não informado";
+        return value;
+    };
 
     const renderRegistrationButton = () => {
         if (!registrationLabel) return null;
@@ -452,7 +390,7 @@ const CoursesResume: React.FC = () => {
                     {registrationLabel}
                 </SEGButton>
 
-                {courseResume?.registration_state === 'S' && (
+                {courseResume?.registration_state === "S" && (
                     <SEGButton
                         colorTheme="white"
                         onClick={() => console.info(`${registrationLabel} clicado`)}
@@ -460,20 +398,85 @@ const CoursesResume: React.FC = () => {
                     >
                         Ir para o curso
                     </SEGButton>
-                )
-
-                }
+                )}
 
             </>
 
         );
     };
 
-    const resolveDetailValue = (value: string | number | null | undefined) => {
-        if (value === null || value === undefined) return "Não informado";
-        if (typeof value === "string" && value.trim().length === 0) return "Não informado";
-        return value;
-    };
+    function sanitizeCourseResume(data: CourseResumeApiResponse | null | undefined): CourseResumeData | null {
+        if (!data) return null;
+
+        const evaluations = Array.isArray(data.evaluations_by_user)
+            ? data.evaluations_by_user.filter((evaluation): evaluation is CourseEvaluation => Boolean(evaluation))
+            : [];
+
+        return {
+            id_course: data.id_course ?? null,
+            title: data.title ?? null,
+            description: data.description ?? null,
+            link_thumbnail: data.link_thumbnail ?? null,
+            difficulty_level: data.difficulty_level ?? null,
+            created_at: data.created_at ?? null,
+            registration_state: data.registration_state ?? null,
+            teacher_full_name: data.teacher_full_name ?? null,
+            teacher_profile_picture:
+                typeof data.teacher_profile_picture === "string"
+                    ? data.teacher_profile_picture.trim() || null
+                    : data.teacher_profile_picture ?? null,
+            category: data.category ?? null,
+            modules_count: data.modules_count ?? null,
+            overall_rating: {
+                avg: data.overall_rating?.avg ?? null,
+                count: data.overall_rating?.count ?? 0,
+            },
+            user_rated: Boolean(data.user_rated),
+            evaluations_by_user: evaluations.map((evaluation) => {
+                const commentary = evaluation?.notes?.commentary ?? evaluation?.commentary ?? null;
+
+                const notes: CourseEvaluationNotes = evaluation?.notes
+                    ? {
+                        didatics: evaluation.notes.didatics ?? undefined,
+                        material_quality: evaluation.notes.material_quality ?? undefined,
+                        teaching_methodology: evaluation.notes.teaching_methodology ?? undefined,
+                        commentary,
+                    }
+                    : commentary
+                        ? { commentary }
+                        : {};
+
+                return {
+                    avg: evaluation?.avg ?? null,
+                    notes,
+                    commentary,
+                    student_id: evaluation?.student_id ?? null,
+                    student_full_name: evaluation?.student_full_name ?? null,
+                    student_profile_picture: evaluation?.student_profile_picture ?? null,
+                    last_avaliation_id: evaluation?.last_avaliation_id ?? null,
+                };
+            }),
+        };
+    }
+
+    function buildInitialFormValues(): RatingFormValues {
+        const evaluation = courseResume?.evaluations_by_user?.[0];
+        const commentary = evaluation?.notes?.commentary ?? evaluation?.commentary ?? null;
+
+        const trimmedComment = commentary?.comment?.trim();
+
+        return {
+            materialQualityNote: evaluation?.notes?.material_quality?.note ?? 3,
+            didaticsNote: evaluation?.notes?.didatics?.note ?? 3,
+            teachingMethodologyNote: evaluation?.notes?.teaching_methodology?.note ?? 3,
+            commentary:
+                (trimmedComment && trimmedComment.length > 0
+                    ? trimmedComment
+                    : typeof commentary?.note === "string"
+                        ? commentary.note
+                        : "") ?? "",
+        };
+    }
 
     const detailItems = [
         {
@@ -515,6 +518,10 @@ const CoursesResume: React.FC = () => {
     ];
 
     console.log('resumo ' + JSON.stringify(courseResume?.teacher_profile_picture))
+
+    // #endregion ultils
+
+    // #region return
 
     return (
         <Box sx={{ backgroundColor: "#f5f7fb", minHeight: "calc(100vh - 64px)", pb: 8 }}>
@@ -1077,6 +1084,7 @@ const CoursesResume: React.FC = () => {
             </Dialog>
         </Box>
     );
+    // #endregion return
 };
 
 export default CoursesResume;
