@@ -16,6 +16,7 @@ import {
     Typography,
     useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import Slide from "@mui/material/Slide";
 import type { TransitionProps } from "@mui/material/transitions";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -245,7 +246,49 @@ const XpDetailsModal: React.FC<XpDetailsModalProps> = ({
                     <CloseRoundedIcon />
                 </IconButton>
             </DialogTitle>
-            <DialogContent sx={{ pt: 0, pb: 4 }}>
+            <DialogContent
+                sx={{
+                    pt: 0,
+                    pb: 4,
+                    px: { xs: 2.5, sm: 3 },
+                    maxHeight: { xs: "calc(100vh - 160px)", md: "70vh" },
+                    overflowY: "auto",
+                    scrollbarWidth: "thin",
+                    scrollbarColor: `${theme.palette.primary.main} ${
+                        theme.palette.mode === "dark"
+                            ? alpha("#0e1026", 0.9)
+                            : alpha("#e2e6ff", 0.9)
+                    }`,
+                    "&::-webkit-scrollbar": {
+                        width: 10,
+                    },
+                    "&::-webkit-scrollbar-track": {
+                        backgroundColor:
+                            theme.palette.mode === "dark"
+                                ? alpha("#0e1026", 0.9)
+                                : alpha("#e2e6ff", 0.9),
+                        borderRadius: 999,
+                    },
+                    "&::-webkit-scrollbar-thumb": {
+                        background:
+                            theme.palette.mode === "dark"
+                                ? "linear-gradient(180deg, rgba(102,94,255,0.95) 0%, rgba(84,217,255,0.95) 100%)"
+                                : "linear-gradient(180deg, rgba(84,94,255,0.9) 0%, rgba(84,217,255,0.9) 100%)",
+                        borderRadius: 999,
+                        border: `2px solid ${
+                            theme.palette.mode === "dark"
+                                ? alpha("#0e1026", 0.8)
+                                : alpha("#eff2ff", 0.9)
+                        }`,
+                    },
+                    "&::-webkit-scrollbar-thumb:hover": {
+                        background:
+                            theme.palette.mode === "dark"
+                                ? "linear-gradient(180deg, rgba(122,113,255,1) 0%, rgba(104,228,255,1) 100%)"
+                                : "linear-gradient(180deg, rgba(74,84,255,1) 0%, rgba(74,207,255,1) 100%)",
+                    },
+                }}
+            >
                 <Stack spacing={4}>
                     <Box
                         sx={{
