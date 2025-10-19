@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
     Avatar,
     Box,
@@ -30,6 +30,7 @@ import { dateFormat } from "../../helpers/DateFormat";
 import { api } from "../../lib/axios";
 import { useParams } from "react-router-dom";
 import type { CourseEvaluation, CourseEvaluationNotes, CourseResumeApiResponse, CourseResumeData, CreateEvaluationPayload, DeleteEvaluationPayload, RatingFormValues, UpdateEvaluationPayload } from "./interfaces";
+import { ProfileContext } from "../../contexts/ProfileContext";
 
 
 const CoursesResume: React.FC = () => {
@@ -44,6 +45,7 @@ const CoursesResume: React.FC = () => {
     const generalInfoPaperRef = useRef<HTMLDivElement | null>(null);
     const [descriptionContentMaxHeight, setDescriptionContentMaxHeight] = useState<number | null>(null);
     const [formValues, setFormValues] = useState<RatingFormValues>(() => buildInitialFormValues());
+    const {userId} = useContext(ProfileContext)!;
 
     useEffect(() => {
         if (ratingDialogMode === "edit") {
@@ -71,15 +73,15 @@ const CoursesResume: React.FC = () => {
     }, [id]);
 
     const createCourseEvaluation = async (payload: CreateEvaluationPayload) => {
-        await api.post("/course/avaliation", payload);
+        await api.post("/avaliation/new-in-course", payload);
     };
 
     const updateCourseEvaluation = async (payload: UpdateEvaluationPayload) => {
-        await api.put("/course/avaliation", payload);
+        await api.patch("/avaliation/update", payload);
     };
 
     const deleteCourseEvaluation = async (payload: DeleteEvaluationPayload) => {
-        await api.delete("/course/avaliation", { data: payload });
+        await api.delete("/avaliation/delete", { data: payload });
     };
     // #endregion fetchs
 
@@ -109,6 +111,7 @@ const CoursesResume: React.FC = () => {
 
         try {
             if (ratingDialogMode === "create" && courseResume?.id_course) {
+
                 const payload: CreateEvaluationPayload = {
                     materialQualityNote: formValues.materialQualityNote,
                     didaticsNote: formValues.didaticsNote,
