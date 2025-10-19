@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Accordion,
     AccordionDetails,
@@ -60,89 +60,13 @@ interface CourseData {
 
 type EpisodeMediaType = "text" | "video" | "image" | "pdf" | "external";
 
-const courseMock: CourseData = {
-    "title": "PostgreSQL: Do básico ao Avançado!",
-    "modules": [
-        {
-            "order": 1,
-            "title": "SELECT",
-            "episodes": [
-                {
-                    "order": 1,
-                    "title": "Introducao ao select",
-                    "completed": false,
-                    "description": "DSADSADSADSADSAAD",
-                    "link_episode": null,
-                    "id_module_episode": 32
-                },
-                {
-                    "order": 2,
-                    "title": "DOWNLOAD",
-                    "completed": false,
-                    "description": "DASDSADSADSADADAS",
-                    "link_episode": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
-                    "id_module_episode": 33
-                }
-            ],
-            "description": "Nesse módulo voce aprenderá selects",
-            "id_course_module": 20,
-            "module_completed": false
-        },
-        {
-            "order": 2,
-            "title": "INSERT",
-            "episodes": [
-                {
-                    "order": 1,
-                    "title": "INTRODUCAO",
-                    "completed": false,
-                    "description": "DSADSADSADSADS",
-                    "link_episode": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-                    "id_module_episode": 34
-                },
-                {
-                    "order": 2,
-                    "title": "SEGUNDO EP",
-                    "completed": false,
-                    "description": "DSADSADSADSADSADA",
-                    "link_episode": "https://images.pexels.com/photos/1181675/pexels-photo-1181675.jpeg",
-                    "id_module_episode": 35
-                },
-                {
-                    "order": 3,
-                    "title": "TERCEIRO EP",
-                    "completed": false,
-                    "description": "DSADSADSADSADSA",
-                    "link_episode": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
-                    "id_module_episode": 36
-                }
-            ],
-            "description": "INSERTINSERTINSERTINSERT",
-            "id_course_module": 21,
-            "module_completed": false
-        },
-        {
-            "order": 3,
-            "title": "DELETE",
-            "episodes": [
-                {
-                    "order": 1,
-                    "title": "APRENDENDO A SINTAXE",
-                    "completed": false,
-                    "description": "DSADSADSADSADSA",
-                    "link_episode": "https://gamified-web-education-system-server.s3.sa-east-1.amazonaws.com/courses/module/22/ep/37",
-                    "id_module_episode": 37
-                }
-            ],
-            "description": "DELETEDELETEDELETEDELETEDELETEDELETEDELETEDELETEDELETE",
-            "id_course_module": 22,
-            "module_completed": false
-        }
-    ],
-    "id_course": "376533d7-e94d-4306-a9a6-5387ccdae528",
-    "description": "Curso PostgreSQL do Zero ao Avançado 🐘💙\n\nDomine SQL e PostgreSQL para criar bancos robustos, rápidos e seguros — do primeiro SELECT até índices, funções e particionamento. Tudo com projetos reais, labs guiados e muitas dicas de produção. 🚀\n\nPara quem é? 👩‍💻👨‍💻\n\nDevs front/back que querem consultas eficientes e modelagem limpa.\n\nAnalistas de dados/BI que precisam tirar o máximo do SQL.\n\nDBAs iniciantes e curiosos por performance, segurança e operações.\n\nPré-requisitos 📚\n\nLógica de programação básica.\n\nNoções de terminal ajudam, mas vamos passo a passo.\n\nO que você vai aprender 🎯\n\nSQL essencial: SELECT, WHERE, JOIN, GROUP BY, HAVING ✍️\n\nConsultas avançadas: CTEs, Window Functions, subqueries 🧠\n\nModelagem: normalização, chaves, tipos (UUID, JSONB, ARRAY) 🏗️\n\nPerformance: índices B-Tree/GiST/GIN/BRIN, EXPLAIN ANALYZE ⚡\n\nPL/pgSQL: funções, triggers, views materializadas 🧩\n\nSegurança: roles, permissões, Row Level Security (RLS) 🔐\n\nOperações: backup/restore, VACUUM, autovacuum, particionamento 🛠️\n\nProdução: Docker, pgAdmin/DBeaver, migrações, replicação básica ☁️\n\nPrograma do Curso (módulos) 📦\n\nFundamentos do SQL — Sintaxe, filtros, ordenação, agregações.\n\nModelagem & Tipos — PK/FK, constraints, JSONB, ENUM, DATE/TIME.\n\nJoins & Estratégias de Consulta — CTEs, subqueries, Window.\n\nÍndices e Performance — GIN/BRIN, estatísticas, EXPLAIN/ANALYZE.\n\nPL/pgSQL na Prática — Funções, triggers, erros e boas práticas.\n\nDados Semiestruturados — JSONB, filtros, índices, APIs de dados.\n\nAdmin & Segurança — Usuários, roles, RLS, backup/restore.\n\nProdução & Escala — Particionamento, manutenção, replicação e Docker.\n\nProjetos práticos 🧪\n\nE-commerce: modelagem + consultas analíticas (ticket médio, funil) 🛒\n\nAnalytics: ranking com window e materialized views 📈\n\nMini-API: endpoints alimentados por JSONB e CTEs ⚙️\n\nMetodologia de ensino 👩‍🏫\n\nAulas curtas e diretas ✅\n\nLabs com datasets reais 🧰\n\nCheatsheets e desafios com feedback 🔎\n\nSuporte em dúvidas mais comuns 🙋‍♀️🙋‍♂️\n\nFerramentas 💻\n\nPostgreSQL (Docker), psql, pgAdmin / DBeaver.\n\nScripts e migrações versionadas (ex.: docker-compose, psql -f).\n\nCertificado & Carga horária 🎓\n\nCertificado de conclusão.\n\nCarga horária sugerida: 24–32h (ajuste conforme sua grade).\n\nDiferenciais do curso ✨\n\nFoco em vida real (performance, segurança e manutenção).\n\nConteúdo do básico ao avançado, sem pular etapas.\n\nBoas práticas para times e produção desde o início.",
-    "difficulty_level": "E"
-};
+const createEmptyCourseState = (): CourseData => ({
+    title: "",
+    modules: [],
+    id_course: "",
+    description: "",
+    difficulty_level: "",
+});
 
 const getEpisodeMediaType = (link: string | null): EpisodeMediaType => {
     if (!link) return "text";
@@ -205,14 +129,10 @@ const sanitizeCourse = (course: CourseData): CourseData => ({
 const CourseDataAndProgressPage: React.FC = () => {
 
     const { id } = useParams();
-    const initialCourseState = sanitizeCourse(courseMock);
-    const initialModulesOrdered = initialCourseState.modules;
-    const initialModuleId = initialModulesOrdered[0]?.id_course_module ?? null;
-    const initialEpisodeId = initialModulesOrdered[0]?.episodes[0]?.id_module_episode ?? null;
-    const [courseData, setCourseData] = useState<CourseData>(initialCourseState);
-    const [expandedModuleId, setExpandedModuleId] = useState<number | null>(initialModuleId);
-    const [selectedModuleId, setSelectedModuleId] = useState<number | null>(initialModuleId);
-    const [selectedEpisodeId, setSelectedEpisodeId] = useState<number | null>(initialEpisodeId);
+    const [courseData, setCourseData] = useState<CourseData>(() => sanitizeCourse(createEmptyCourseState()));
+    const [expandedModuleId, setExpandedModuleId] = useState<number | null>(null);
+    const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
+    const [selectedEpisodeId, setSelectedEpisodeId] = useState<number | null>(null);
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
 
@@ -228,18 +148,31 @@ const CourseDataAndProgressPage: React.FC = () => {
 
     const selectedEpisode = useMemo(() => selectedModule?.episodes.find((episode) => episode.id_module_episode === selectedEpisodeId) ?? null, [selectedModule, selectedEpisodeId]);
 
-    const getCourseDataAndProgress = async () => {
+    const getCourseDataAndProgress = useCallback(async () => {
+        if (!id) return;
 
-        const response = await api.get(`/course/data-and-progress/${id}`);
+        try {
+            const response = await api.get(`/course/data-and-progress/${id}`);
 
-        if (response?.status === 200) {
+            if (response?.status === 200) {
+                const sanitizedCourse = sanitizeCourse(response?.data);
+                const modulesOrdered = sanitizedCourse.modules.slice().sort((a, b) => a.order - b.order);
+                const firstModuleId = modulesOrdered[0]?.id_course_module ?? null;
+                const firstEpisodeId = modulesOrdered[0]?.episodes[0]?.id_module_episode ?? null;
 
-            const sanitizedCourse = sanitizeCourse(response?.data);
-
-            setCourseData(sanitizedCourse);
-
+                setCourseData(sanitizedCourse);
+                setExpandedModuleId(firstModuleId);
+                setSelectedModuleId(firstModuleId);
+                setSelectedEpisodeId(firstEpisodeId);
+            }
+        } catch (error) {
+            console.error("Erro ao buscar dados do curso e progresso", error);
         }
-    }
+    }, [id]);
+
+    useEffect(() => {
+        getCourseDataAndProgress();
+    }, [getCourseDataAndProgress]);
     const isModuleLocked = useCallback((moduleId: number, modulesList: CourseModule[] = orderedModules) => {
         const modulesSorted = modulesList.slice().sort((a, b) => a.order - b.order);
         const moduleIndex = modulesSorted.findIndex((module) => module.id_course_module === moduleId);
