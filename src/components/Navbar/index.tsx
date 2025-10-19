@@ -21,6 +21,7 @@ import { api } from "../../lib/axios";
 import { useNavigate } from "react-router-dom";
 import { colors } from "../../theme/colors";
 import { logout } from "../../services/AuthService";
+import XpDetailsModal from "./XpDetailsModal";
 
 const Navbar: React.FC = () => {
 
@@ -32,8 +33,10 @@ const Navbar: React.FC = () => {
     const navigate = useNavigate();
 
     const [level, setLevel] = useState<number>(0);
-    const [infoXp, setInfoXp] = useState<any>(null);
+    const [infoXp, setInfoXp] = useState<ReturnType<typeof getXpInfo> | null>(null);
     const [loadingXp, setLoadingXp] = useState<boolean>(true);
+    const [totalXp, setTotalXp] = useState<number>(0);
+    const [isXpModalOpen, setIsXpModalOpen] = useState(false);
 
     const getUserXp = useCallback(async () => {
         setLoadingXp(true);
@@ -44,12 +47,14 @@ const Navbar: React.FC = () => {
             const xpStatistics = getXpInfo(points);
             setLevel(xpStatistics.level);
             setInfoXp(xpStatistics);
+            setTotalXp(points);
         } catch (err: any) {
             if ((err as any)?.name === "CanceledError" || (err as any)?.message === "canceled") {
                 return;
             }
             setLevel(0);
             setInfoXp(null);
+            setTotalXp(0);
         } finally {
             setLoadingXp(false);
         }
@@ -89,6 +94,8 @@ const Navbar: React.FC = () => {
 
     const safeProgress = Math.max(0, Math.min(100, Math.round(infoXp?.progress ?? 0)));
     const safeXpToNext = infoXp?.xpToNext ?? 0;
+    const handleOpenXpModal = () => setIsXpModalOpen(true);
+    const handleCloseXpModal = () => setIsXpModalOpen(false);
 
     const studentMenu = [
         {
@@ -235,12 +242,22 @@ const Navbar: React.FC = () => {
                             placement="bottom"
                         >
                             <Box
+                                role="button"
+                                tabIndex={0}
+                                onClick={handleOpenXpModal}
+                                onKeyDown={(event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                        event.preventDefault();
+                                        handleOpenXpModal();
+                                    }
+                                }}
                                 sx={{
                                     display: "flex",
                                     flexDirection: "column",
                                     alignItems: "flex-end",
                                     minWidth: { xs: 90, sm: 140, md: 180 },
                                     gap: 0.5,
+                                    cursor: "pointer",
                                 }}
                             >
                                 <Typography
@@ -267,6 +284,8 @@ const Navbar: React.FC = () => {
                                         boxSizing: "border-box",
                                         position: "relative",
                                         overflow: "hidden",
+                                        transition: "transform 120ms ease",
+                                        "&:hover": { transform: "translateY(-1px) scale(1.02)" },
                                     }}
                                     aria-hidden
                                 >
@@ -327,6 +346,13 @@ const Navbar: React.FC = () => {
                     </Menu>
                 </Box>
             </Toolbar>
+            <XpDetailsModal
+                open={isXpModalOpen}
+                onClose={handleCloseXpModal}
+                loadingXp={loadingXp}
+                xpInfo={infoXp}
+                totalXp={totalXp}
+            />
         </AppBar>
     );
 };
