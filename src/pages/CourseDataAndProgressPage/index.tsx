@@ -1,690 +1,667 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    Accordion,
-    AccordionDetails,
-    AccordionSummary,
+    Alert,
     Box,
-    Button,
     Chip,
+    CircularProgress,
     Container,
     Divider,
-    Grid,
     LinearProgress,
-    List,
-    ListItemButton,
-    ListItemIcon,
-    ListItemText,
     Paper,
     Stack,
     Typography,
+    useTheme,
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import LockIcon from "@mui/icons-material/Lock";
-import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ArticleIcon from "@mui/icons-material/Article";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import ImageIcon from "@mui/icons-material/Image";
-import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded";
+import ClassRoundedIcon from "@mui/icons-material/ClassRounded";
+import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
+import { alpha } from "@mui/material/styles";
 import { useParams } from "react-router-dom";
-import { mapDifficulty } from "../../helpers/DifficultyLevel";
 import SEGButton from "../../components/SEGButton";
-import { colors } from "../../theme/colors";
 import { api } from "../../lib/axios";
+import { colors } from "../../theme/colors";
+import { mapDifficulty } from "../../helpers/DifficultyLevel";
 
-interface CourseEpisode {
-    order: number;
+interface CourseProgressEpisode {
+    id: string;
     title: string;
+    description: string | null;
+    order: number;
+    xpReward: number | null;
     completed: boolean;
-    description: string;
-    link_episode: string | null;
-    id_module_episode: number;
+    completedAt: string | null;
 }
 
-interface CourseModule {
+interface CourseProgressModule {
+    id: string;
+    title: string;
+    description: string | null;
     order: number;
-    title: string;
-    description: string;
-    id_course_module: number;
-    module_completed: boolean;
-    episodes: CourseEpisode[];
+    progressPercentage: number;
+    totalEpisodes: number;
+    completedEpisodes: number;
+    episodes: CourseProgressEpisode[];
 }
 
-interface CourseData {
+interface CourseDataAndProgress {
+    idCourse: string | null;
     title: string;
-    modules: CourseModule[];
-    id_course: string;
-    description: string;
-    difficulty_level: string;
+    description: string | null;
+    difficultyLevel: string | null;
+    thumbnail: string | null;
+    progressPercentage: number | null;
+    totalXp: number | null;
+    earnedXp: number | null;
+    modules: CourseProgressModule[];
 }
 
-type EpisodeMediaType = "text" | "video" | "image" | "pdf" | "external";
-
-const courseMock: CourseData = {
-    "title": "PostgreSQL: Do básico ao Avançado!",
-    "modules": [
-        {
-            "order": 1,
-            "title": "SELECT",
-            "episodes": [
-                {
-                    "order": 1,
-                    "title": "Introducao ao select",
-                    "completed": false,
-                    "description": "DSADSADSADSADSAAD",
-                    "link_episode": null,
-                    "id_module_episode": 32
-                },
-                {
-                    "order": 2,
-                    "title": "DOWNLOAD",
-                    "completed": false,
-                    "description": "DASDSADSADSADADAS",
-                    "link_episode": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
-                    "id_module_episode": 33
-                }
-            ],
-            "description": "Nesse módulo voce aprenderá selects",
-            "id_course_module": 20,
-            "module_completed": false
-        },
-        {
-            "order": 2,
-            "title": "INSERT",
-            "episodes": [
-                {
-                    "order": 1,
-                    "title": "INTRODUCAO",
-                    "completed": false,
-                    "description": "DSADSADSADSADS",
-                    "link_episode": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-                    "id_module_episode": 34
-                },
-                {
-                    "order": 2,
-                    "title": "SEGUNDO EP",
-                    "completed": false,
-                    "description": "DSADSADSADSADSADA",
-                    "link_episode": "https://images.pexels.com/photos/1181675/pexels-photo-1181675.jpeg",
-                    "id_module_episode": 35
-                },
-                {
-                    "order": 3,
-                    "title": "TERCEIRO EP",
-                    "completed": false,
-                    "description": "DSADSADSADSADSA",
-                    "link_episode": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
-                    "id_module_episode": 36
-                }
-            ],
-            "description": "INSERTINSERTINSERTINSERT",
-            "id_course_module": 21,
-            "module_completed": false
-        },
-        {
-            "order": 3,
-            "title": "DELETE",
-            "episodes": [
-                {
-                    "order": 1,
-                    "title": "APRENDENDO A SINTAXE",
-                    "completed": false,
-                    "description": "DSADSADSADSADSA",
-                    "link_episode": "https://gamified-web-education-system-server.s3.sa-east-1.amazonaws.com/courses/module/22/ep/37",
-                    "id_module_episode": 37
-                }
-            ],
-            "description": "DELETEDELETEDELETEDELETEDELETEDELETEDELETEDELETEDELETE",
-            "id_course_module": 22,
-            "module_completed": false
-        }
-    ],
-    "id_course": "376533d7-e94d-4306-a9a6-5387ccdae528",
-    "description": "Curso PostgreSQL do Zero ao Avançado 🐘💙\n\nDomine SQL e PostgreSQL para criar bancos robustos, rápidos e seguros — do primeiro SELECT até índices, funções e particionamento. Tudo com projetos reais, labs guiados e muitas dicas de produção. 🚀\n\nPara quem é? 👩‍💻👨‍💻\n\nDevs front/back que querem consultas eficientes e modelagem limpa.\n\nAnalistas de dados/BI que precisam tirar o máximo do SQL.\n\nDBAs iniciantes e curiosos por performance, segurança e operações.\n\nPré-requisitos 📚\n\nLógica de programação básica.\n\nNoções de terminal ajudam, mas vamos passo a passo.\n\nO que você vai aprender 🎯\n\nSQL essencial: SELECT, WHERE, JOIN, GROUP BY, HAVING ✍️\n\nConsultas avançadas: CTEs, Window Functions, subqueries 🧠\n\nModelagem: normalização, chaves, tipos (UUID, JSONB, ARRAY) 🏗️\n\nPerformance: índices B-Tree/GiST/GIN/BRIN, EXPLAIN ANALYZE ⚡\n\nPL/pgSQL: funções, triggers, views materializadas 🧩\n\nSegurança: roles, permissões, Row Level Security (RLS) 🔐\n\nOperações: backup/restore, VACUUM, autovacuum, particionamento 🛠️\n\nProdução: Docker, pgAdmin/DBeaver, migrações, replicação básica ☁️\n\nPrograma do Curso (módulos) 📦\n\nFundamentos do SQL — Sintaxe, filtros, ordenação, agregações.\n\nModelagem & Tipos — PK/FK, constraints, JSONB, ENUM, DATE/TIME.\n\nJoins & Estratégias de Consulta — CTEs, subqueries, Window.\n\nÍndices e Performance — GIN/BRIN, estatísticas, EXPLAIN/ANALYZE.\n\nPL/pgSQL na Prática — Funções, triggers, erros e boas práticas.\n\nDados Semiestruturados — JSONB, filtros, índices, APIs de dados.\n\nAdmin & Segurança — Usuários, roles, RLS, backup/restore.\n\nProdução & Escala — Particionamento, manutenção, replicação e Docker.\n\nProjetos práticos 🧪\n\nE-commerce: modelagem + consultas analíticas (ticket médio, funil) 🛒\n\nAnalytics: ranking com window e materialized views 📈\n\nMini-API: endpoints alimentados por JSONB e CTEs ⚙️\n\nMetodologia de ensino 👩‍🏫\n\nAulas curtas e diretas ✅\n\nLabs com datasets reais 🧰\n\nCheatsheets e desafios com feedback 🔎\n\nSuporte em dúvidas mais comuns 🙋‍♀️🙋‍♂️\n\nFerramentas 💻\n\nPostgreSQL (Docker), psql, pgAdmin / DBeaver.\n\nScripts e migrações versionadas (ex.: docker-compose, psql -f).\n\nCertificado & Carga horária 🎓\n\nCertificado de conclusão.\n\nCarga horária sugerida: 24–32h (ajuste conforme sua grade).\n\nDiferenciais do curso ✨\n\nFoco em vida real (performance, segurança e manutenção).\n\nConteúdo do básico ao avançado, sem pular etapas.\n\nBoas práticas para times e produção desde o início.",
-    "difficulty_level": "E"
-};
-
-const getEpisodeMediaType = (link: string | null): EpisodeMediaType => {
-    if (!link) return "text";
-
-    let pathname = link;
-
-    try {
-        const url = new URL(link);
-        pathname = url.pathname;
-    } catch (error) {
-        // ignore invalid URL parsing and fallback to the raw string
-    }
-
-    const cleanPath = pathname.split("?")[0];
-    const extension = cleanPath.includes(".") ? cleanPath.split(".").pop()?.toLowerCase() ?? "" : "";
-
-    if (["mp4", "webm", "ogg", "mov", "m4v"].includes(extension)) {
-        return "video";
-    }
-
-    if (["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"].includes(extension)) {
-        return "image";
-    }
-
-    if (extension === "pdf") {
-        return "pdf";
-    }
-
-    if (link.includes("youtube.com") || link.includes("youtu.be") || link.includes("vimeo.com")) {
-        return "video";
-    }
-
-    return "external";
-
-};
-
-const sanitizeCourse = (course: CourseData): CourseData => ({
-        ...course,
-        modules: course.modules.map((module) => {
-            const sanitizedEpisodes = module.episodes
-                .slice()
-                .sort((a, b) => a.order - b.order)
-                .map((episode) => ({
-                    ...episode,
-                    completed: Boolean(episode.completed),
-                }));
-
-            const isModuleCompleted = sanitizedEpisodes.every((episode) => episode.completed);
-
-            return {
-                ...module,
-                episodes: sanitizedEpisodes,
-                module_completed: isModuleCompleted,
-            };
-        })
-            .slice()
-            .sort((a, b) => a.order - b.order),
-    });
+const numberFormatter = new Intl.NumberFormat("pt-BR");
 
 const CourseDataAndProgressPage: React.FC = () => {
 
-    const { id } = useParams();
-    const initialCourseState = sanitizeCourse(courseMock);
-    const initialModulesOrdered = initialCourseState.modules;
-    const initialModuleId = initialModulesOrdered[0]?.id_course_module ?? null;
-    const initialEpisodeId = initialModulesOrdered[0]?.episodes[0]?.id_module_episode ?? null;
-    const [courseData, setCourseData] = useState<CourseData>(initialCourseState);
-    const [expandedModuleId, setExpandedModuleId] = useState<number | null>(initialModuleId);
-    const [selectedModuleId, setSelectedModuleId] = useState<number | null>(initialModuleId);
-    const [selectedEpisodeId, setSelectedEpisodeId] = useState<number | null>(initialEpisodeId);
-    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+    const { id } = useParams<{ id: string }>();
+    const theme = useTheme();
 
+    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [courseProgress, setCourseProgress] = useState<CourseDataAndProgress | null>(null);
 
-    const orderedModules = useMemo(() => courseData.modules.slice().sort((a, b) => a.order - b.order), [courseData.modules]);
+    const fetchCourseProgress = useCallback(async () => {
+        if (!id) return;
 
-    const totalEpisodes = useMemo(() => orderedModules.reduce((acc, module) => acc + module.episodes.length, 0), [orderedModules]);
+        setLoading(true);
+        setError(null);
 
-    const completedEpisodes = useMemo(() => orderedModules.reduce((acc, module) => acc + module.episodes.filter((episode) => episode.completed).length, 0), [orderedModules]);
+        const candidateEndpoints = [
+            `/course/student-progress/${id}`,
+            `/course/data-and-progress/${id}`,
+            `/course/progress/${id}`,
+            `/course/${id}/progress`,
+        ];
 
-    const overallProgress = totalEpisodes > 0 ? (completedEpisodes / totalEpisodes) * 100 : 0;
+        let lastError: unknown = null;
 
-    const selectedModule = useMemo(() => orderedModules.find((module) => module.id_course_module === selectedModuleId) ?? null, [orderedModules, selectedModuleId]);
+        for (const endpoint of candidateEndpoints) {
+            try {
+                const response = await api.get(endpoint);
+                const sanitized = sanitizeCourseProgress(response?.data);
 
-    const selectedEpisode = useMemo(() => selectedModule?.episodes.find((episode) => episode.id_module_episode === selectedEpisodeId) ?? null, [selectedModule, selectedEpisodeId]);
-
-    const getCourseDataAndProgress = async () => {
-
-        const response = await api.get(`/course/data-and-progress/${id}`);
-
-        if (response?.status === 200) {
-
-            const sanitizedCourse = sanitizeCourse(response?.data);
-
-            setCourseData(sanitizedCourse);
-
-        }
-    }
-    const isModuleLocked = useCallback((moduleId: number, modulesList: CourseModule[] = orderedModules) => {
-        const modulesSorted = modulesList.slice().sort((a, b) => a.order - b.order);
-        const moduleIndex = modulesSorted.findIndex((module) => module.id_course_module === moduleId);
-
-        if (moduleIndex === -1) return true;
-
-        if (moduleIndex === 0) return false;
-
-        const previousModules = modulesSorted.slice(0, moduleIndex);
-
-        return !previousModules.every((module) => module.episodes.every((episode) => episode.completed));
-    }, [orderedModules]);
-
-    const isEpisodeLocked = useCallback((moduleId: number, episodeId: number, modulesList: CourseModule[] = orderedModules) => {
-        const modulesSorted = modulesList.slice().sort((a, b) => a.order - b.order);
-        const module = modulesSorted.find((item) => item.id_course_module === moduleId);
-
-        if (!module) return true;
-
-        if (isModuleLocked(moduleId, modulesSorted)) return true;
-
-        const episodeIndex = module.episodes.findIndex((episode) => episode.id_module_episode === episodeId);
-
-        if (episodeIndex === -1) return true;
-
-        if (episodeIndex === 0) return false;
-
-        const previousEpisodes = module.episodes.slice(0, episodeIndex);
-
-        return !previousEpisodes.every((episode) => episode.completed);
-    }, [isModuleLocked, orderedModules]);
-
-    const isSelectedEpisodeLocked = useMemo(() => {
-        if (!selectedModule || !selectedEpisode) return true;
-
-        return isEpisodeLocked(selectedModule.id_course_module, selectedEpisode.id_module_episode);
-    }, [isEpisodeLocked, selectedEpisode, selectedModule]);
-
-    const handleExpandModule = (_: React.SyntheticEvent, isExpanded: boolean, moduleId: number) => {
-        setExpandedModuleId(isExpanded ? moduleId : null);
-    };
-
-    const handleSelectEpisode = (moduleId: number, episodeId: number) => {
-        if (isEpisodeLocked(moduleId, episodeId)) {
-            return;
-        }
-
-        setSelectedModuleId(moduleId);
-        setSelectedEpisodeId(episodeId);
-        setExpandedModuleId(moduleId);
-    };
-
-    const handleCompleteEpisode = () => {
-        if (selectedModuleId == null || selectedEpisodeId == null) return;
-
-        if (isEpisodeLocked(selectedModuleId, selectedEpisodeId)) return;
-
-        const updatedModules = courseData.modules.map((module) => {
-            if (module.id_course_module !== selectedModuleId) return module;
-
-            const updatedEpisodes = module.episodes.map((episode) => {
-                if (episode.id_module_episode !== selectedEpisodeId) return episode;
-
-                if (episode.completed) return episode;
-
-                return { ...episode, completed: true };
-            });
-
-            const moduleCompleted = updatedEpisodes.every((episode) => episode.completed);
-
-            return {
-                ...module,
-                episodes: updatedEpisodes,
-                module_completed: moduleCompleted,
-            };
-        });
-
-        const updatedCourse: CourseData = {
-            ...courseData,
-            modules: updatedModules,
-        };
-
-        const updatedModulesSorted = updatedModules.slice().sort((a, b) => a.order - b.order);
-        const currentModuleIndex = updatedModulesSorted.findIndex((module) => module.id_course_module === selectedModuleId);
-        const currentModule = updatedModulesSorted[currentModuleIndex];
-        const currentEpisodeIndex = currentModule?.episodes.findIndex((episode) => episode.id_module_episode === selectedEpisodeId) ?? -1;
-
-        let nextModuleId = selectedModuleId;
-        let nextEpisodeId = selectedEpisodeId;
-
-        if (currentModule && currentEpisodeIndex > -1) {
-            const nextEpisode = currentModule.episodes[currentEpisodeIndex + 1];
-
-            if (nextEpisode && !isEpisodeLocked(currentModule.id_course_module, nextEpisode.id_module_episode, updatedModulesSorted)) {
-                nextEpisodeId = nextEpisode.id_module_episode;
-                nextModuleId = currentModule.id_course_module;
-            } else {
-                const followingModule = updatedModulesSorted[currentModuleIndex + 1];
-
-                if (followingModule && !isModuleLocked(followingModule.id_course_module, updatedModulesSorted)) {
-                    nextModuleId = followingModule.id_course_module;
-                    const firstEpisode = followingModule.episodes[0];
-
-                    if (firstEpisode) {
-                        nextEpisodeId = firstEpisode.id_module_episode;
-                    }
+                if (sanitized) {
+                    setCourseProgress(sanitized);
+                    setLoading(false);
+                    return;
                 }
+            } catch (requestError) {
+                lastError = requestError;
             }
         }
 
-        setCourseData(updatedCourse);
-        setSelectedModuleId(nextModuleId);
-        setSelectedEpisodeId(nextEpisodeId);
-        setExpandedModuleId(nextModuleId);
-    };
-
-    const mediaType = getEpisodeMediaType(selectedEpisode?.link_episode ?? null);
-
-    const mediaIcon = (() => {
-        switch (mediaType) {
-            case "pdf":
-                return <PictureAsPdfIcon color="secondary" />;
-            case "image":
-                return <ImageIcon color="secondary" />;
-            case "video":
-                return <OndemandVideoIcon color="secondary" />;
-            case "external":
-                return <ArticleIcon color="secondary" />;
-            default:
-                return <ArticleIcon color="secondary" />;
+        if (lastError) {
+            console.error("Erro ao buscar dados do curso", lastError);
         }
-    })();
 
-    const shouldTruncateDescription = courseData.description.length > 480;
+        setCourseProgress(null);
+        setError("Não foi possível carregar os dados do curso no momento.");
+        setLoading(false);
+    }, [id]);
 
-    const toggleDescription = () => {
-        setIsDescriptionExpanded((previous) => !previous);
-    };
+    useEffect(() => {
+        fetchCourseProgress();
+    }, [fetchCourseProgress]);
 
-    const handleOpenExternalEpisode = () => {
-        if (!selectedEpisode?.link_episode) return;
+    const modules = useMemo(() => {
+        return courseProgress?.modules ?? [];
+    }, [courseProgress]);
 
-        window.open(selectedEpisode.link_episode, "_blank", "noopener,noreferrer");
-    };
+    const modulesCount = modules.length;
+
+    const totalEpisodes = useMemo(() => {
+        return modules.reduce((acc, module) => acc + module.totalEpisodes, 0);
+    }, [modules]);
+
+    const completedEpisodes = useMemo(() => {
+        return modules.reduce((acc, module) => acc + module.completedEpisodes, 0);
+    }, [modules]);
+
+    const normalizedEarnedXp = useMemo(() => {
+        if (courseProgress?.earnedXp != null) return courseProgress.earnedXp;
+
+        return modules.reduce((acc, module) => {
+            return acc + module.episodes.reduce((episodeAcc, episode) => episodeAcc + (episode.completed ? episode.xpReward ?? 0 : 0), 0);
+        }, 0);
+    }, [courseProgress?.earnedXp, modules]);
+
+    const normalizedTotalXp = useMemo(() => {
+        if (courseProgress?.totalXp != null) return courseProgress.totalXp;
+
+        return modules.reduce((acc, module) => {
+            return acc + module.episodes.reduce((episodeAcc, episode) => episodeAcc + (episode.xpReward ?? 0), 0);
+        }, 0);
+    }, [courseProgress?.totalXp, modules]);
+
+    const overallProgress = useMemo(() => {
+        if (courseProgress?.progressPercentage != null) return clamp(courseProgress.progressPercentage, 0, 100);
+
+        if (modules.length === 0) return 0;
+
+        const totalPercentage = modules.reduce((acc, module) => acc + clamp(module.progressPercentage, 0, 100), 0);
+        return Math.round(totalPercentage / modules.length);
+    }, [courseProgress?.progressPercentage, modules]);
+
+    const hasEpisodes = totalEpisodes > 0;
+
+    if (loading) {
+        return (
+            <Box
+                sx={{
+                    minHeight: "calc(100vh - 64px)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
+                <CircularProgress />
+            </Box>
+        );
+    }
 
     return (
-        <Box sx={{ backgroundColor: "#f6f7fb", minHeight: "calc(100vh - 64px)", py: { xs: 3, md: 5 } }}>
-            <Container maxWidth="lg">
-                <Grid container rowSpacing={4} columnSpacing={4} alignItems="flex-start">
-                    <Grid item xs={12}>
+        <Box sx={{ backgroundColor: "#f7f7fb", minHeight: "calc(100vh - 64px)" }}>
+            <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
+                <Stack spacing={4}>
+                    {error && <Alert severity="error">{error}</Alert>}
+
+                    {courseProgress && (
                         <Paper
-                            elevation={0}
                             sx={{
+                                borderRadius: 4,
+                                boxShadow: "0px 16px 40px rgba(33, 33, 52, 0.08)",
                                 p: { xs: 3, md: 4 },
-                                borderRadius: 3,
-                                boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 2,
+                                backgroundColor: "#ffffff",
                             }}
                         >
-                            <Stack spacing={2}>
-                                <Typography variant="overline" sx={{ color: colors.purple, fontWeight: 700 }}>
-                                    Curso #{id ?? courseData.id_course}
-                                </Typography>
+                            <Stack spacing={3}>
+                                <Stack direction={{ xs: "column", md: "row" }} spacing={2} justifyContent="space-between">
+                                    <Stack spacing={1.5} flex={1}>
+                                        <Typography variant="h4" sx={{ fontWeight: 800, color: colors.blue }}>
+                                            {courseProgress.title}
+                                        </Typography>
 
-                                <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                                    {courseData.title}
-                                </Typography>
+                                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                            {courseProgress.difficultyLevel && (
+                                                <Chip
+                                                    label={mapDifficulty(courseProgress.difficultyLevel)}
+                                                    sx={{
+                                                        backgroundColor: colors.purple,
+                                                        color: "white",
+                                                        fontWeight: 600,
+                                                    }}
+                                                />
+                                            )}
 
-                                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
-                                    <Chip label={`Dificuldade: ${mapDifficulty(courseData.difficulty_level)}`} color="primary" variant="outlined" sx={{ fontWeight: 600 }} />
-                                    <Chip label={`${completedEpisodes} de ${totalEpisodes} aulas concluídas`} color="secondary" variant="outlined" sx={{ fontWeight: 600 }} />
+                                            <Chip
+                                                icon={<SchoolRoundedIcon />}
+                                                label={`${modulesCount} módulo${modulesCount === 1 ? "" : "s"}`}
+                                                sx={{ fontWeight: 600 }}
+                                            />
+
+                                            {hasEpisodes && (
+                                                <Chip
+                                                    icon={<ClassRoundedIcon />}
+                                                    label={`${completedEpisodes}/${totalEpisodes} aulas concluídas`}
+                                                    sx={{ fontWeight: 600 }}
+                                                />
+                                            )}
+
+                                            {normalizedTotalXp > 0 && (
+                                                <Chip
+                                                    icon={<EmojiEventsRoundedIcon />}
+                                                    label={`${numberFormatter.format(normalizedEarnedXp)} XP de ${numberFormatter.format(normalizedTotalXp)} XP`}
+                                                    sx={{ fontWeight: 600 }}
+                                                />
+                                            )}
+                                        </Stack>
+                                    </Stack>
+
+                                    <SEGButton
+                                        colorTheme="gradient"
+                                        startIcon={<PlayArrowRoundedIcon />}
+                                        onClick={() => console.info("Ir para o curso", courseProgress.idCourse)}
+                                        sx={{ alignSelf: { xs: "flex-start", md: "center" }, minWidth: 200 }}
+                                    >
+                                        Continuar curso
+                                    </SEGButton>
                                 </Stack>
 
-                                <Box>
-                                    <Typography variant="body2" sx={{ color: "text.secondary", mb: 1, fontWeight: 600 }}>
-                                        Progresso geral
+                                {courseProgress.description && (
+                                    <Typography variant="body1" sx={{ color: theme.palette.grey[700], maxWidth: 720 }}>
+                                        {courseProgress.description}
                                     </Typography>
-                                    <LinearProgress variant="determinate" value={overallProgress} sx={{ height: 10, borderRadius: 5 }} />
-                                </Box>
+                                )}
+
+                                <Stack spacing={1.5}>
+                                    <Stack direction="row" alignItems="center" justifyContent="space-between">
+                                        <Typography variant="h6" sx={{ fontWeight: 700, color: colors.blue }}>
+                                            Progresso geral
+                                        </Typography>
+                                        <Typography variant="h6" sx={{ fontWeight: 800, color: colors.purple }}>
+                                            {overallProgress}%
+                                        </Typography>
+                                    </Stack>
+                                    <LinearProgress
+                                        variant="determinate"
+                                        value={overallProgress}
+                                        sx={{
+                                            height: 12,
+                                            borderRadius: 6,
+                                            backgroundColor: theme.palette.grey[200],
+                                            "& .MuiLinearProgress-bar": {
+                                                borderRadius: 6,
+                                                background: `linear-gradient(90deg, ${colors.purple}, ${colors.blue})`,
+                                            },
+                                        }}
+                                    />
+                                </Stack>
                             </Stack>
                         </Paper>
-                    </Grid>
+                    )}
 
-                    <Grid item xs={12} md={8}>
-                        <Stack spacing={3} sx={{ height: "100%" }}>
+                    <Stack spacing={3}>
+                        {modules.map((module) => (
                             <Paper
-                                elevation={0}
+                                key={module.id}
                                 sx={{
-                                    p: { xs: 2.5, md: 3 },
                                     borderRadius: 3,
-                                    boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 2.5,
+                                    boxShadow: "0px 16px 32px rgba(33, 33, 52, 0.08)",
+                                    p: { xs: 3, md: 4 },
+                                    backgroundColor: "#ffffff",
                                 }}
                             >
-                                <Stack spacing={2}>
-                                    <Stack direction="row" spacing={1.5} alignItems="center">
-                                        {mediaIcon}
-                                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                                            {selectedEpisode?.title ?? "Selecione uma aula"}
-                                        </Typography>
+                                <Stack spacing={2.5}>
+                                    <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} justifyContent="space-between">
+                                        <Stack spacing={0.5}>
+                                            <Typography variant="h6" sx={{ fontWeight: 700, color: colors.blue }}>
+                                                {module.title}
+                                            </Typography>
+                                            {module.description && (
+                                                <Typography variant="body2" sx={{ color: theme.palette.grey[700], maxWidth: 720 }}>
+                                                    {module.description}
+                                                </Typography>
+                                            )}
+                                        </Stack>
+
+                                        <Stack spacing={0.5} alignItems={{ xs: "flex-start", md: "flex-end" }}>
+                                            <Chip
+                                                label={`Módulo ${module.order}`}
+                                                sx={{ fontWeight: 600, alignSelf: { xs: "flex-start", md: "flex-end" } }}
+                                            />
+                                            <Typography variant="body2" sx={{ color: theme.palette.grey[600] }}>
+                                                {module.completedEpisodes}/{module.totalEpisodes} aulas concluídas
+                                            </Typography>
+                                        </Stack>
+                                    </Stack>
+
+                                    <Stack spacing={1}>
+                                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: colors.purple }}>
+                                                Progresso do módulo
+                                            </Typography>
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: colors.blue }}>
+                                                {module.progressPercentage}%
+                                            </Typography>
+                                        </Stack>
+                                        <LinearProgress
+                                            variant="determinate"
+                                            value={module.progressPercentage}
+                                            sx={{
+                                                height: 10,
+                                                borderRadius: 5,
+                                                backgroundColor: theme.palette.grey[200],
+                                                "& .MuiLinearProgress-bar": {
+                                                    borderRadius: 5,
+                                                    background: colors.blue,
+                                                },
+                                            }}
+                                        />
                                     </Stack>
 
                                     <Divider />
 
-                                    {selectedEpisode ? (
-                                        <Stack spacing={2.5}>
-                                            {mediaType === "video" && selectedEpisode.link_episode && (
-                                                <Box sx={{ borderRadius: 2, overflow: "hidden", backgroundColor: "black" }}>
-                                                    <video
-                                                        src={selectedEpisode.link_episode}
-                                                        controls
-                                                        style={{ width: "100%", display: "block" }}
-                                                    >
-                                                        Seu navegador não suporta a reprodução de vídeo.
-                                                    </video>
-                                                </Box>
-                                            )}
-
-                                            {mediaType === "image" && selectedEpisode.link_episode && (
-                                                <Box
-                                                    component="img"
-                                                    src={selectedEpisode.link_episode}
-                                                    alt={selectedEpisode.title}
-                                                    loading="lazy"
-                                                    sx={{ width: "100%", borderRadius: 2, objectFit: "cover" }}
-                                                />
-                                            )}
-
-                                            {mediaType === "pdf" && selectedEpisode.link_episode && (
-                                                <Box sx={{ height: { xs: 360, md: 480 }, borderRadius: 2, overflow: "hidden", backgroundColor: "#f0f0f0" }}>
-                                                    <iframe
-                                                        src={`${selectedEpisode.link_episode}#view=FitH`}
-                                                        style={{ border: "none", width: "100%", height: "100%" }}
-                                                        title={selectedEpisode.title}
-                                                    />
-                                                </Box>
-                                            )}
-
-                                            {mediaType === "external" && selectedEpisode.link_episode && (
-                                                <Stack spacing={1.5}>
-                                                    <Typography variant="body1" sx={{ color: "text.secondary" }}>
-                                                        Abrimos este conteúdo em uma nova aba porque o formato não pôde ser identificado automaticamente.
-                                                    </Typography>
-                                                    <SEGButton colorTheme="outlined" onClick={handleOpenExternalEpisode}>
-                                                        Abrir conteúdo em nova aba
-                                                    </SEGButton>
-                                                </Stack>
-                                            )}
-
-                                            <Typography variant="body1" sx={{ color: "text.secondary" }}>
-                                                {selectedEpisode.description}
+                                    <Stack spacing={1.5}>
+                                        {module.episodes.length === 0 && (
+                                            <Typography variant="body2" sx={{ color: theme.palette.grey[600] }}>
+                                                Nenhum episódio cadastrado neste módulo ainda.
                                             </Typography>
-                                        </Stack>
-                                    ) : (
-                                        <Typography variant="body1" sx={{ color: "text.secondary" }}>
-                                            Selecione uma aula para visualizar o conteúdo.
-                                        </Typography>
-                                    )}
-
-                                    {selectedEpisode && (
-                                        <SEGButton
-                                            colorTheme="gradient"
-                                            onClick={handleCompleteEpisode}
-                                            disabled={selectedEpisode.completed || isSelectedEpisodeLocked}
-                                            sx={{ mt: 1 }}
-                                        >
-                                            {selectedEpisode.completed ? "Aula concluída" : "Marcar aula como concluída"}
-                                        </SEGButton>
-                                    )}
-                                </Stack>
-                            </Paper>
-
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    p: { xs: 2.5, md: 3 },
-                                    borderRadius: 3,
-                                    boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 2,
-                                }}
-                            >
-                                <Stack spacing={2}>
-                                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                                        Sobre o curso
-                                    </Typography>
-                                    <Box sx={{ position: "relative" }}>
-                                        <Typography
-                                            variant="body2"
-                                            sx={{
-                                                color: "text.secondary",
-                                                whiteSpace: "pre-line",
-                                                display: "-webkit-box",
-                                                WebkitBoxOrient: "vertical",
-                                                WebkitLineClamp: isDescriptionExpanded || !shouldTruncateDescription ? "unset" : 6,
-                                                overflow: "hidden",
-                                            }}
-                                        >
-                                            {courseData.description}
-                                        </Typography>
-                                        {!isDescriptionExpanded && shouldTruncateDescription && (
-                                            <Box
-                                                sx={{
-                                                    position: "absolute",
-                                                    bottom: 0,
-                                                    left: 0,
-                                                    right: 0,
-                                                    height: 96,
-                                                    background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 80%)",
-                                                }}
-                                            />
                                         )}
-                                    </Box>
-                                    {shouldTruncateDescription && (
-                                        <Button
-                                            variant="text"
-                                            onClick={toggleDescription}
-                                            sx={{ alignSelf: "flex-start", fontWeight: 600, textTransform: "none" }}
-                                        >
-                                            {isDescriptionExpanded ? "Ver menos" : "Ver mais..."}
-                                        </Button>
-                                    )}
-                                </Stack>
-                            </Paper>
-                        </Stack>
-                    </Grid>
 
-                    <Grid item xs={12} md={4}>
-                        <Paper
-                            elevation={0}
-                            sx={{
-                                p: { xs: 2.5, md: 3 },
-                                borderRadius: 3,
-                                boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
-                                position: { md: "sticky" },
-                                top: { md: 104 },
-                            }}
-                        >
-                            <Stack spacing={2}>
-                                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                                    Conteúdo do curso
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                    Finalize cada aula para desbloquear a próxima
-                                </Typography>
-
-                                <Divider />
-
-                                <Stack spacing={1.5}>
-                                    {orderedModules.map((module) => {
-                                        const moduleLocked = isModuleLocked(module.id_course_module);
-                                        const episodesCompleted = module.episodes.filter((episode) => episode.completed).length;
-                                        const moduleProgress = module.episodes.length > 0 ? (episodesCompleted / module.episodes.length) * 100 : 0;
-
-                                        return (
-                                            <Accordion
-                                                key={module.id_course_module}
-                                                expanded={expandedModuleId === module.id_course_module}
-                                                onChange={(event, expanded) => handleExpandModule(event, expanded, module.id_course_module)}
-                                                disableGutters
-                                                square={false}
+                                        {module.episodes.map((episode) => (
+                                            <Stack
+                                                key={episode.id}
+                                                direction={{ xs: "column", sm: "row" }}
+                                                spacing={1.5}
+                                                alignItems={{ xs: "flex-start", sm: "center" }}
+                                                justifyContent="space-between"
                                                 sx={{
+                                                    p: { xs: 1, sm: 1.5 },
                                                     borderRadius: 2,
-                                                    border: "1px solid rgba(93,112,246,0.12)",
-                                                    "&:before": { display: "none" },
-                                                    boxShadow: "none",
-                                                    backgroundColor: expandedModuleId === module.id_course_module ? "rgba(93,112,246,0.05)" : "#fff",
+                                                    backgroundColor: episode.completed
+                                                        ? alpha(theme.palette.success.light, 0.2)
+                                                        : theme.palette.grey[100],
                                                 }}
                                             >
-                                                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                                    <Stack spacing={1} sx={{ width: "100%" }}>
-                                                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                                                                {module.order}. {module.title}
+                                                <Stack direction="row" spacing={1.5} alignItems="center" flex={1}>
+                                                    <Box
+                                                        sx={{
+                                                            width: 36,
+                                                            height: 36,
+                                                            borderRadius: "50%",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            backgroundColor: episode.completed
+                                                                ? colors.purple
+                                                                : theme.palette.grey[300],
+                                                            color: "#ffffff",
+                                                            fontWeight: 700,
+                                                        }}
+                                                    >
+                                                        {episode.order}
+                                                    </Box>
+                                                    <Stack spacing={0.25}>
+                                                        <Stack direction="row" spacing={1} alignItems="center">
+                                                            {episode.completed ? (
+                                                                <CheckCircleRoundedIcon sx={{ color: colors.purple }} />
+                                                            ) : (
+                                                                <RadioButtonUncheckedRoundedIcon sx={{ color: theme.palette.grey[500] }} />
+                                                            )}
+                                                            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: colors.blue }}>
+                                                                {episode.title}
                                                             </Typography>
-                                                            <Chip
-                                                                size="small"
-                                                                color={module.module_completed ? "success" : moduleLocked ? "default" : "primary"}
-                                                                label={module.module_completed ? "Concluído" : moduleLocked ? "Bloqueado" : "Em andamento"}
-                                                            />
                                                         </Stack>
-                                                        <LinearProgress variant="determinate" value={moduleProgress} sx={{ height: 6, borderRadius: 3 }} />
+                                                        {episode.description && (
+                                                            <Typography variant="body2" sx={{ color: theme.palette.grey[600] }}>
+                                                                {episode.description}
+                                                            </Typography>
+                                                        )}
                                                     </Stack>
-                                                </AccordionSummary>
-                                                <AccordionDetails>
-                                                    <List disablePadding>
-                                                        {module.episodes.map((episode) => {
-                                                            const locked = isEpisodeLocked(module.id_course_module, episode.id_module_episode);
-                                                            const isSelected = selectedEpisodeId === episode.id_module_episode;
+                                                </Stack>
 
-                                                            return (
-                                                                <ListItemButton
-                                                                    key={episode.id_module_episode}
-                                                                    onClick={() => handleSelectEpisode(module.id_course_module, episode.id_module_episode)}
-                                                                    disabled={locked}
-                                                                    selected={isSelected}
-                                                                    sx={{
-                                                                        borderRadius: 2,
-                                                                        mb: 1,
-                                                                        alignItems: "flex-start",
-                                                                        backgroundColor: isSelected ? "rgba(93,112,246,0.12)" : undefined,
-                                                                    }}
-                                                                >
-                                                                    <ListItemIcon sx={{ minWidth: 36, mt: 0.5 }}>
-                                                                        {episode.completed ? (
-                                                                            <CheckCircleIcon color="success" fontSize="small" />
-                                                                        ) : locked ? (
-                                                                            <LockIcon color="disabled" fontSize="small" />
-                                                                        ) : (
-                                                                            <PlayCircleOutlineIcon color="primary" fontSize="small" />
-                                                                        )}
-                                                                    </ListItemIcon>
-                                                                    <ListItemText
-                                                                        primary={
-                                                                            <Typography variant="subtitle2" sx={{ fontWeight: episode.completed ? 600 : 500 }}>
-                                                                                {episode.order}. {episode.title}
-                                                                            </Typography>
-                                                                        }
-                                                                        secondary={
-                                                                            <Typography variant="caption" sx={{ color: episode.completed ? "success.main" : "text.secondary" }}>
-                                                                                {episode.completed ? "Aula concluída" : locked ? "Conclua as anteriores" : "Clique para assistir"}
-                                                                            </Typography>
-                                                                        }
-                                                                    />
-                                                                </ListItemButton>
-                                                            );
-                                                        })}
-                                                    </List>
-                                                </AccordionDetails>
-                                            </Accordion>
-                                        );
-                                    })}
+                                                {episode.xpReward != null && episode.xpReward > 0 && (
+                                                    <Chip
+                                                        label={`${numberFormatter.format(episode.xpReward)} XP`}
+                                                        sx={{ fontWeight: 600 }}
+                                                    />
+                                                )}
+                                            </Stack>
+                                        ))}
+                                    </Stack>
                                 </Stack>
-                            </Stack>
-                        </Paper>
-                    </Grid>
-                </Grid>
+                            </Paper>
+                        ))}
+
+                        {modules.length === 0 && !loading && !error && (
+                            <Paper
+                                sx={{
+                                    borderRadius: 3,
+                                    boxShadow: "0px 16px 32px rgba(33, 33, 52, 0.08)",
+                                    p: { xs: 4, md: 6 },
+                                    backgroundColor: "#ffffff",
+                                    textAlign: "center",
+                                }}
+                            >
+                                <Typography variant="h6" sx={{ fontWeight: 700, color: colors.blue, mb: 1 }}>
+                                    Nenhum módulo disponível ainda
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: theme.palette.grey[600], maxWidth: 480, mx: "auto" }}>
+                                    Assim que novos conteúdos forem publicados para este curso, eles aparecerão aqui com seu progresso atualizado.
+                                </Typography>
+                            </Paper>
+                        )}
+                    </Stack>
+                </Stack>
             </Container>
         </Box>
     );
 };
+
+function sanitizeCourseProgress(data: unknown): CourseDataAndProgress | null {
+    if (!data || typeof data !== "object") return null;
+
+    const record = data as Record<string, unknown>;
+    const courseRecord = getObject(record["course"]) ?? record;
+    const courseObj = courseRecord as Record<string, unknown>;
+    const recordModules = record["modules"];
+    const courseModules = courseObj["modules"];
+    const recordCourseModules = record["course_modules"];
+
+    const rawModules = Array.isArray(recordModules)
+        ? recordModules
+        : Array.isArray(courseModules)
+            ? courseModules
+            : Array.isArray(recordCourseModules)
+                ? recordCourseModules
+                : [];
+
+    const sanitizedModules = rawModules
+        .map((module, index) => sanitizeModule(module, index + 1))
+        .filter((module): module is CourseProgressModule => module !== null);
+
+    const idCourse = toNullableString(
+        courseObj["id_course"] ??
+        record["id_course"] ??
+        record["course_id"],
+    );
+    const title = toNullableString(
+        courseObj["title"] ??
+        record["title"] ??
+        courseObj["course_title"] ??
+        record["course_title"],
+    ) ?? "Curso";
+    const description = toNullableString(
+        courseObj["description"] ??
+        record["description"] ??
+        record["course_description"],
+    );
+    const difficultyLevel = toNullableString(
+        courseObj["difficulty_level"] ??
+        record["difficulty_level"] ??
+        record["course_difficulty"],
+    );
+    const thumbnail = toNullableString(
+        courseObj["link_thumbnail"] ??
+        record["link_thumbnail"] ??
+        record["thumbnail"],
+    );
+
+    const rawProgress = toNullableNumber(
+        record["progress_percentage"] ??
+        courseObj["progress_percentage"] ??
+        record["progress"] ??
+        courseObj["progress"],
+    );
+    const progressPercentage = rawProgress != null ? clamp(rawProgress, 0, 100) : null;
+
+    const totalXp = toNullableNumber(
+        record["total_xp"] ??
+        record["xp_total"] ??
+        courseObj["total_xp"] ??
+        courseObj["xp_total"],
+    );
+    const earnedXp = toNullableNumber(
+        record["earned_xp"] ??
+        record["xp_earned"] ??
+        courseObj["earned_xp"] ??
+        courseObj["xp_earned"] ??
+        record["current_xp"],
+    );
+
+    return {
+        idCourse,
+        title,
+        description,
+        difficultyLevel,
+        thumbnail,
+        progressPercentage,
+        totalXp,
+        earnedXp,
+        modules: sanitizedModules,
+    };
+}
+
+function sanitizeModule(module: unknown, fallbackIndex: number): CourseProgressModule | null {
+    if (!module || typeof module !== "object") return null;
+
+    const record = module as Record<string, unknown>;
+
+    const rawEpisodesValue = record["episodes"];
+    const rawModuleEpisodesValue = record["module_episodes"];
+
+    const rawEpisodes = Array.isArray(rawEpisodesValue)
+        ? rawEpisodesValue
+        : Array.isArray(rawModuleEpisodesValue)
+            ? rawModuleEpisodesValue
+            : [];
+
+    const sanitizedEpisodes = rawEpisodes
+        .map((episode, index) => sanitizeEpisode(episode, index + 1))
+        .filter((episode): episode is CourseProgressEpisode => episode !== null)
+        .sort((a, b) => a.order - b.order);
+
+    const totalEpisodes = toNumber(record["total_episodes"] ?? record["episodes_count"], sanitizedEpisodes.length);
+    const completedEpisodes = toNumber(
+        record["completed_episodes"] ?? record["episodes_completed"] ?? sanitizedEpisodes.filter((episode) => episode.completed).length,
+        sanitizedEpisodes.filter((episode) => episode.completed).length,
+    );
+
+    const progressPercentage = (() => {
+        const provided = toNullableNumber(record["progress_percentage"] ?? record["progress"] ?? record["completion_percentage"]);
+        if (provided != null) return clamp(provided, 0, 100);
+
+        const normalizedTotal = totalEpisodes > 0 ? totalEpisodes : sanitizedEpisodes.length;
+        if (normalizedTotal === 0) return 0;
+        const normalizedCompleted = Math.min(completedEpisodes, normalizedTotal);
+        return clamp(Math.round((normalizedCompleted * 100) / normalizedTotal), 0, 100);
+    })();
+
+    const title = toNullableString(record["title"] ?? record["module_title"]) ?? `Módulo ${fallbackIndex}`;
+    const description = toNullableString(record["description"] ?? record["module_description"]);
+    const id = toIdentifier(record["id_module"] ?? record["module_id"] ?? record["id"] ?? record["module_identifier"], `module-${fallbackIndex}`);
+    const order = toNumber(record["order"] ?? record["sequence"] ?? fallbackIndex, fallbackIndex);
+
+    return {
+        id,
+        title,
+        description,
+        order,
+        progressPercentage,
+        totalEpisodes: totalEpisodes || sanitizedEpisodes.length,
+        completedEpisodes: Math.min(completedEpisodes, totalEpisodes || sanitizedEpisodes.length),
+        episodes: sanitizedEpisodes,
+    };
+}
+
+function sanitizeEpisode(episode: unknown, fallbackIndex: number): CourseProgressEpisode | null {
+    if (!episode || typeof episode !== "object") return null;
+
+    const record = episode as Record<string, unknown>;
+
+    const id = toIdentifier(
+        record["id_module_episode"] ?? record["module_episode_id"] ?? record["id_episode"] ?? record["id"] ?? record["episode_id"],
+        `episode-${fallbackIndex}`,
+    );
+    const title = toNullableString(record["title"] ?? record["episode_title"]) ?? `Episódio ${fallbackIndex}`;
+    const description = toNullableString(record["description"] ?? record["episode_description"]);
+    const order = toNumber(record["order"] ?? record["sequence"] ?? record["episode_order"] ?? fallbackIndex, fallbackIndex);
+    const xpReward = toNullableNumber(record["xp_reward"] ?? record["reward_xp"] ?? record["xp"] ?? record["reward"]);
+
+    const completed = toBoolean(
+        record["completed"] ??
+        record["finished"] ??
+        record["done"] ??
+        record["watched"] ??
+        record["is_completed"] ??
+        record["is_done"] ??
+        (typeof record["status"] === "string" ? record["status"].toLowerCase() === "completed" || record["status"].toLowerCase() === "done" : null),
+    );
+
+    const completedAt = toNullableString(
+        record["completed_at"] ??
+        record["finished_at"] ??
+        record["watched_at"] ??
+        record["done_at"] ??
+        record["updated_at"],
+    );
+
+    return {
+        id,
+        title,
+        description,
+        order,
+        xpReward,
+        completed,
+        completedAt,
+    };
+}
+
+function toNullableString(value: unknown): string | null {
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        return trimmed.length > 0 ? trimmed : null;
+    }
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+        return String(value);
+    }
+
+    return null;
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim().length > 0) {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+    }
+    return fallback;
+}
+
+function toNullableNumber(value: unknown): number | null {
+    const parsed = toNumber(value, NaN);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toIdentifier(value: unknown, fallback: string): string {
+    const stringValue = toNullableString(value);
+    return stringValue ?? fallback;
+}
+
+function toBoolean(value: unknown): boolean {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        return ["1", "true", "yes", "y", "s", "sim", "completed", "done", "finished"].includes(normalized);
+    }
+    if (typeof value === "number") {
+        return value !== 0;
+    }
+    return false;
+}
+
+function clamp(value: number | null, min: number, max: number): number {
+    if (value == null || !Number.isFinite(value)) return min;
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+}
+
+function getObject(value: unknown): Record<string, unknown> | null {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+        return value as Record<string, unknown>;
+    }
+    return null;
+}
 
 export default CourseDataAndProgressPage;
