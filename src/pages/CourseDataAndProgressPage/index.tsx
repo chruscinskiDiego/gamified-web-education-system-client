@@ -30,6 +30,7 @@ import { useParams } from "react-router-dom";
 import { mapDifficulty } from "../../helpers/DifficultyLevel";
 import SEGButton from "../../components/SEGButton";
 import { colors } from "../../theme/colors";
+import { api } from "../../lib/axios";
 
 interface CourseEpisode {
     order: number;
@@ -143,34 +144,6 @@ const courseMock: CourseData = {
     "difficulty_level": "E"
 };
 
-const sanitizeCourse = (course: CourseData): CourseData => ({
-    ...course,
-    modules: course.modules.map((module) => {
-        const sanitizedEpisodes = module.episodes
-            .slice()
-            .sort((a, b) => a.order - b.order)
-            .map((episode) => ({
-                ...episode,
-                completed: Boolean(episode.completed),
-            }));
-
-        const isModuleCompleted = sanitizedEpisodes.every((episode) => episode.completed);
-
-        return {
-            ...module,
-            episodes: sanitizedEpisodes,
-            module_completed: isModuleCompleted,
-        };
-    })
-        .slice()
-        .sort((a, b) => a.order - b.order),
-});
-
-const initialCourseState = sanitizeCourse(courseMock);
-const initialModulesOrdered = initialCourseState.modules;
-const initialModuleId = initialModulesOrdered[0]?.id_course_module ?? null;
-const initialEpisodeId = initialModulesOrdered[0]?.episodes[0]?.id_module_episode ?? null;
-
 const getEpisodeMediaType = (link: string | null): EpisodeMediaType => {
     if (!link) return "text";
 
@@ -203,17 +176,45 @@ const getEpisodeMediaType = (link: string | null): EpisodeMediaType => {
     }
 
     return "external";
+
 };
+
+const sanitizeCourse = (course: CourseData): CourseData => ({
+        ...course,
+        modules: course.modules.map((module) => {
+            const sanitizedEpisodes = module.episodes
+                .slice()
+                .sort((a, b) => a.order - b.order)
+                .map((episode) => ({
+                    ...episode,
+                    completed: Boolean(episode.completed),
+                }));
+
+            const isModuleCompleted = sanitizedEpisodes.every((episode) => episode.completed);
+
+            return {
+                ...module,
+                episodes: sanitizedEpisodes,
+                module_completed: isModuleCompleted,
+            };
+        })
+            .slice()
+            .sort((a, b) => a.order - b.order),
+    });
 
 const CourseDataAndProgressPage: React.FC = () => {
 
     const { id } = useParams();
-
+    const initialCourseState = sanitizeCourse(courseMock);
+    const initialModulesOrdered = initialCourseState.modules;
+    const initialModuleId = initialModulesOrdered[0]?.id_course_module ?? null;
+    const initialEpisodeId = initialModulesOrdered[0]?.episodes[0]?.id_module_episode ?? null;
     const [courseData, setCourseData] = useState<CourseData>(initialCourseState);
     const [expandedModuleId, setExpandedModuleId] = useState<number | null>(initialModuleId);
     const [selectedModuleId, setSelectedModuleId] = useState<number | null>(initialModuleId);
     const [selectedEpisodeId, setSelectedEpisodeId] = useState<number | null>(initialEpisodeId);
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+
 
     const orderedModules = useMemo(() => courseData.modules.slice().sort((a, b) => a.order - b.order), [courseData.modules]);
 
@@ -227,6 +228,18 @@ const CourseDataAndProgressPage: React.FC = () => {
 
     const selectedEpisode = useMemo(() => selectedModule?.episodes.find((episode) => episode.id_module_episode === selectedEpisodeId) ?? null, [selectedModule, selectedEpisodeId]);
 
+    const getCourseDataAndProgress = async () => {
+
+        const response = await api.get(`/course/data-and-progress/${id}`);
+
+        if (response?.status === 200) {
+
+            const sanitizedCourse = sanitizeCourse(response?.data);
+
+            setCourseData(sanitizedCourse);
+
+        }
+    }
     const isModuleLocked = useCallback((moduleId: number, modulesList: CourseModule[] = orderedModules) => {
         const modulesSorted = modulesList.slice().sort((a, b) => a.order - b.order);
         const moduleIndex = modulesSorted.findIndex((module) => module.id_course_module === moduleId);
@@ -347,16 +360,16 @@ const CourseDataAndProgressPage: React.FC = () => {
 
     const mediaIcon = (() => {
         switch (mediaType) {
-        case "pdf":
-            return <PictureAsPdfIcon color="secondary" />;
-        case "image":
-            return <ImageIcon color="secondary" />;
-        case "video":
-            return <OndemandVideoIcon color="secondary" />;
-        case "external":
-            return <ArticleIcon color="secondary" />;
-        default:
-            return <ArticleIcon color="secondary" />;
+            case "pdf":
+                return <PictureAsPdfIcon color="secondary" />;
+            case "image":
+                return <ImageIcon color="secondary" />;
+            case "video":
+                return <OndemandVideoIcon color="secondary" />;
+            case "external":
+                return <ArticleIcon color="secondary" />;
+            default:
+                return <ArticleIcon color="secondary" />;
         }
     })();
 
@@ -414,261 +427,261 @@ const CourseDataAndProgressPage: React.FC = () => {
 
                     <Grid item xs={12} md={8}>
                         <Stack spacing={3} sx={{ height: "100%" }}>
-                                <Paper
-                                    elevation={0}
-                                    sx={{
-                                        p: { xs: 2.5, md: 3 },
-                                        borderRadius: 3,
-                                        boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: 2.5,
-                                    }}
-                                >
-                                    <Stack spacing={2}>
-                                        <Stack direction="row" spacing={1.5} alignItems="center">
-                                            {mediaIcon}
-                                            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                                                {selectedEpisode?.title ?? "Selecione uma aula"}
-                                            </Typography>
-                                        </Stack>
-
-                                        <Divider />
-
-                                        {selectedEpisode ? (
-                                            <Stack spacing={2.5}>
-                                                {mediaType === "video" && selectedEpisode.link_episode && (
-                                                    <Box sx={{ borderRadius: 2, overflow: "hidden", backgroundColor: "black" }}>
-                                                        <video
-                                                            src={selectedEpisode.link_episode}
-                                                            controls
-                                                            style={{ width: "100%", display: "block" }}
-                                                        >
-                                                            Seu navegador não suporta a reprodução de vídeo.
-                                                        </video>
-                                                    </Box>
-                                                )}
-
-                                                {mediaType === "image" && selectedEpisode.link_episode && (
-                                                    <Box
-                                                        component="img"
-                                                        src={selectedEpisode.link_episode}
-                                                        alt={selectedEpisode.title}
-                                                        loading="lazy"
-                                                        sx={{ width: "100%", borderRadius: 2, objectFit: "cover" }}
-                                                    />
-                                                )}
-
-                                                {mediaType === "pdf" && selectedEpisode.link_episode && (
-                                                    <Box sx={{ height: { xs: 360, md: 480 }, borderRadius: 2, overflow: "hidden", backgroundColor: "#f0f0f0" }}>
-                                                        <iframe
-                                                            src={`${selectedEpisode.link_episode}#view=FitH`}
-                                                            style={{ border: "none", width: "100%", height: "100%" }}
-                                                            title={selectedEpisode.title}
-                                                        />
-                                                    </Box>
-                                                )}
-
-                                                {mediaType === "external" && selectedEpisode.link_episode && (
-                                                    <Stack spacing={1.5}>
-                                                        <Typography variant="body1" sx={{ color: "text.secondary" }}>
-                                                            Abrimos este conteúdo em uma nova aba porque o formato não pôde ser identificado automaticamente.
-                                                        </Typography>
-                                                        <SEGButton colorTheme="outlined" onClick={handleOpenExternalEpisode}>
-                                                            Abrir conteúdo em nova aba
-                                                        </SEGButton>
-                                                    </Stack>
-                                                )}
-
-                                                <Typography variant="body1" sx={{ color: "text.secondary" }}>
-                                                    {selectedEpisode.description}
-                                                </Typography>
-                                            </Stack>
-                                        ) : (
-                                            <Typography variant="body1" sx={{ color: "text.secondary" }}>
-                                                Selecione uma aula para visualizar o conteúdo.
-                                            </Typography>
-                                        )}
-
-                                        {selectedEpisode && (
-                                            <SEGButton
-                                                colorTheme="gradient"
-                                                onClick={handleCompleteEpisode}
-                                                disabled={selectedEpisode.completed || isSelectedEpisodeLocked}
-                                                sx={{ mt: 1 }}
-                                            >
-                                                {selectedEpisode.completed ? "Aula concluída" : "Marcar aula como concluída"}
-                                            </SEGButton>
-                                        )}
-                                    </Stack>
-                                </Paper>
-
-                                <Paper
-                                    elevation={0}
-                                    sx={{
-                                        p: { xs: 2.5, md: 3 },
-                                        borderRadius: 3,
-                                        boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: 2,
-                                    }}
-                                >
-                                    <Stack spacing={2}>
-                                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                                            Sobre o curso
-                                        </Typography>
-                                        <Box sx={{ position: "relative" }}>
-                                            <Typography
-                                                variant="body2"
-                                                sx={{
-                                                    color: "text.secondary",
-                                                    whiteSpace: "pre-line",
-                                                    display: "-webkit-box",
-                                                    WebkitBoxOrient: "vertical",
-                                                    WebkitLineClamp: isDescriptionExpanded || !shouldTruncateDescription ? "unset" : 6,
-                                                    overflow: "hidden",
-                                                }}
-                                            >
-                                                {courseData.description}
-                                            </Typography>
-                                            {!isDescriptionExpanded && shouldTruncateDescription && (
-                                                <Box
-                                                    sx={{
-                                                        position: "absolute",
-                                                        bottom: 0,
-                                                        left: 0,
-                                                        right: 0,
-                                                        height: 96,
-                                                        background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 80%)",
-                                                    }}
-                                                />
-                                            )}
-                                        </Box>
-                                        {shouldTruncateDescription && (
-                                            <Button
-                                                variant="text"
-                                                onClick={toggleDescription}
-                                                sx={{ alignSelf: "flex-start", fontWeight: 600, textTransform: "none" }}
-                                            >
-                                                {isDescriptionExpanded ? "Ver menos" : "Ver mais..."}
-                                            </Button>
-                                        )}
-                                    </Stack>
-                                </Paper>
-                        </Stack>
-                    </Grid>
-
-                    <Grid item xs={12} md={4}>
                             <Paper
                                 elevation={0}
                                 sx={{
                                     p: { xs: 2.5, md: 3 },
                                     borderRadius: 3,
                                     boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
-                                    position: { md: "sticky" },
-                                    top: { md: 104 },
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 2.5,
+                                }}
+                            >
+                                <Stack spacing={2}>
+                                    <Stack direction="row" spacing={1.5} alignItems="center">
+                                        {mediaIcon}
+                                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                            {selectedEpisode?.title ?? "Selecione uma aula"}
+                                        </Typography>
+                                    </Stack>
+
+                                    <Divider />
+
+                                    {selectedEpisode ? (
+                                        <Stack spacing={2.5}>
+                                            {mediaType === "video" && selectedEpisode.link_episode && (
+                                                <Box sx={{ borderRadius: 2, overflow: "hidden", backgroundColor: "black" }}>
+                                                    <video
+                                                        src={selectedEpisode.link_episode}
+                                                        controls
+                                                        style={{ width: "100%", display: "block" }}
+                                                    >
+                                                        Seu navegador não suporta a reprodução de vídeo.
+                                                    </video>
+                                                </Box>
+                                            )}
+
+                                            {mediaType === "image" && selectedEpisode.link_episode && (
+                                                <Box
+                                                    component="img"
+                                                    src={selectedEpisode.link_episode}
+                                                    alt={selectedEpisode.title}
+                                                    loading="lazy"
+                                                    sx={{ width: "100%", borderRadius: 2, objectFit: "cover" }}
+                                                />
+                                            )}
+
+                                            {mediaType === "pdf" && selectedEpisode.link_episode && (
+                                                <Box sx={{ height: { xs: 360, md: 480 }, borderRadius: 2, overflow: "hidden", backgroundColor: "#f0f0f0" }}>
+                                                    <iframe
+                                                        src={`${selectedEpisode.link_episode}#view=FitH`}
+                                                        style={{ border: "none", width: "100%", height: "100%" }}
+                                                        title={selectedEpisode.title}
+                                                    />
+                                                </Box>
+                                            )}
+
+                                            {mediaType === "external" && selectedEpisode.link_episode && (
+                                                <Stack spacing={1.5}>
+                                                    <Typography variant="body1" sx={{ color: "text.secondary" }}>
+                                                        Abrimos este conteúdo em uma nova aba porque o formato não pôde ser identificado automaticamente.
+                                                    </Typography>
+                                                    <SEGButton colorTheme="outlined" onClick={handleOpenExternalEpisode}>
+                                                        Abrir conteúdo em nova aba
+                                                    </SEGButton>
+                                                </Stack>
+                                            )}
+
+                                            <Typography variant="body1" sx={{ color: "text.secondary" }}>
+                                                {selectedEpisode.description}
+                                            </Typography>
+                                        </Stack>
+                                    ) : (
+                                        <Typography variant="body1" sx={{ color: "text.secondary" }}>
+                                            Selecione uma aula para visualizar o conteúdo.
+                                        </Typography>
+                                    )}
+
+                                    {selectedEpisode && (
+                                        <SEGButton
+                                            colorTheme="gradient"
+                                            onClick={handleCompleteEpisode}
+                                            disabled={selectedEpisode.completed || isSelectedEpisodeLocked}
+                                            sx={{ mt: 1 }}
+                                        >
+                                            {selectedEpisode.completed ? "Aula concluída" : "Marcar aula como concluída"}
+                                        </SEGButton>
+                                    )}
+                                </Stack>
+                            </Paper>
+
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    p: { xs: 2.5, md: 3 },
+                                    borderRadius: 3,
+                                    boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 2,
                                 }}
                             >
                                 <Stack spacing={2}>
                                     <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                                        Conteúdo do curso
+                                        Sobre o curso
                                     </Typography>
-                                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                        Finalize cada aula para desbloquear a próxima, assim como na experiência da Udemy.
-                                    </Typography>
-
-                                    <Divider />
-
-                                    <Stack spacing={1.5}>
-                                        {orderedModules.map((module) => {
-                                            const moduleLocked = isModuleLocked(module.id_course_module);
-                                            const episodesCompleted = module.episodes.filter((episode) => episode.completed).length;
-                                            const moduleProgress = module.episodes.length > 0 ? (episodesCompleted / module.episodes.length) * 100 : 0;
-
-                                            return (
-                                                <Accordion
-                                                    key={module.id_course_module}
-                                                    expanded={expandedModuleId === module.id_course_module}
-                                                    onChange={(event, expanded) => handleExpandModule(event, expanded, module.id_course_module)}
-                                                    disableGutters
-                                                    square={false}
-                                                    sx={{
-                                                        borderRadius: 2,
-                                                        border: "1px solid rgba(93,112,246,0.12)",
-                                                        "&:before": { display: "none" },
-                                                        boxShadow: "none",
-                                                        backgroundColor: expandedModuleId === module.id_course_module ? "rgba(93,112,246,0.05)" : "#fff",
-                                                    }}
-                                                >
-                                                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                                        <Stack spacing={1} sx={{ width: "100%" }}>
-                                                            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                                                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                                                                    {module.order}. {module.title}
-                                                                </Typography>
-                                                                <Chip
-                                                                    size="small"
-                                                                    color={module.module_completed ? "success" : moduleLocked ? "default" : "primary"}
-                                                                    label={module.module_completed ? "Concluído" : moduleLocked ? "Bloqueado" : "Em andamento"}
-                                                                />
-                                                            </Stack>
-                                                            <LinearProgress variant="determinate" value={moduleProgress} sx={{ height: 6, borderRadius: 3 }} />
-                                                        </Stack>
-                                                    </AccordionSummary>
-                                                    <AccordionDetails>
-                                                        <List disablePadding>
-                                                            {module.episodes.map((episode) => {
-                                                                const locked = isEpisodeLocked(module.id_course_module, episode.id_module_episode);
-                                                                const isSelected = selectedEpisodeId === episode.id_module_episode;
-
-                                                                return (
-                                                                    <ListItemButton
-                                                                        key={episode.id_module_episode}
-                                                                        onClick={() => handleSelectEpisode(module.id_course_module, episode.id_module_episode)}
-                                                                        disabled={locked}
-                                                                        selected={isSelected}
-                                                                        sx={{
-                                                                            borderRadius: 2,
-                                                                            mb: 1,
-                                                                            alignItems: "flex-start",
-                                                                            backgroundColor: isSelected ? "rgba(93,112,246,0.12)" : undefined,
-                                                                        }}
-                                                                    >
-                                                                        <ListItemIcon sx={{ minWidth: 36, mt: 0.5 }}>
-                                                                            {episode.completed ? (
-                                                                                <CheckCircleIcon color="success" fontSize="small" />
-                                                                            ) : locked ? (
-                                                                                <LockIcon color="disabled" fontSize="small" />
-                                                                            ) : (
-                                                                                <PlayCircleOutlineIcon color="primary" fontSize="small" />
-                                                                            )}
-                                                                        </ListItemIcon>
-                                                                        <ListItemText
-                                                                            primary={
-                                                                                <Typography variant="subtitle2" sx={{ fontWeight: episode.completed ? 600 : 500 }}>
-                                                                                    {episode.order}. {episode.title}
-                                                                                </Typography>
-                                                                            }
-                                                                            secondary={
-                                                                                <Typography variant="caption" sx={{ color: episode.completed ? "success.main" : "text.secondary" }}>
-                                                                                    {episode.completed ? "Aula concluída" : locked ? "Conclua as anteriores" : "Clique para assistir"}
-                                                                                </Typography>
-                                                                            }
-                                                                        />
-                                                                    </ListItemButton>
-                                                                );
-                                                            })}
-                                                        </List>
-                                                    </AccordionDetails>
-                                                </Accordion>
-                                            );
-                                        })}
-                                    </Stack>
+                                    <Box sx={{ position: "relative" }}>
+                                        <Typography
+                                            variant="body2"
+                                            sx={{
+                                                color: "text.secondary",
+                                                whiteSpace: "pre-line",
+                                                display: "-webkit-box",
+                                                WebkitBoxOrient: "vertical",
+                                                WebkitLineClamp: isDescriptionExpanded || !shouldTruncateDescription ? "unset" : 6,
+                                                overflow: "hidden",
+                                            }}
+                                        >
+                                            {courseData.description}
+                                        </Typography>
+                                        {!isDescriptionExpanded && shouldTruncateDescription && (
+                                            <Box
+                                                sx={{
+                                                    position: "absolute",
+                                                    bottom: 0,
+                                                    left: 0,
+                                                    right: 0,
+                                                    height: 96,
+                                                    background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 80%)",
+                                                }}
+                                            />
+                                        )}
+                                    </Box>
+                                    {shouldTruncateDescription && (
+                                        <Button
+                                            variant="text"
+                                            onClick={toggleDescription}
+                                            sx={{ alignSelf: "flex-start", fontWeight: 600, textTransform: "none" }}
+                                        >
+                                            {isDescriptionExpanded ? "Ver menos" : "Ver mais..."}
+                                        </Button>
+                                    )}
                                 </Stack>
                             </Paper>
-                        </Grid>
+                        </Stack>
                     </Grid>
+
+                    <Grid item xs={12} md={4}>
+                        <Paper
+                            elevation={0}
+                            sx={{
+                                p: { xs: 2.5, md: 3 },
+                                borderRadius: 3,
+                                boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
+                                position: { md: "sticky" },
+                                top: { md: 104 },
+                            }}
+                        >
+                            <Stack spacing={2}>
+                                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                    Conteúdo do curso
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                    Finalize cada aula para desbloquear a próxima
+                                </Typography>
+
+                                <Divider />
+
+                                <Stack spacing={1.5}>
+                                    {orderedModules.map((module) => {
+                                        const moduleLocked = isModuleLocked(module.id_course_module);
+                                        const episodesCompleted = module.episodes.filter((episode) => episode.completed).length;
+                                        const moduleProgress = module.episodes.length > 0 ? (episodesCompleted / module.episodes.length) * 100 : 0;
+
+                                        return (
+                                            <Accordion
+                                                key={module.id_course_module}
+                                                expanded={expandedModuleId === module.id_course_module}
+                                                onChange={(event, expanded) => handleExpandModule(event, expanded, module.id_course_module)}
+                                                disableGutters
+                                                square={false}
+                                                sx={{
+                                                    borderRadius: 2,
+                                                    border: "1px solid rgba(93,112,246,0.12)",
+                                                    "&:before": { display: "none" },
+                                                    boxShadow: "none",
+                                                    backgroundColor: expandedModuleId === module.id_course_module ? "rgba(93,112,246,0.05)" : "#fff",
+                                                }}
+                                            >
+                                                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                                    <Stack spacing={1} sx={{ width: "100%" }}>
+                                                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                                                {module.order}. {module.title}
+                                                            </Typography>
+                                                            <Chip
+                                                                size="small"
+                                                                color={module.module_completed ? "success" : moduleLocked ? "default" : "primary"}
+                                                                label={module.module_completed ? "Concluído" : moduleLocked ? "Bloqueado" : "Em andamento"}
+                                                            />
+                                                        </Stack>
+                                                        <LinearProgress variant="determinate" value={moduleProgress} sx={{ height: 6, borderRadius: 3 }} />
+                                                    </Stack>
+                                                </AccordionSummary>
+                                                <AccordionDetails>
+                                                    <List disablePadding>
+                                                        {module.episodes.map((episode) => {
+                                                            const locked = isEpisodeLocked(module.id_course_module, episode.id_module_episode);
+                                                            const isSelected = selectedEpisodeId === episode.id_module_episode;
+
+                                                            return (
+                                                                <ListItemButton
+                                                                    key={episode.id_module_episode}
+                                                                    onClick={() => handleSelectEpisode(module.id_course_module, episode.id_module_episode)}
+                                                                    disabled={locked}
+                                                                    selected={isSelected}
+                                                                    sx={{
+                                                                        borderRadius: 2,
+                                                                        mb: 1,
+                                                                        alignItems: "flex-start",
+                                                                        backgroundColor: isSelected ? "rgba(93,112,246,0.12)" : undefined,
+                                                                    }}
+                                                                >
+                                                                    <ListItemIcon sx={{ minWidth: 36, mt: 0.5 }}>
+                                                                        {episode.completed ? (
+                                                                            <CheckCircleIcon color="success" fontSize="small" />
+                                                                        ) : locked ? (
+                                                                            <LockIcon color="disabled" fontSize="small" />
+                                                                        ) : (
+                                                                            <PlayCircleOutlineIcon color="primary" fontSize="small" />
+                                                                        )}
+                                                                    </ListItemIcon>
+                                                                    <ListItemText
+                                                                        primary={
+                                                                            <Typography variant="subtitle2" sx={{ fontWeight: episode.completed ? 600 : 500 }}>
+                                                                                {episode.order}. {episode.title}
+                                                                            </Typography>
+                                                                        }
+                                                                        secondary={
+                                                                            <Typography variant="caption" sx={{ color: episode.completed ? "success.main" : "text.secondary" }}>
+                                                                                {episode.completed ? "Aula concluída" : locked ? "Conclua as anteriores" : "Clique para assistir"}
+                                                                            </Typography>
+                                                                        }
+                                                                    />
+                                                                </ListItemButton>
+                                                            );
+                                                        })}
+                                                    </List>
+                                                </AccordionDetails>
+                                            </Accordion>
+                                        );
+                                    })}
+                                </Stack>
+                            </Stack>
+                        </Paper>
+                    </Grid>
+                </Grid>
             </Container>
         </Box>
     );

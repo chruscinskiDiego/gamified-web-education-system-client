@@ -28,7 +28,7 @@ import SEGButton from "../../components/SEGButton";
 import { mapDifficulty } from "../../helpers/DifficultyLevel";
 import { dateFormat } from "../../helpers/DateFormat";
 import { api } from "../../lib/axios";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import type { CourseEvaluation, CourseEvaluationNotes, CourseResumeApiResponse, CourseResumeData, CreateEvaluationPayload, DeleteEvaluationPayload, RatingFormValues, UpdateEvaluationPayload } from "./interfaces";
 import { ProfileContext } from "../../contexts/ProfileContext";
 
@@ -54,6 +54,7 @@ const CoursesResume: React.FC = () => {
     }) ?? null;
     const [isLoadingCreateOrUpdateEvaluation, setIsLoadingCreateOrUpdateEvaluation] = useState<boolean>(false);
     const [isLoadingDeleteEvaluation, setIsLoadingDeleteEvaluation] = useState<boolean>(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (ratingDialogMode === "edit" && userEvaluation) {
@@ -206,6 +207,10 @@ const CoursesResume: React.FC = () => {
             setIsLoadingDeleteEvaluation(false);
         }
     };
+
+    const handleNavigateToCourse = () => {
+        navigate(`/course/${id}`);
+    }
     // #endregion handlers
 
     // #region utils
@@ -318,7 +323,7 @@ const CoursesResume: React.FC = () => {
                 {courseResume?.registration_state === "S" && (
                     <SEGButton
                         colorTheme="white"
-                        onClick={() => console.info(`${registrationLabel} clicado`)}
+                        onClick={handleNavigateToCourse}
                         sx={{ maxWidth: { xs: "100%", sm: 320 } }}
                     >
                         Ir para o curso
