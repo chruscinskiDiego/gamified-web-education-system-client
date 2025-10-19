@@ -375,44 +375,45 @@ const CourseDataAndProgressPage: React.FC = () => {
     return (
         <Box sx={{ backgroundColor: "#f6f7fb", minHeight: "calc(100vh - 64px)", py: { xs: 3, md: 5 } }}>
             <Container maxWidth="lg">
-                <Stack spacing={4}>
-                    <Paper
-                        elevation={0}
-                        sx={{
-                            p: { xs: 3, md: 4 },
-                            borderRadius: 3,
-                            boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 2,
-                        }}
-                    >
-                        <Stack spacing={2}>
-                            <Typography variant="overline" sx={{ color: colors.purple, fontWeight: 700 }}>
-                                Curso #{id ?? courseData.id_course}
-                            </Typography>
-
-                            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                                {courseData.title}
-                            </Typography>
-
-                            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
-                                <Chip label={`Dificuldade: ${mapDifficulty(courseData.difficulty_level)}`} color="primary" variant="outlined" sx={{ fontWeight: 600 }} />
-                                <Chip label={`${completedEpisodes} de ${totalEpisodes} aulas concluídas`} color="secondary" variant="outlined" sx={{ fontWeight: 600 }} />
-                            </Stack>
-
-                            <Box>
-                                <Typography variant="body2" sx={{ color: "text.secondary", mb: 1, fontWeight: 600 }}>
-                                    Progresso geral
+                <Grid container rowSpacing={4} columnSpacing={4} alignItems="flex-start">
+                    <Grid item xs={12}>
+                        <Paper
+                            elevation={0}
+                            sx={{
+                                p: { xs: 3, md: 4 },
+                                borderRadius: 3,
+                                boxShadow: "0 12px 34px rgba(93,112,246,0.12)",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 2,
+                            }}
+                        >
+                            <Stack spacing={2}>
+                                <Typography variant="overline" sx={{ color: colors.purple, fontWeight: 700 }}>
+                                    Curso #{id ?? courseData.id_course}
                                 </Typography>
-                                <LinearProgress variant="determinate" value={overallProgress} sx={{ height: 10, borderRadius: 5 }} />
-                            </Box>
-                        </Stack>
-                    </Paper>
 
-                    <Grid container spacing={4} alignItems="flex-start">
-                        <Grid item xs={12} md={8}>
-                            <Stack spacing={3} sx={{ height: "100%" }}>
+                                <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                                    {courseData.title}
+                                </Typography>
+
+                                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
+                                    <Chip label={`Dificuldade: ${mapDifficulty(courseData.difficulty_level)}`} color="primary" variant="outlined" sx={{ fontWeight: 600 }} />
+                                    <Chip label={`${completedEpisodes} de ${totalEpisodes} aulas concluídas`} color="secondary" variant="outlined" sx={{ fontWeight: 600 }} />
+                                </Stack>
+
+                                <Box>
+                                    <Typography variant="body2" sx={{ color: "text.secondary", mb: 1, fontWeight: 600 }}>
+                                        Progresso geral
+                                    </Typography>
+                                    <LinearProgress variant="determinate" value={overallProgress} sx={{ height: 10, borderRadius: 5 }} />
+                                </Box>
+                            </Stack>
+                        </Paper>
+                    </Grid>
+
+                    <Grid item xs={12} md={8}>
+                        <Stack spacing={3} sx={{ height: "100%" }}>
                                 <Paper
                                     elevation={0}
                                     sx={{
@@ -555,10 +556,10 @@ const CourseDataAndProgressPage: React.FC = () => {
                                         )}
                                     </Stack>
                                 </Paper>
-                            </Stack>
-                        </Grid>
+                        </Stack>
+                    </Grid>
 
-                        <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={4}>
                             <Paper
                                 elevation={0}
                                 sx={{
@@ -668,7 +669,6 @@ const CourseDataAndProgressPage: React.FC = () => {
                             </Paper>
                         </Grid>
                     </Grid>
-                </Stack>
             </Container>
         </Box>
     );
