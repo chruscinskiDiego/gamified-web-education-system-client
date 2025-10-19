@@ -137,6 +137,7 @@ const CoursesResume: React.FC = () => {
     const [courseResume, setCourseResume] = useState<CourseResumeData | null>(null);
     const { id } = useParams();
     const descriptionPaperRef = useRef<HTMLDivElement | null>(null);
+    const descriptionTitleRef = useRef<HTMLHeadingElement | null>(null);
     const generalInfoPaperRef = useRef<HTMLDivElement | null>(null);
     const [descriptionContentMaxHeight, setDescriptionContentMaxHeight] = useState<number | null>(null);
 
@@ -151,6 +152,7 @@ const CoursesResume: React.FC = () => {
 
         const generalInfoElement = generalInfoPaperRef.current;
         const descriptionPaperElement = descriptionPaperRef.current;
+        const descriptionTitleElement = descriptionTitleRef.current;
 
         if (!generalInfoElement || !descriptionPaperElement) {
             setDescriptionContentMaxHeight(null);
@@ -160,7 +162,17 @@ const CoursesResume: React.FC = () => {
         const generalInfoHeight = generalInfoElement.offsetHeight;
         const { paddingTop, paddingBottom } = window.getComputedStyle(descriptionPaperElement);
         const verticalPadding = (parseFloat(paddingTop) || 0) + (parseFloat(paddingBottom) || 0);
-        const availableHeight = generalInfoHeight - verticalPadding;
+        let titleHeight = 0;
+
+        if (descriptionTitleElement) {
+            const { marginTop, marginBottom } = window.getComputedStyle(descriptionTitleElement);
+            titleHeight =
+                descriptionTitleElement.offsetHeight +
+                (parseFloat(marginTop) || 0) +
+                (parseFloat(marginBottom) || 0);
+        }
+
+        const availableHeight = generalInfoHeight - verticalPadding - titleHeight;
 
         setDescriptionContentMaxHeight(availableHeight > 0 ? availableHeight : null);
     }, []);
@@ -681,7 +693,11 @@ const CoursesResume: React.FC = () => {
                             }}
                             ref={descriptionPaperRef}
                         >
-                            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                            <Typography
+                                variant="h6"
+                                sx={{ fontWeight: 700, mb: { xs: 2, md: 3 } }}
+                                ref={descriptionTitleRef}
+                            >
                                 Sobre o curso
                             </Typography>
                             <Box
@@ -689,6 +705,22 @@ const CoursesResume: React.FC = () => {
                                     flex: 1,
                                     overflowY: { xs: "visible", md: "auto" },
                                     pr: { md: 1 },
+                                    scrollbarWidth: "thin",
+                                    scrollbarColor: `${colors.purple} transparent`,
+                                    "&::-webkit-scrollbar": {
+                                        width: 6,
+                                    },
+                                    "&::-webkit-scrollbar-track": {
+                                        backgroundColor: "transparent",
+                                        borderRadius: 999,
+                                    },
+                                    "&::-webkit-scrollbar-thumb": {
+                                        backgroundColor: colors.purple,
+                                        borderRadius: 999,
+                                    },
+                                    "&::-webkit-scrollbar-thumb:hover": {
+                                        backgroundColor: "#4c60e8",
+                                    },
                                     ...(descriptionContentMaxHeight
                                         ? { maxHeight: { md: `${descriptionContentMaxHeight}px` } }
                                         : {}),
