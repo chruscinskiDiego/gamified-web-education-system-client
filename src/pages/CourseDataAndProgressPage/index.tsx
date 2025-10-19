@@ -207,16 +207,80 @@ const detectMediaTypeFromBuffer = (buffer: ArrayBuffer): EpisodeMediaType | null
     return null;
 };
 
-const isAbortError = (error: unknown): boolean => {
-    if (error instanceof DOMException) {
-        return error.name === "AbortError";
-    }
+const probeVideo = (src: string): Promise<boolean> => new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
 
-    if (typeof error === "object" && error !== null && "name" in error) {
-        return (error as { name?: string }).name === "AbortError";
-    }
+    const cleanup = () => {
+        video.removeAttribute("src");
+        try {
+            video.load();
+        } catch {
+            // ignore load errors during cleanup
+        }
+    };
 
-    return false;
+    const handleLoadedMetadata = () => {
+        cleanup();
+        resolve(true);
+    };
+
+    const handleError = () => {
+        cleanup();
+        resolve(false);
+    };
+
+    video.addEventListener("loadeddata", handleLoadedMetadata, { once: true });
+    video.addEventListener("error", handleError, { once: true });
+
+    video.src = src;
+});
+
+const probeImage = (src: string): Promise<boolean> => new Promise((resolve) => {
+    const image = new Image();
+
+    const handleLoad = () => resolve(true);
+    const handleError = () => resolve(false);
+
+    image.addEventListener("load", handleLoad, { once: true });
+    image.addEventListener("error", handleError, { once: true });
+
+    image.src = src;
+});
+
+const probePdf = async (src: string, signal: AbortSignal): Promise<boolean> => {
+    try {
+        const response = await fetch(src, {
+            method: "GET",
+            headers: { Range: SNIFF_RANGE_HEADER },
+            signal,
+        });
+
+        if (!response.ok) {
+            return false;
+        }
+
+        const resolvedType = resolveMediaTypeFromHeaders(response.headers);
+
+        if (resolvedType === "pdf") {
+            return true;
+        }
+
+        if (resolvedType === "video" || resolvedType === "image") {
+            return false;
+        }
+
+        const buffer = await response.arrayBuffer();
+        return detectMediaTypeFromBuffer(buffer) === "pdf";
+    } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+            return false;
+        }
+
+        return false;
+    }
 };
 
 const sanitizeCourse = (course: CourseData): CourseData => ({
@@ -283,101 +347,52 @@ const CourseDataAndProgressPage: React.FC = () => {
         }
 
         const inferredType = getEpisodeMediaType(linkEpisode);
-        setMediaType(inferredType);
 
         if (inferredType !== "external") {
+            setMediaType(inferredType);
             setIsResolvingMediaType(false);
             return;
         }
 
         let isActive = true;
-        const abortControllers: AbortController[] = [];
-
-        const fetchWithController = async (init: RequestInit) => {
-            const controller = new AbortController();
-            abortControllers.push(controller);
-            return fetch(linkEpisode, { ...init, signal: controller.signal });
-        };
+        const abortController = new AbortController();
 
         const resolveMediaType = async () => {
             setIsResolvingMediaType(true);
 
-            const resolveFromHead = async (): Promise<EpisodeMediaType | null> => {
-                try {
-                    const response = await fetchWithController({ method: "HEAD" });
+            const isVideo = await probeVideo(linkEpisode);
 
-                    if (!response.ok) {
-                        return null;
-                    }
+            if (!isActive) return;
 
-                    const resolvedType = resolveMediaTypeFromHeaders(response.headers);
-
-                    return resolvedType !== "external" ? resolvedType : null;
-                } catch (error) {
-                    if (isAbortError(error)) {
-                        return null;
-                    }
-
-                    return null;
-                }
-            };
-
-            const resolveFromContent = async (): Promise<EpisodeMediaType | null> => {
-                const attempts: RequestInit[] = [
-                    { method: "GET", headers: { Range: SNIFF_RANGE_HEADER } },
-                    { method: "GET" },
-                ];
-
-                for (const attempt of attempts) {
-                    try {
-                        const response = await fetchWithController(attempt);
-
-                        if (!response.ok) {
-                            continue;
-                        }
-
-                        const resolvedType = resolveMediaTypeFromHeaders(response.headers);
-
-                        if (resolvedType !== "external") {
-                            return resolvedType;
-                        }
-
-                        const buffer = await response.arrayBuffer();
-                        const detectedType = detectMediaTypeFromBuffer(buffer);
-
-                        if (detectedType) {
-                            return detectedType;
-                        }
-                    } catch (error) {
-                        if (!isAbortError(error)) {
-                            continue;
-                        }
-
-                        return null;
-                    }
-                }
-
-                return null;
-            };
-
-            try {
-                const resolvedType = (await resolveFromHead()) ?? (await resolveFromContent()) ?? inferredType;
-
-                if (isActive) {
-                    setMediaType(resolvedType);
-                }
-            } finally {
-                if (isActive) {
-                    setIsResolvingMediaType(false);
-                }
+            if (isVideo) {
+                setMediaType("video");
+                setIsResolvingMediaType(false);
+                return;
             }
+
+            const isImage = await probeImage(linkEpisode);
+
+            if (!isActive) return;
+
+            if (isImage) {
+                setMediaType("image");
+                setIsResolvingMediaType(false);
+                return;
+            }
+
+            const isPdf = await probePdf(linkEpisode, abortController.signal);
+
+            if (!isActive) return;
+
+            setMediaType(isPdf ? "pdf" : "external");
+            setIsResolvingMediaType(false);
         };
 
         void resolveMediaType();
 
         return () => {
             isActive = false;
-            abortControllers.forEach((controller) => controller.abort());
+            abortController.abort();
         };
     }, [selectedEpisode]);
 
