@@ -673,9 +673,9 @@ const CourseDataAndProgressPage: React.FC = () => {
                                                         colorTheme="outlined"
                                                         component="a"
                                                         href={selectedEpisode.link_episode}
-                                                        target="_blank"
+                                                        //target="_blank"
                                                         rel="noopener noreferrer"
-                                                        download
+                                                        //download
                                                     >
                                                         Baixar PDF
                                                     </SEGButton>
