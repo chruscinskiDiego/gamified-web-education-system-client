@@ -288,7 +288,7 @@ const CourseManagementPage: React.FC = () => {
 
         } finally {
 
-            setLoadingModuleDelete(false);
+            setLoadingModuleCreation(false);
 
         }
 

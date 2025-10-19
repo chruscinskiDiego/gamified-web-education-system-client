@@ -319,7 +319,7 @@ const CourseDataAndProgressPage: React.FC = () => {
     };
 
     return (
-        <Box sx={{ backgroundColor: "#f6f7fb", minHeight: "calc(100vh - 64px)", py: { xs: 3, md: 5 } }}>
+        <Box sx={{ backgroundColor: "white", minHeight: "calc(100vh - 32px)", py: { xs: 3 } }}>
             <Container maxWidth="lg">
                 <Grid container rowSpacing={4} columnSpacing={4} alignItems="flex-start">
                     <Grid item xs={12}>
