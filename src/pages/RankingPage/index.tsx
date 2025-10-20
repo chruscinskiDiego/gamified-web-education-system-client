@@ -77,9 +77,9 @@ const RankingPage: React.FC = () => {
     return (
         <Box
             sx={{
-                background: "linear-gradient(180deg, rgba(93,112,246,0.12) 0%, rgba(73,160,251,0.08) 45%, rgba(244,247,255,0.95) 100%), #f4f7ff",
+                background: "white",
                 minHeight: "calc(100vh - 64px)",
-                py: { xs: 6, md: 8 },
+                py: { xs: 6},
             }}
         >
             <Container maxWidth="lg">
@@ -94,7 +94,7 @@ const RankingPage: React.FC = () => {
                                 letterSpacing: 1,
                             }}
                         >
-                            Hall da fama SEG
+                            Ranking
                         </Typography>
                         <Typography
                             variant="subtitle1"
@@ -103,7 +103,7 @@ const RankingPage: React.FC = () => {
                                 color: alpha("#000", 0.6),
                             }}
                         >
-                            Acompanhe os heróis do conhecimento que acumularam mais XP nesta temporada.
+                            Acompanhe os heróis do conhecimento que tem mais XP acumulado
                         </Typography>
                     </Stack>
 
