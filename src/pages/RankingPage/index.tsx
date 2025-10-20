@@ -77,7 +77,7 @@ const RankingPage: React.FC = () => {
     return (
         <Box
             sx={{
-                background: "linear-gradient(180deg, rgba(93,112,246,0.1) 0%, rgba(73,160,251,0.08) 45%, rgba(244,247,255,1) 100%)",
+                background: "linear-gradient(180deg, rgba(93,112,246,0.12) 0%, rgba(73,160,251,0.08) 45%, rgba(244,247,255,0.95) 100%), #f4f7ff",
                 minHeight: "calc(100vh - 64px)",
                 py: { xs: 6, md: 8 },
             }}
