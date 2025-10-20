@@ -51,8 +51,8 @@ const ChallengesPage: React.FC = () => {
         <Box
             sx={{
                 minHeight: "calc(100vh - 64px)",
-                background: "linear-gradient(180deg, rgba(93,112,246,0.08) 0%, rgba(255,255,255,1) 40%)",
-                py: { xs: 6, md: 8 },
+                background: "white",
+                py: { xs: 6 },
             }}
         >
             <Container maxWidth="lg">
