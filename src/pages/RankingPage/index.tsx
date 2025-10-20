@@ -4,7 +4,6 @@ import {
     Chip,
     Container,
     Grid,
-    LinearProgress,
     Stack,
     Typography,
 } from "@mui/material";
@@ -78,7 +77,7 @@ const RankingPage: React.FC = () => {
     return (
         <Box
             sx={{
-                background: "linear-gradient(180deg, rgba(93,112,246,0.08) 0%, rgba(73,160,251,0.03) 100%)",
+                background: "linear-gradient(180deg, rgba(93,112,246,0.1) 0%, rgba(73,160,251,0.08) 45%, rgba(244,247,255,1) 100%)",
                 minHeight: "calc(100vh - 64px)",
                 py: { xs: 6, md: 8 },
             }}
@@ -289,7 +288,7 @@ const RankingPage: React.FC = () => {
                             <Stack spacing={1.5}>
                                 {others.map((entry) => {
                                     const position = Number(entry.rank_position);
-                                    const progress = championPoints
+                                    const leaderPercent = championPoints
                                         ? Math.min(100, Math.round((entry.points / championPoints) * 100))
                                         : 0;
 
@@ -345,19 +344,14 @@ const RankingPage: React.FC = () => {
                                                     >
                                                         {entry.user_full_name}
                                                     </Typography>
-                                                    <LinearProgress
-                                                        variant="determinate"
-                                                        value={progress}
-                                                        sx={{
-                                                            height: 10,
-                                                            borderRadius: 999,
-                                                            background: alpha(colors.purple, 0.08),
-                                                            "& .MuiLinearProgress-bar": {
-                                                                background: colors.horizontalGradient,
-                                                                borderRadius: 999,
-                                                            },
-                                                        }}
-                                                    />
+                                                    {championPoints > 0 && (
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{ color: alpha("#000", 0.6), fontWeight: 600 }}
+                                                        >
+                                                            {leaderPercent}% do líder
+                                                        </Typography>
+                                                    )}
                                                 </Stack>
 
                                                 <Chip
