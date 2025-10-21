@@ -442,6 +442,10 @@ const CategoriesPage: React.FC = () => {
                                 sx={{
                                     mb: 0,
                                     whiteSpace: "nowrap",
+                                    height: 56,
+                                    minHeight: 56,
+                                    display: "flex",
+                                    alignItems: "center",
                                 }}
                             >
                                 Nova categoria
