@@ -89,28 +89,34 @@ const rarityIcons: Record<InsigniaRarity, React.ReactNode> = {
     [InsigniaRarity.LEGENDARY]: <WorkspacePremiumIcon sx={{ fontSize: 34 }} />,
 };
 
-const rarityStyles: Record<InsigniaRarity, { background: string; shadow: string; border: string; chip: string; text: string }> = {
+const rarityStyles: Record<
+    InsigniaRarity,
+    { chip: string; text: string; iconBackground: string; iconShadow: string }
+> = {
     [InsigniaRarity.COMMON]: {
-        background: "linear-gradient(135deg, rgba(93,112,246,0.12) 0%, rgba(73,160,251,0.18) 100%)",
-        shadow: "0 16px 35px rgba(73,160,251,0.18)",
-        border: "1px solid rgba(93,112,246,0.35)",
         chip: alpha("#49A0FB", 0.18),
         text: "#2B3A67",
+        iconBackground: alpha(colors.white, 0.28),
+        iconShadow: "0 8px 22px rgba(73,160,251,0.26)",
     },
     [InsigniaRarity.RARE]: {
-        background: "linear-gradient(135deg, rgba(122,92,255,0.22) 0%, rgba(107,70,193,0.45) 100%)",
-        shadow: "0 18px 40px rgba(122,92,255,0.32)",
-        border: "1px solid rgba(122,92,255,0.5)",
         chip: alpha("#7A5CFF", 0.25),
-        text: "#f5f4ff",
+        text: "#4b256d",
+        iconBackground: alpha(colors.white, 0.32),
+        iconShadow: "0 10px 26px rgba(122,92,255,0.32)",
     },
     [InsigniaRarity.LEGENDARY]: {
-        background: "linear-gradient(135deg, #f7c14b 0%, #f59b42 45%, #f56565 100%)",
-        shadow: "0 18px 42px rgba(245,101,101,0.45)",
-        border: "1px solid rgba(244,165,96,0.9)",
         chip: alpha("#F6AD55", 0.3),
         text: "#3b2613",
+        iconBackground: alpha("#f7c14b", 0.35),
+        iconShadow: "0 12px 30px rgba(245,149,66,0.4)",
     },
+};
+
+const baseCardSurface = {
+    background: "linear-gradient(135deg, rgba(93,112,246,0.08) 0%, rgba(73,160,251,0.12) 100%)",
+    boxShadow: "0 18px 40px rgba(71,103,214,0.18)",
+    border: `1px solid ${alpha(colors.purple, 0.18)}`,
 };
 
 const StyledTabs = styled(Tabs)(({ theme }) => ({
@@ -193,10 +199,8 @@ const InsigniaCard: React.FC<{
                 display: "flex",
                 flexDirection: "column",
                 gap: 2,
-                background: theme.background,
-                boxShadow: theme.shadow,
-                border: theme.border,
-                color: theme.text,
+                ...baseCardSurface,
+                color: colors.strongGray,
                 overflow: "hidden",
             }}
         >
@@ -210,15 +214,18 @@ const InsigniaCard: React.FC<{
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            background: alpha(colors.white, 0.18),
-                            boxShadow: `0 6px 16px ${alpha("#000", 0.18)}`,
+                            background: theme.iconBackground,
+                            boxShadow: theme.iconShadow,
                             color: theme.text,
                         }}
                     >
                         {rarityIcons[insignia.rarity]}
                     </Box>
                     <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 0.4 }}>
+                        <Typography
+                            variant="h6"
+                            sx={{ fontWeight: 700, letterSpacing: 0.4, color: colors.purple }}
+                        >
                             {insignia.name}
                         </Typography>
                         <Chip
@@ -240,11 +247,11 @@ const InsigniaCard: React.FC<{
                     size="small"
                     onClick={handleOpenMenu}
                     sx={{
-                        color: theme.text,
-                        backgroundColor: alpha(colors.white, 0.25),
-                        boxShadow: "0 10px 24px rgba(33, 33, 52, 0.2)",
+                        color: colors.purple,
+                        backgroundColor: alpha(colors.white, 0.6),
+                        boxShadow: "0 12px 28px rgba(33, 33, 52, 0.18)",
                         "&:hover": {
-                            backgroundColor: alpha(colors.white, 0.35),
+                            backgroundColor: alpha(colors.white, 0.75),
                         },
                     }}
                 >
@@ -253,7 +260,7 @@ const InsigniaCard: React.FC<{
             </Box>
             <Typography
                 variant="body2"
-                sx={{ opacity: 0.9, lineHeight: 1.6, wordBreak: "break-word", overflowWrap: "anywhere" }}
+                sx={{ color: alpha(colors.strongGray, 0.88), lineHeight: 1.6, wordBreak: "break-word", overflowWrap: "anywhere" }}
             >
                 {insignia.description}
             </Typography>
@@ -270,7 +277,7 @@ const InsigniaCard: React.FC<{
                         borderRadius: 3,
                         overflow: "hidden",
                         backgroundColor: alpha(colors.white, 0.96),
-                        boxShadow: "0 18px 40px rgba(33, 33, 52, 0.18)",
+                        boxShadow: "0 18px 40px rgba(71,103,214,0.18)",
                         "& .MuiMenuItem-root": {
                             gap: 1.5,
                             fontWeight: 500,
@@ -326,9 +333,7 @@ const ChallengeCard: React.FC<{
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",
-                background: "linear-gradient(135deg, rgba(93,112,246,0.08) 0%, rgba(73,160,251,0.18) 100%)",
-                border: `1px solid ${alpha(colors.purple, 0.18)}`,
-                boxShadow: "0 16px 40px rgba(93,112,246,0.18)",
+                ...baseCardSurface,
                 overflow: "hidden",
             }}
         >
@@ -349,10 +354,11 @@ const ChallengeCard: React.FC<{
                     size="small"
                     onClick={handleOpenMenu}
                     sx={{
-                        backgroundColor: alpha("#fff", 0.55),
-                        boxShadow: "0 10px 24px rgba(33, 33, 52, 0.2)",
+                        color: colors.purple,
+                        backgroundColor: alpha(colors.white, 0.6),
+                        boxShadow: "0 12px 28px rgba(33, 33, 52, 0.18)",
                         "&:hover": {
-                            backgroundColor: alpha("#fff", 0.8),
+                            backgroundColor: alpha(colors.white, 0.78),
                         },
                     }}
                 >
@@ -392,9 +398,10 @@ const ChallengeCard: React.FC<{
                         alignItems: { xs: "flex-start", sm: "center" },
                         flexWrap: "wrap",
                         gap: 2,
-                        background: insigniaTheme.background,
-                        border: insigniaTheme.border,
-                        boxShadow: insigniaTheme.shadow,
+                        ...baseCardSurface,
+                        background: "linear-gradient(135deg, rgba(93,112,246,0.12) 0%, rgba(73,160,251,0.18) 100%)",
+                        borderColor: alpha(colors.purple, 0.22),
+                        boxShadow: "0 16px 38px rgba(71,103,214,0.2)",
                     }}
                 >
                     <Box
@@ -405,7 +412,8 @@ const ChallengeCard: React.FC<{
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            backgroundColor: alpha(colors.white, 0.22),
+                            backgroundColor: insigniaTheme.iconBackground,
+                            boxShadow: insigniaTheme.iconShadow,
                             color: insigniaTheme.text,
                         }}
                     >
