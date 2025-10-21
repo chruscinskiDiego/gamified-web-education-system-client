@@ -411,46 +411,23 @@ const CategoriesPage: React.FC = () => {
                             </Typography>
                         </Stack>
 
-                        <Stack
-                            direction={{ xs: "column", md: "row" }}
-                            spacing={2}
-                            sx={{ width: { xs: "100%", md: "auto" } }}
-                            alignItems={{ xs: "stretch", md: "center" }}
-                            justifyContent="flex-end"
+                        <SEGButton
+                            startIcon={<AddIcon />}
+                            colorTheme="gradient"
+                            onClick={handleOpenCreateDialog}
+                            fullWidth={false}
+                            sx={{
+                                alignSelf: { xs: "stretch", md: "flex-start" },
+                                mb: 0,
+                                whiteSpace: "nowrap",
+                                height: 56,
+                                minHeight: 56,
+                                display: "flex",
+                                alignItems: "center",
+                            }}
                         >
-                            <SEGTextField
-                                placeholder="Buscar categoria"
-                                value={searchTerm}
-                                onChange={(event) => setSearchTerm(event.target.value)}
-                                startIcon={<SearchIcon sx={{ color: alpha("#000", 0.5) }} />}
-                                InputProps={{ disableUnderline: true }}
-                                sx={{
-                                    mb: 0,
-                                    width: { xs: "100%", md: 320 },
-                                    "& .MuiFilledInput-root": {
-                                        backgroundColor: "#fff",
-                                        boxShadow: "0 12px 30px rgba(33, 33, 52, 0.12)",
-                                    },
-                                }}
-                            />
-
-                            <SEGButton
-                                startIcon={<AddIcon />}
-                                colorTheme="gradient"
-                                onClick={handleOpenCreateDialog}
-                                fullWidth={false}
-                                sx={{
-                                    mb: 0,
-                                    whiteSpace: "nowrap",
-                                    height: 56,
-                                    minHeight: 56,
-                                    display: "flex",
-                                    alignItems: "center",
-                                }}
-                            >
-                                Nova categoria
-                            </SEGButton>
-                        </Stack>
+                            Nova categoria
+                        </SEGButton>
                     </Stack>
 
                     <Paper
@@ -462,7 +439,24 @@ const CategoriesPage: React.FC = () => {
                             boxShadow: "0 24px 60px rgba(33, 33, 52, 0.14)",
                         }}
                     >
-                        {renderContent()}
+                        <Stack spacing={{ xs: 3, md: 4 }}>
+                            <SEGTextField
+                                placeholder="Buscar categoria"
+                                value={searchTerm}
+                                onChange={(event) => setSearchTerm(event.target.value)}
+                                startIcon={<SearchIcon sx={{ color: alpha("#000", 0.5) }} />}
+                                InputProps={{ disableUnderline: true }}
+                                sx={{
+                                    width: "100%",
+                                    "& .MuiFilledInput-root": {
+                                        backgroundColor: "#fff",
+                                        boxShadow: "0 12px 30px rgba(33, 33, 52, 0.12)",
+                                    },
+                                }}
+                            />
+
+                            {renderContent()}
+                        </Stack>
                     </Paper>
                 </Stack>
             </Container>
