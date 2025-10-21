@@ -13,19 +13,20 @@ import {
     FormControlLabel,
     Grid,
     IconButton,
+    Menu,
     MenuItem,
     Paper,
     Switch,
     Tab,
     Tabs,
     Pagination,
-    Tooltip,
     Typography,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
@@ -161,6 +162,25 @@ const InsigniaCard: React.FC<{
     onDelete: (insignia: Insignia) => void;
 }> = ({ insignia, onEdit, onDelete }) => {
     const theme = rarityStyles[insignia.rarity];
+    const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+
+    const handleOpenMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+        setMenuAnchor(event.currentTarget);
+    };
+
+    const handleCloseMenu = () => {
+        setMenuAnchor(null);
+    };
+
+    const handleEdit = () => {
+        onEdit(insignia);
+        handleCloseMenu();
+    };
+
+    const handleDelete = () => {
+        onDelete(insignia);
+        handleCloseMenu();
+    };
 
     return (
         <Paper
@@ -215,18 +235,21 @@ const InsigniaCard: React.FC<{
                         />
                     </Box>
                 </Box>
-                <Box>
-                    <Tooltip title="Editar">
-                        <IconButton onClick={() => onEdit(insignia)} sx={{ color: theme.text }}>
-                            <EditIcon />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Excluir">
-                        <IconButton onClick={() => onDelete(insignia)} sx={{ color: theme.text }}>
-                            <DeleteIcon />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
+                <IconButton
+                    aria-label="ações"
+                    size="small"
+                    onClick={handleOpenMenu}
+                    sx={{
+                        color: theme.text,
+                        backgroundColor: alpha(colors.white, 0.25),
+                        boxShadow: "0 10px 24px rgba(33, 33, 52, 0.2)",
+                        "&:hover": {
+                            backgroundColor: alpha(colors.white, 0.35),
+                        },
+                    }}
+                >
+                    <MoreVertIcon fontSize="small" />
+                </IconButton>
             </Box>
             <Typography
                 variant="body2"
@@ -234,6 +257,35 @@ const InsigniaCard: React.FC<{
             >
                 {insignia.description}
             </Typography>
+
+            <Menu
+                anchorEl={menuAnchor}
+                open={Boolean(menuAnchor)}
+                onClose={handleCloseMenu}
+                PaperProps={{
+                    elevation: 0,
+                    sx: {
+                        mt: 1.5,
+                        minWidth: 200,
+                        borderRadius: 3,
+                        overflow: "hidden",
+                        backgroundColor: alpha(colors.white, 0.96),
+                        boxShadow: "0 18px 40px rgba(33, 33, 52, 0.18)",
+                        "& .MuiMenuItem-root": {
+                            gap: 1.5,
+                            fontWeight: 500,
+                            color: alpha("#000", 0.75),
+                        },
+                    },
+                }}
+            >
+                <MenuItem onClick={handleEdit}>
+                    <EditIcon fontSize="small" /> Editar
+                </MenuItem>
+                <MenuItem onClick={handleDelete} sx={{ color: "#e53935" }}>
+                    <DeleteIcon fontSize="small" /> Excluir
+                </MenuItem>
+            </Menu>
         </Paper>
     );
 };
@@ -245,6 +297,25 @@ const ChallengeCard: React.FC<{
 }> = ({ challenge, onEdit, onDelete }) => {
     const insigniaTheme = rarityStyles[challenge.insignia?.rarity ?? InsigniaRarity.COMMON];
     const typeLabel = challenge.type === "D" ? "Diário" : "Por Pontos";
+    const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+
+    const handleOpenMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+        setMenuAnchor(event.currentTarget);
+    };
+
+    const handleCloseMenu = () => {
+        setMenuAnchor(null);
+    };
+
+    const handleEdit = () => {
+        onEdit(challenge);
+        handleCloseMenu();
+    };
+
+    const handleDelete = () => {
+        onDelete(challenge);
+        handleCloseMenu();
+    };
 
     return (
         <Paper
@@ -273,18 +344,20 @@ const ChallengeCard: React.FC<{
                         {challenge.title}
                     </Typography>
                 </Box>
-                <Box>
-                    <Tooltip title="Editar">
-                        <IconButton onClick={() => onEdit(challenge)}>
-                            <EditIcon />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Excluir">
-                        <IconButton onClick={() => onDelete(challenge)}>
-                            <DeleteIcon />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
+                <IconButton
+                    aria-label="ações"
+                    size="small"
+                    onClick={handleOpenMenu}
+                    sx={{
+                        backgroundColor: alpha("#fff", 0.55),
+                        boxShadow: "0 10px 24px rgba(33, 33, 52, 0.2)",
+                        "&:hover": {
+                            backgroundColor: alpha("#fff", 0.8),
+                        },
+                    }}
+                >
+                    <MoreVertIcon fontSize="small" />
+                </IconButton>
             </Box>
 
             <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mt: 1.5 }}>
@@ -361,6 +434,35 @@ const ChallengeCard: React.FC<{
                     />
                 </Box>
             )}
+
+            <Menu
+                anchorEl={menuAnchor}
+                open={Boolean(menuAnchor)}
+                onClose={handleCloseMenu}
+                PaperProps={{
+                    elevation: 0,
+                    sx: {
+                        mt: 1.5,
+                        minWidth: 200,
+                        borderRadius: 3,
+                        overflow: "hidden",
+                        backgroundColor: alpha(colors.white, 0.96),
+                        boxShadow: "0 18px 40px rgba(33, 33, 52, 0.18)",
+                        "& .MuiMenuItem-root": {
+                            gap: 1.5,
+                            fontWeight: 500,
+                            color: alpha("#000", 0.75),
+                        },
+                    },
+                }}
+            >
+                <MenuItem onClick={handleEdit}>
+                    <EditIcon fontSize="small" /> Editar
+                </MenuItem>
+                <MenuItem onClick={handleDelete} sx={{ color: "#e53935" }}>
+                    <DeleteIcon fontSize="small" /> Excluir
+                </MenuItem>
+            </Menu>
         </Paper>
     );
 };
