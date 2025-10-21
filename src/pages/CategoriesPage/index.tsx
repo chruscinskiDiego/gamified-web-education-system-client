@@ -8,7 +8,6 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    Grid,
     IconButton,
     Menu,
     MenuItem,
@@ -35,6 +34,7 @@ import { type Category } from "../../interfaces/course.interfaces";
 type DialogMode = "create" | "edit" | null;
 
 const PAGE_SIZE = 8;
+const GRID_MAX_WIDTH = 1120;
 
 const CategoriesPage: React.FC = () => {
     const [categories, setCategories] = useState<Category[]>([]);
@@ -295,80 +295,95 @@ const CategoriesPage: React.FC = () => {
 
         return (
             <>
-                <Grid container spacing={{ xs: 3, md: 4 }}>
+                <Box
+                    sx={{
+                        width: "100%",
+                        display: "grid",
+                        gap: { xs: 3, md: 4 },
+                        gridTemplateColumns: {
+                            xs: "repeat(1, minmax(0, 1fr))",
+                            sm: "repeat(2, minmax(0, 1fr))",
+                            md: "repeat(3, minmax(0, 1fr))",
+                            lg: "repeat(4, minmax(0, 1fr))",
+                        },
+                        justifyContent: "center",
+                        justifyItems: "center",
+                    }}
+                >
                     {paginatedCategories.map((category) => (
-                        <Grid item xs={12} sm={6} md={3} key={category.id_category ?? category.name}>
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    height: "100%",
-                                    borderRadius: 4,
-                                    p: 3,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    justifyContent: "space-between",
-                                    gap: 2,
-                                    background: "linear-gradient(135deg, rgba(93,112,246,0.08) 0%, rgba(73,160,251,0.12) 100%)",
-                                    boxShadow: "0 18px 40px rgba(71, 103, 214, 0.18)",
-                                    border: `1px solid ${alpha(colors.purple, 0.18)}`,
-                                }}
-                            >
-                                <Stack spacing={2}>
-                                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                                        <Stack spacing={0.5}>
-                                            <Typography variant="subtitle2" sx={{ color: alpha("#000", 0.5) }}>
-                                                #{category.id_category}
-                                            </Typography>
-                                            <Typography
-                                                variant="h6"
-                                                sx={{
-                                                    color: colors.purple,
-                                                    fontWeight: 700,
-                                                    lineHeight: 1.2,
-                                                    wordBreak: "break-word",
-                                                }}
-                                            >
-                                                {category.name}
-                                            </Typography>
-                                            <Chip
-                                                size="small"
-                                                label={category.active ? "Ativa" : "Inativa"}
-                                                sx={{
-                                                    mt: 1,
-                                                    alignSelf: "flex-start",
-                                                    fontWeight: 600,
-                                                    color: category.active ? colors.purple : "#fff",
-                                                    backgroundColor: category.active
-                                                        ? alpha(colors.purple, 0.18)
-                                                        : alpha("#000", 0.38),
-                                                }}
-                                            />
-                                        </Stack>
-
-                                        <IconButton
-                                            aria-label="ações"
-                                            size="small"
-                                            onClick={(event) => handleOpenMenu(event, category)}
+                        <Paper
+                            key={category.id_category ?? category.name}
+                            elevation={0}
+                            sx={{
+                                width: "100%",
+                                maxWidth: { xs: "100%", sm: 320, lg: 280 },
+                                height: "100%",
+                                borderRadius: 4,
+                                p: 3,
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "space-between",
+                                gap: 2,
+                                background: "linear-gradient(135deg, rgba(93,112,246,0.08) 0%, rgba(73,160,251,0.12) 100%)",
+                                boxShadow: "0 18px 40px rgba(71, 103, 214, 0.18)",
+                                border: `1px solid ${alpha(colors.purple, 0.18)}`,
+                            }}
+                        >
+                            <Stack spacing={2}>
+                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                    <Stack spacing={0.5}>
+                                        <Typography variant="subtitle2" sx={{ color: alpha("#000", 0.5) }}>
+                                            #{category.id_category}
+                                        </Typography>
+                                        <Typography
+                                            variant="h6"
                                             sx={{
-                                                backgroundColor: alpha("#fff", 0.55),
-                                                boxShadow: "0 8px 20px rgba(33, 33, 52, 0.18)",
-                                                "&:hover": {
-                                                    backgroundColor: alpha("#fff", 0.85),
-                                                },
+                                                color: colors.purple,
+                                                fontWeight: 700,
+                                                lineHeight: 1.2,
+                                                wordBreak: "break-word",
                                             }}
                                         >
-                                            <MoreVertIcon />
-                                        </IconButton>
-                                    </Box>
+                                            {category.name}
+                                        </Typography>
+                                        <Chip
+                                            size="small"
+                                            label={category.active ? "Ativa" : "Inativa"}
+                                            sx={{
+                                                mt: 1,
+                                                alignSelf: "flex-start",
+                                                fontWeight: 600,
+                                                color: category.active ? colors.purple : "#fff",
+                                                backgroundColor: category.active
+                                                    ? alpha(colors.purple, 0.18)
+                                                    : alpha("#000", 0.38),
+                                            }}
+                                        />
+                                    </Stack>
 
-                                    <Typography sx={{ color: alpha("#000", 0.65), fontSize: 14 }}>
-                                        Utilize as categorias para agrupar cursos e facilitar a navegação dos alunos pela plataforma.
-                                    </Typography>
-                                </Stack>
-                            </Paper>
-                        </Grid>
+                                    <IconButton
+                                        aria-label="ações"
+                                        size="small"
+                                        onClick={(event) => handleOpenMenu(event, category)}
+                                        sx={{
+                                            backgroundColor: alpha("#fff", 0.55),
+                                            boxShadow: "0 8px 20px rgba(33, 33, 52, 0.18)",
+                                            "&:hover": {
+                                                backgroundColor: alpha("#fff", 0.85),
+                                            },
+                                        }}
+                                    >
+                                        <MoreVertIcon />
+                                    </IconButton>
+                                </Box>
+
+                                <Typography sx={{ color: alpha("#000", 0.65), fontSize: 14 }}>
+                                    Utilize as categorias para agrupar cursos e facilitar a navegação dos alunos pela plataforma.
+                                </Typography>
+                            </Stack>
+                        </Paper>
                     ))}
-                </Grid>
+                </Box>
 
                 {totalPages > 1 && (
                     <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
@@ -439,24 +454,32 @@ const CategoriesPage: React.FC = () => {
                             boxShadow: "0 24px 60px rgba(33, 33, 52, 0.14)",
                         }}
                     >
-                        <Stack spacing={{ xs: 3, md: 4 }}>
-                            <SEGTextField
-                                placeholder="Buscar categoria"
-                                value={searchTerm}
-                                onChange={(event) => setSearchTerm(event.target.value)}
-                                startIcon={<SearchIcon sx={{ color: alpha("#000", 0.5) }} />}
-                                InputProps={{ disableUnderline: true }}
-                                sx={{
-                                    width: "100%",
-                                    "& .MuiFilledInput-root": {
-                                        backgroundColor: "#fff",
-                                        boxShadow: "0 12px 30px rgba(33, 33, 52, 0.12)",
-                                    },
-                                }}
-                            />
+                        <Box
+                            sx={{
+                                width: "100%",
+                                maxWidth: GRID_MAX_WIDTH,
+                                mx: "auto",
+                            }}
+                        >
+                            <Stack spacing={{ xs: 3, md: 4 }}>
+                                <SEGTextField
+                                    placeholder="Buscar categoria"
+                                    value={searchTerm}
+                                    onChange={(event) => setSearchTerm(event.target.value)}
+                                    startIcon={<SearchIcon sx={{ color: alpha("#000", 0.5) }} />}
+                                    InputProps={{ disableUnderline: true }}
+                                    sx={{
+                                        width: "100%",
+                                        "& .MuiFilledInput-root": {
+                                            backgroundColor: "#fff",
+                                            boxShadow: "0 12px 30px rgba(33, 33, 52, 0.12)",
+                                        },
+                                    }}
+                                />
 
-                            {renderContent()}
-                        </Stack>
+                                {renderContent()}
+                            </Stack>
+                        </Box>
                     </Paper>
                 </Stack>
             </Container>
