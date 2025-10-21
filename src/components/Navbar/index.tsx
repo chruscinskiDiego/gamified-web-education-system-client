@@ -119,13 +119,22 @@ const Navbar: React.FC = () => {
     ];
 
     const teacherMenu = [
-        { menuId: 1, menuName: "Explorar", menuRoute: "/homepage" },
+        { menuId: 1, menuName: "Cursos", menuRoute: "/homepage" },
         { menuId: 2, menuName: "Ranking", menuRoute: "/ranking" },
         { menuId: 3, menuName: "Meus Cursos", menuRoute: "/my-courses" },
         { menuId: 4, menuName: "Estatísticas", menuRoute: "/statistics" },
     ];
 
-    const renderMenu = userType && userType === "S" ? studentMenu : teacherMenu;
+    const adminMenu = [
+        { menuId: 1, menuName: "Cursos", menuRoute: "/homepage" },
+        { menuId: 2, menuName: "Recursos", menuRoute: "/ranking" },
+        { menuId: 3, menuName: "Insignias", menuRoute: "/my-courses" },
+        { menuId: 4, menuName: "Gamificação", menuRoute: "/gamification-registers" },
+    ];
+
+    const renderMenu = userType && userType === "S" ? studentMenu :
+        userType && userType === "A" ? adminMenu :
+            teacherMenu;
 
     return (
         <AppBar
