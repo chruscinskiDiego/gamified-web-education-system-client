@@ -439,6 +439,10 @@ const CategoriesPage: React.FC = () => {
                                 colorTheme="gradient"
                                 onClick={handleOpenCreateDialog}
                                 fullWidth={false}
+                                sx={{
+                                    mb: 0,
+                                    whiteSpace: "nowrap",
+                                }}
                             >
                                 Nova categoria
                             </SEGButton>
