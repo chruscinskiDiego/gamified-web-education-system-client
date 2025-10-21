@@ -21,6 +21,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import SearchIcon from "@mui/icons-material/Search";
 
 import { api } from "../../lib/axios";
 import SEGButton from "../../components/SEGButton";
@@ -44,6 +45,8 @@ const CategoriesPage: React.FC = () => {
 
     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+
+    const [searchTerm, setSearchTerm] = useState<string>("");
 
     const [dialogMode, setDialogMode] = useState<DialogMode>(null);
     const [formName, setFormName] = useState<string>("");
@@ -72,19 +75,30 @@ const CategoriesPage: React.FC = () => {
         void loadCategories();
     }, [loadCategories]);
 
+    const filteredCategories = useMemo(() => {
+        const term = searchTerm.trim().toLowerCase();
+        if (!term) return categories;
+
+        return categories.filter((category) => category.name.toLowerCase().includes(term));
+    }, [categories, searchTerm]);
+
     useEffect(() => {
-        const maxPage = Math.max(1, Math.ceil(categories.length / PAGE_SIZE) || 1);
+        const maxPage = Math.max(1, Math.ceil(filteredCategories.length / PAGE_SIZE) || 1);
         if (page > maxPage) {
             setPage(maxPage);
         }
-    }, [categories, page]);
+    }, [filteredCategories, page]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [searchTerm]);
 
     const paginatedCategories = useMemo(() => {
         const start = (page - 1) * PAGE_SIZE;
-        return categories.slice(start, start + PAGE_SIZE);
-    }, [categories, page]);
+        return filteredCategories.slice(start, start + PAGE_SIZE);
+    }, [filteredCategories, page]);
 
-    const totalPages = Math.max(1, Math.ceil(categories.length / PAGE_SIZE) || 1);
+    const totalPages = Math.max(1, Math.ceil(filteredCategories.length / PAGE_SIZE) || 1);
 
     const handleOpenMenu = (event: React.MouseEvent<HTMLButtonElement>, category: Category) => {
         setMenuAnchor(event.currentTarget);
@@ -258,6 +272,27 @@ const CategoriesPage: React.FC = () => {
             );
         }
 
+        if (filteredCategories.length === 0) {
+            return (
+                <Box
+                    sx={{
+                        py: 8,
+                        textAlign: "center",
+                        color: alpha("#000", 0.6),
+                    }}
+                >
+                    <Typography variant="h6" sx={{ color: colors.purple, fontWeight: 700, mb: 1 }}>
+                        Nenhuma categoria encontrada
+                    </Typography>
+                    <Typography>
+                        {searchTerm
+                            ? `Não encontramos resultados para "${searchTerm}".`
+                            : "Tente ajustar os filtros ou adicionar uma nova categoria."}
+                    </Typography>
+                </Box>
+            );
+        }
+
         return (
             <>
                 <Grid container spacing={{ xs: 3, md: 4 }}>
@@ -347,8 +382,8 @@ const CategoriesPage: React.FC = () => {
     return (
         <Box
             sx={{
-                background: "linear-gradient(180deg, rgba(93,112,246,0.08) 0%, rgba(73,160,251,0.12) 60%, #fff 100%)",
-                minHeight: "calc(100vh - 64px)",
+                backgroundColor: "#fff",
+                minHeight: "100vh",
                 py: { xs: 6, md: 8 },
             }}
         >
@@ -376,14 +411,38 @@ const CategoriesPage: React.FC = () => {
                             </Typography>
                         </Stack>
 
-                        <SEGButton
-                            startIcon={<AddIcon />}
-                            colorTheme="gradient"
-                            onClick={handleOpenCreateDialog}
-                            fullWidth={false}
+                        <Stack
+                            direction={{ xs: "column", md: "row" }}
+                            spacing={2}
+                            sx={{ width: { xs: "100%", md: "auto" } }}
+                            alignItems={{ xs: "stretch", md: "center" }}
+                            justifyContent="flex-end"
                         >
-                            Nova categoria
-                        </SEGButton>
+                            <SEGTextField
+                                placeholder="Buscar categoria"
+                                value={searchTerm}
+                                onChange={(event) => setSearchTerm(event.target.value)}
+                                startIcon={<SearchIcon sx={{ color: alpha("#000", 0.5) }} />}
+                                InputProps={{ disableUnderline: true }}
+                                sx={{
+                                    mb: 0,
+                                    width: { xs: "100%", md: 320 },
+                                    "& .MuiFilledInput-root": {
+                                        backgroundColor: "#fff",
+                                        boxShadow: "0 12px 30px rgba(33, 33, 52, 0.12)",
+                                    },
+                                }}
+                            />
+
+                            <SEGButton
+                                startIcon={<AddIcon />}
+                                colorTheme="gradient"
+                                onClick={handleOpenCreateDialog}
+                                fullWidth={false}
+                            >
+                                Nova categoria
+                            </SEGButton>
+                        </Stack>
                     </Stack>
 
                     <Paper
@@ -391,7 +450,7 @@ const CategoriesPage: React.FC = () => {
                         sx={{
                             borderRadius: 4,
                             p: { xs: 3, md: 4 },
-                            backgroundColor: alpha("#fff", 0.94),
+                            backgroundColor: "#fff",
                             boxShadow: "0 24px 60px rgba(33, 33, 52, 0.14)",
                         }}
                     >
