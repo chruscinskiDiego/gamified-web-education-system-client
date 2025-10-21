@@ -256,14 +256,18 @@ const ChallengeCard: React.FC<{
                 background: "linear-gradient(135deg, rgba(93,112,246,0.08) 0%, rgba(73,160,251,0.18) 100%)",
                 border: `1px solid ${alpha(colors.purple, 0.18)}`,
                 boxShadow: "0 16px 40px rgba(93,112,246,0.18)",
+                overflow: "hidden",
             }}
         >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 2 }}>
-                <Box>
+                <Box sx={{ minWidth: 0 }}>
                     <Typography variant="subtitle2" sx={{ color: colors.strongGray, letterSpacing: 0.6, textTransform: "uppercase" }}>
                         Desafio
                     </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mt: 0.5 }}>
+                    <Typography
+                        variant="h6"
+                        sx={{ fontWeight: 700, mt: 0.5, wordBreak: "break-word", overflowWrap: "anywhere" }}
+                    >
                         {challenge.title}
                     </Typography>
                 </Box>
@@ -310,7 +314,8 @@ const ChallengeCard: React.FC<{
                         borderRadius: 3,
                         p: 2,
                         display: "flex",
-                        alignItems: "center",
+                        alignItems: { xs: "flex-start", sm: "center" },
+                        flexWrap: "wrap",
                         gap: 2,
                         background: insigniaTheme.background,
                         border: insigniaTheme.border,
@@ -331,11 +336,14 @@ const ChallengeCard: React.FC<{
                     >
                         {rarityIcons[challenge.insignia.rarity]}
                     </Box>
-                    <Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 700, color: insigniaTheme.text }}>
                             {challenge.insignia.name}
                         </Typography>
-                        <Typography variant="body2" sx={{ opacity: 0.8, color: insigniaTheme.text }}>
+                        <Typography
+                            variant="body2"
+                            sx={{ opacity: 0.8, color: insigniaTheme.text, wordBreak: "break-word", overflowWrap: "anywhere" }}
+                        >
                             {challenge.insignia.description}
                         </Typography>
                     </Box>
@@ -343,7 +351,7 @@ const ChallengeCard: React.FC<{
                         label={rarityLabels[challenge.insignia.rarity]}
                         size="small"
                         sx={{
-                            marginLeft: "auto",
+                            marginLeft: { xs: 0, sm: "auto" },
                             fontWeight: 600,
                             backgroundColor: insigniaTheme.chip,
                             color: insigniaTheme.text,
@@ -1018,23 +1026,26 @@ const GamificationRegisters: React.FC = () => {
                             <Box
                                 sx={{
                                     display: "flex",
-                                    flexDirection: { xs: "column", md: "row" },
-                                    alignItems: { md: "center" },
-                                    justifyContent: "space-between",
-                                    gap: 2,
+                                    flexDirection: "column",
+                                    alignItems: "stretch",
+                                    gap: 1.5,
                                     mb: 3,
                                 }}
                             >
+                                <SEGButton
+                                    startIcon={<AddIcon />}
+                                    onClick={handleOpenCreateInsignia}
+                                    sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
+                                >
+                                    Nova Insígnia
+                                </SEGButton>
                                 <SEGTextField
                                     placeholder="Pesquisar insígnias"
                                     value={insigniaSearch}
                                     onChange={(event) => setInsigniaSearch(event.target.value)}
                                     startIcon={<SearchIcon />}
-                                    sx={{ mb: { xs: 0, md: 0 }, width: { xs: "100%", md: 320 } }}
+                                    sx={{ width: "100%" }}
                                 />
-                                <SEGButton startIcon={<AddIcon />} onClick={handleOpenCreateInsignia}>
-                                    Nova Insígnia
-                                </SEGButton>
                             </Box>
                             {loadingInsignias ? (
                                 <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
@@ -1089,28 +1100,28 @@ const GamificationRegisters: React.FC = () => {
                             <Box
                                 sx={{
                                     display: "flex",
-                                    flexDirection: { xs: "column", md: "row" },
-                                    alignItems: { md: "center" },
-                                    justifyContent: "space-between",
-                                    gap: 2,
+                                    flexDirection: "column",
+                                    alignItems: "stretch",
+                                    gap: 1.5,
                                     mb: 3,
                                 }}
                             >
-                                <SEGTextField
-                                    placeholder="Pesquisar desafios"
-                                    value={challengeSearch}
-                                    onChange={(event) => setChallengeSearch(event.target.value)}
-                                    startIcon={<SearchIcon />}
-                                    sx={{ mb: { xs: 0, md: 0 }, width: { xs: "100%", md: 320 } }}
-                                />
                                 <SEGButton
                                     startIcon={<AddIcon />}
                                     onClick={handleOpenCreateChallenge}
                                     disabled={insignias.length === 0}
                                     colorTheme={insignias.length === 0 ? "outlined" : "gradient"}
+                                    sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
                                 >
                                     Novo Desafio
                                 </SEGButton>
+                                <SEGTextField
+                                    placeholder="Pesquisar desafios"
+                                    value={challengeSearch}
+                                    onChange={(event) => setChallengeSearch(event.target.value)}
+                                    startIcon={<SearchIcon />}
+                                    sx={{ width: "100%" }}
+                                />
                             </Box>
                             {insignias.length === 0 && !loadingInsignias && (
                                 <Typography variant="body2" sx={{ color: colors.strongGray, mb: 3 }}>
