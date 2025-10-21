@@ -15,6 +15,7 @@ import ModuleManagementPage from "../pages/ModuleManagementPage";
 import CoursesResume from "../pages/CourseResume";
 import CourseDataAndProgressPage from "../pages/CourseDataAndProgressPage";
 import GamificationRegisters from "../pages/GamificationRegisters";
+import CategoriesPage from "../pages/CategoriesPage";
 
 export const Router: React.FC = () => {
 
@@ -56,7 +57,8 @@ export const Router: React.FC = () => {
 
                         {/* ADMIN */}
 
-                        <Route path="/gamification-registers" element={<GamificationRegisters/>}/>
+                        <Route path="/manage/gamification-registers" element={<GamificationRegisters/>}/>
+                        <Route path="/manage/categories" element={<CategoriesPage/>}/>
 
                     </Route>
                 </>

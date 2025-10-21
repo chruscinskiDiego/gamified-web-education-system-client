@@ -128,8 +128,8 @@ const Navbar: React.FC = () => {
     const adminMenu = [
         { menuId: 1, menuName: "Cursos", menuRoute: "/homepage" },
         { menuId: 2, menuName: "Recursos", menuRoute: "/ranking" },
-        { menuId: 3, menuName: "Insignias", menuRoute: "/my-courses" },
-        { menuId: 4, menuName: "Gamificação", menuRoute: "/gamification-registers" },
+        { menuId: 3, menuName: "Categorias", menuRoute: "/manage/categories" },
+        { menuId: 4, menuName: "Gamificação", menuRoute: "/manage/gamification-registers" },
     ];
 
     const renderMenu = userType && userType === "S" ? studentMenu :
