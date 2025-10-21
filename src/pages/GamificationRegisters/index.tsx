@@ -36,11 +36,13 @@ import SEGPrincipalNotificator from "../../components/Notifications/SEGPrincipal
 import { colors } from "../../theme/colors";
 import { api } from "../../lib/axios";
 
-export enum InsigniaRarity {
-    COMMON = "COMMON",
-    RARE = "RARE",
-    LEGENDARY = "LEGENDARY",
-}
+export const InsigniaRarity = {
+    COMMON: "COMMON",
+    RARE: "RARE",
+    LEGENDARY: "LEGENDARY",
+} as const;
+
+export type InsigniaRarity = typeof InsigniaRarity[keyof typeof InsigniaRarity];
 
 interface Insignia {
     id_insignia: number;
