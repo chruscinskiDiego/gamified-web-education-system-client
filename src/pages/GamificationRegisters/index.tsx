@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     alpha,
     Box,
@@ -18,6 +18,7 @@ import {
     Switch,
     Tab,
     Tabs,
+    Pagination,
     Tooltip,
     Typography,
 } from "@mui/material";
@@ -28,6 +29,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
+import SearchIcon from "@mui/icons-material/Search";
 import SEGTextField from "../../components/SEGTextField";
 import SEGButton from "../../components/SEGButton";
 import SEGPrincipalNotificator from "../../components/Notifications/SEGPrincipalNotificator";
@@ -148,6 +150,9 @@ type DeleteTarget =
     | { type: "insignia"; id: number; label: string }
     | { type: "challenge"; id: number; label: string };
 
+const INSIGNIA_PAGE_SIZE = 6;
+const CHALLENGE_PAGE_SIZE = 6;
+
 const InsigniaCard: React.FC<{
     insignia: Insignia;
     onEdit: (insignia: Insignia) => void;
@@ -163,6 +168,9 @@ const InsigniaCard: React.FC<{
                 borderRadius: 4,
                 p: 3,
                 height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
                 background: theme.background,
                 boxShadow: theme.shadow,
                 border: theme.border,
@@ -218,7 +226,10 @@ const InsigniaCard: React.FC<{
                     </Tooltip>
                 </Box>
             </Box>
-            <Typography variant="body2" sx={{ opacity: 0.9, lineHeight: 1.6 }}>
+            <Typography
+                variant="body2"
+                sx={{ opacity: 0.9, lineHeight: 1.6, wordBreak: "break-word", overflowWrap: "anywhere" }}
+            >
                 {insignia.description}
             </Typography>
         </Paper>
@@ -240,6 +251,8 @@ const ChallengeCard: React.FC<{
                 borderRadius: 4,
                 p: 3,
                 height: "100%",
+                display: "flex",
+                flexDirection: "column",
                 background: "linear-gradient(135deg, rgba(93,112,246,0.08) 0%, rgba(73,160,251,0.18) 100%)",
                 border: `1px solid ${alpha(colors.purple, 0.18)}`,
                 boxShadow: "0 16px 40px rgba(93,112,246,0.18)",
@@ -282,14 +295,18 @@ const ChallengeCard: React.FC<{
                 />
             </Box>
 
-            <Typography variant="body2" sx={{ color: alpha("#1f2937", 0.82), mt: 2, lineHeight: 1.6 }}>
+            <Typography
+                variant="body2"
+                sx={{ color: alpha("#1f2937", 0.82), mt: 2, lineHeight: 1.6, wordBreak: "break-word", overflowWrap: "anywhere" }}
+            >
                 {challenge.description}
             </Typography>
 
             {challenge.insignia && (
                 <Box
                     sx={{
-                        mt: 3,
+                        mt: "auto",
+                        pt: 3,
                         borderRadius: 3,
                         p: 2,
                         display: "flex",
@@ -647,6 +664,12 @@ const GamificationRegisters: React.FC = () => {
     const [challenges, setChallenges] = useState<Challenge[]>([]);
     const [loadingChallenges, setLoadingChallenges] = useState<boolean>(false);
 
+    const [insigniaSearch, setInsigniaSearch] = useState<string>("");
+    const [challengeSearch, setChallengeSearch] = useState<string>("");
+
+    const [insigniaPage, setInsigniaPage] = useState<number>(1);
+    const [challengePage, setChallengePage] = useState<number>(1);
+
     const [insigniaDialog, setInsigniaDialog] = useState<{
         open: boolean;
         mode: "create" | "edit";
@@ -696,6 +719,77 @@ const GamificationRegisters: React.FC = () => {
         fetchInsignias();
         fetchChallenges();
     }, []);
+
+    useEffect(() => {
+        setInsigniaPage(1);
+    }, [insigniaSearch]);
+
+    useEffect(() => {
+        setChallengePage(1);
+    }, [challengeSearch]);
+
+    const filteredInsignias = useMemo(() => {
+        const term = insigniaSearch.trim().toLowerCase();
+        if (!term) return insignias;
+        return insignias.filter((insignia) => {
+            const rarityLabel = rarityLabels[insignia.rarity]?.toLowerCase() ?? "";
+            return (
+                insignia.name.toLowerCase().includes(term) ||
+                insignia.description.toLowerCase().includes(term) ||
+                rarityLabel.includes(term)
+            );
+        });
+    }, [insignias, insigniaSearch]);
+
+    const filteredChallenges = useMemo(() => {
+        const term = challengeSearch.trim().toLowerCase();
+        if (!term) return challenges;
+        return challenges.filter((challenge) => {
+            const typeLabel = challenge.type === "D" ? "diário" : "por pontos";
+            const insigniaName = challenge.insignia?.name?.toLowerCase() ?? "";
+            const insigniaRarity = challenge.insignia ? rarityLabels[challenge.insignia.rarity]?.toLowerCase() ?? "" : "";
+            return (
+                challenge.title.toLowerCase().includes(term) ||
+                challenge.description.toLowerCase().includes(term) ||
+                typeLabel.includes(term) ||
+                String(challenge.quantity).includes(term) ||
+                insigniaName.includes(term) ||
+                insigniaRarity.includes(term)
+            );
+        });
+    }, [challenges, challengeSearch]);
+
+    const insigniaPageCount = useMemo(
+        () => Math.max(1, Math.ceil(filteredInsignias.length / INSIGNIA_PAGE_SIZE)),
+        [filteredInsignias.length],
+    );
+
+    const challengePageCount = useMemo(
+        () => Math.max(1, Math.ceil(filteredChallenges.length / CHALLENGE_PAGE_SIZE)),
+        [filteredChallenges.length],
+    );
+
+    useEffect(() => {
+        if (insigniaPage > insigniaPageCount) {
+            setInsigniaPage(insigniaPageCount);
+        }
+    }, [insigniaPage, insigniaPageCount]);
+
+    useEffect(() => {
+        if (challengePage > challengePageCount) {
+            setChallengePage(challengePageCount);
+        }
+    }, [challengePage, challengePageCount]);
+
+    const paginatedInsignias = useMemo(() => {
+        const start = (insigniaPage - 1) * INSIGNIA_PAGE_SIZE;
+        return filteredInsignias.slice(start, start + INSIGNIA_PAGE_SIZE);
+    }, [filteredInsignias, insigniaPage]);
+
+    const paginatedChallenges = useMemo(() => {
+        const start = (challengePage - 1) * CHALLENGE_PAGE_SIZE;
+        return filteredChallenges.slice(start, start + CHALLENGE_PAGE_SIZE);
+    }, [filteredChallenges, challengePage]);
 
     const handleOpenCreateInsignia = () => {
         setInsigniaDialog({ open: true, mode: "create" });
@@ -850,11 +944,31 @@ const GamificationRegisters: React.FC = () => {
         </Paper>
     );
 
+    const renderFilteredEmptyState = (title: string, description: string) => (
+        <Paper
+            elevation={0}
+            sx={{
+                borderRadius: 4,
+                p: 5,
+                textAlign: "center",
+                background: alpha(colors.strongGray, 0.04),
+                border: `1px dashed ${alpha(colors.strongGray, 0.2)}`,
+            }}
+        >
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                {title}
+            </Typography>
+            <Typography variant="body2" sx={{ color: colors.strongGray, maxWidth: 420, mx: "auto" }}>
+                {description}
+            </Typography>
+        </Paper>
+    );
+
     return (
         <Box
             sx={{
                 minHeight: "100vh",
-                background: "linear-gradient(135deg, rgba(93,112,246,0.12) 0%, rgba(73,160,251,0.08) 50%, rgba(255,255,255,0.85) 100%)",
+                backgroundColor: colors.white,
                 py: { xs: 4, md: 8 },
                 px: { xs: 2, md: 6 },
             }}
@@ -901,7 +1015,23 @@ const GamificationRegisters: React.FC = () => {
 
                     {tabIndex === 0 && (
                         <Box>
-                            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 3 }}>
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    flexDirection: { xs: "column", md: "row" },
+                                    alignItems: { md: "center" },
+                                    justifyContent: "space-between",
+                                    gap: 2,
+                                    mb: 3,
+                                }}
+                            >
+                                <SEGTextField
+                                    placeholder="Pesquisar insígnias"
+                                    value={insigniaSearch}
+                                    onChange={(event) => setInsigniaSearch(event.target.value)}
+                                    startIcon={<SearchIcon />}
+                                    sx={{ mb: { xs: 0, md: 0 }, width: { xs: "100%", md: 320 } }}
+                                />
                                 <SEGButton startIcon={<AddIcon />} onClick={handleOpenCreateInsignia}>
                                     Nova Insígnia
                                 </SEGButton>
@@ -910,33 +1040,69 @@ const GamificationRegisters: React.FC = () => {
                                 <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
                                     <CircularProgress />
                                 </Box>
-                            ) : insignias.length === 0 ? (
-                                renderInsigniaEmptyState()
+                            ) : filteredInsignias.length === 0 ? (
+                                insignias.length === 0 && !insigniaSearch ? (
+                                    renderInsigniaEmptyState()
+                                ) : (
+                                    renderFilteredEmptyState(
+                                        "Nenhuma insígnia encontrada",
+                                        "Refine sua busca ou cadastre uma nova insígnia para visualizar aqui.",
+                                    )
+                                )
                             ) : (
-                                <Grid container spacing={3}>
-                                    {insignias.map((insignia) => (
-                                        <Grid item xs={12} md={6} lg={4} key={insignia.id_insignia}>
-                                            <InsigniaCard
-                                                insignia={insignia}
-                                                onEdit={handleOpenEditInsignia}
-                                                onDelete={(current) =>
-                                                    handleOpenDelete({
-                                                        type: "insignia",
-                                                        id: current.id_insignia,
-                                                        label: current.name,
-                                                    })
-                                                }
+                                <>
+                                    <Grid container spacing={3}>
+                                        {paginatedInsignias.map((insignia) => (
+                                            <Grid item xs={12} md={6} lg={4} key={insignia.id_insignia}>
+                                                <InsigniaCard
+                                                    insignia={insignia}
+                                                    onEdit={handleOpenEditInsignia}
+                                                    onDelete={(current) =>
+                                                        handleOpenDelete({
+                                                            type: "insignia",
+                                                            id: current.id_insignia,
+                                                            label: current.name,
+                                                        })
+                                                    }
+                                                />
+                                            </Grid>
+                                        ))}
+                                    </Grid>
+                                    {insigniaPageCount > 1 && (
+                                        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+                                            <Pagination
+                                                count={insigniaPageCount}
+                                                page={insigniaPage}
+                                                onChange={(_, value) => setInsigniaPage(value)}
+                                                color="primary"
+                                                shape="rounded"
                                             />
-                                        </Grid>
-                                    ))}
-                                </Grid>
+                                        </Box>
+                                    )}
+                                </>
                             )}
                         </Box>
                     )}
 
                     {tabIndex === 1 && (
                         <Box>
-                            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 3 }}>
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    flexDirection: { xs: "column", md: "row" },
+                                    alignItems: { md: "center" },
+                                    justifyContent: "space-between",
+                                    gap: 2,
+                                    mb: 3,
+                                }}
+                            >
+                                <SEGTextField
+                                    placeholder="Pesquisar desafios"
+                                    value={challengeSearch}
+                                    onChange={(event) => setChallengeSearch(event.target.value)}
+                                    startIcon={<SearchIcon />}
+                                    sx={{ mb: { xs: 0, md: 0 }, width: { xs: "100%", md: 320 } }}
+                                />
                                 <SEGButton
                                     startIcon={<AddIcon />}
                                     onClick={handleOpenCreateChallenge}
@@ -955,26 +1121,46 @@ const GamificationRegisters: React.FC = () => {
                                 <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
                                     <CircularProgress />
                                 </Box>
-                            ) : challenges.length === 0 ? (
-                                renderChallengeEmptyState()
+                            ) : filteredChallenges.length === 0 ? (
+                                challenges.length === 0 && !challengeSearch ? (
+                                    renderChallengeEmptyState()
+                                ) : (
+                                    renderFilteredEmptyState(
+                                        "Nenhum desafio encontrado",
+                                        "Altere os termos de pesquisa ou cadastre um novo desafio para visualizar aqui.",
+                                    )
+                                )
                             ) : (
-                                <Grid container spacing={3}>
-                                    {challenges.map((challenge) => (
-                                        <Grid item xs={12} md={6} key={challenge.id_challenge}>
-                                            <ChallengeCard
-                                                challenge={challenge}
-                                                onEdit={handleOpenEditChallenge}
-                                                onDelete={(current) =>
-                                                    handleOpenDelete({
-                                                        type: "challenge",
-                                                        id: current.id_challenge,
-                                                        label: current.title,
-                                                    })
-                                                }
+                                <>
+                                    <Grid container spacing={3}>
+                                        {paginatedChallenges.map((challenge) => (
+                                            <Grid item xs={12} md={6} key={challenge.id_challenge}>
+                                                <ChallengeCard
+                                                    challenge={challenge}
+                                                    onEdit={handleOpenEditChallenge}
+                                                    onDelete={(current) =>
+                                                        handleOpenDelete({
+                                                            type: "challenge",
+                                                            id: current.id_challenge,
+                                                            label: current.title,
+                                                        })
+                                                    }
+                                                />
+                                            </Grid>
+                                        ))}
+                                    </Grid>
+                                    {challengePageCount > 1 && (
+                                        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+                                            <Pagination
+                                                count={challengePageCount}
+                                                page={challengePage}
+                                                onChange={(_, value) => setChallengePage(value)}
+                                                color="primary"
+                                                shape="rounded"
                                             />
-                                        </Grid>
-                                    ))}
-                                </Grid>
+                                        </Box>
+                                    )}
+                                </>
                             )}
                         </Box>
                     )}
