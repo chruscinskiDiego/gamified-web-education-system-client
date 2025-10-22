@@ -546,6 +546,7 @@ const InsigniaFormDialog: React.FC<{
                     onChange={(event) => setValues((prev) => ({ ...prev, name: event.target.value }))}
                     error={Boolean(errors.name)}
                     helperText={errors.name}
+                    InputProps={{ disableUnderline: true }}
                 />
                 <SEGTextField
                     label="Descrição"
@@ -555,6 +556,7 @@ const InsigniaFormDialog: React.FC<{
                     onChange={(event) => setValues((prev) => ({ ...prev, description: event.target.value }))}
                     error={Boolean(errors.description)}
                     helperText={errors.description}
+                    InputProps={{ disableUnderline: true }}
                 />
                 <SEGTextField
                     select
@@ -565,6 +567,7 @@ const InsigniaFormDialog: React.FC<{
                     }
                     error={Boolean(errors.rarity)}
                     helperText={errors.rarity}
+                    InputProps={{ disableUnderline: true }}
                 >
                     {Object.values(InsigniaRarity).map((rarity) => (
                         <MenuItem key={rarity} value={rarity}>
@@ -687,6 +690,7 @@ const ChallengeFormDialog: React.FC<{
                             onChange={(event) => setValues((prev) => ({ ...prev, title: event.target.value }))}
                             error={Boolean(errors.title)}
                             helperText={errors.title}
+                            InputProps={{ disableUnderline: true }}
                         />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -699,6 +703,7 @@ const ChallengeFormDialog: React.FC<{
                             }
                             error={Boolean(errors.type)}
                             helperText={errors.type}
+                            InputProps={{ disableUnderline: true }}
                         >
                             <MenuItem value="D">Diário</MenuItem>
                             <MenuItem value="X">Por Pontos</MenuItem>
@@ -713,6 +718,7 @@ const ChallengeFormDialog: React.FC<{
                             onChange={(event) => setValues((prev) => ({ ...prev, description: event.target.value }))}
                             error={Boolean(errors.description)}
                             helperText={errors.description}
+                            InputProps={{ disableUnderline: true }}
                         />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -725,6 +731,7 @@ const ChallengeFormDialog: React.FC<{
                             }
                             error={Boolean(errors.quantity)}
                             helperText={errors.quantity}
+                            InputProps={{ disableUnderline: true }}
                         />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -737,6 +744,7 @@ const ChallengeFormDialog: React.FC<{
                             }
                             error={Boolean(errors.id_insignia)}
                             helperText={errors.id_insignia}
+                            InputProps={{ disableUnderline: true }}
                         >
                             {insignias.map((insignia) => (
                                 <MenuItem key={insignia.id_insignia} value={insignia.id_insignia}>
@@ -924,17 +932,60 @@ const GamificationRegisters: React.FC = () => {
     };
 
     const handleSubmitInsignia = async (values: InsigniaFormValues) => {
+
         try {
+
             setSavingInsignia(true);
+
             if (insigniaDialog.mode === "create") {
-                await api.post("/insignia/create", values);
-                SEGPrincipalNotificator("Insígnia criada com sucesso!", "success", "Sucesso!");
+
+                const response = await api.post("/insignia/create", values);
+
+                if (response.status === 201) {
+
+
+                    setInsignias(prev => [
+                        ...prev,
+                        {
+                            id_insignia: response?.data?.created_insignia_id,
+                            name: values.name,
+                            description: values.description,
+                            rarity: values.rarity
+                        }
+                    ]);
+
+                    SEGPrincipalNotificator("Insígnia criada com sucesso!", "success", "Sucesso!");
+                }
+
+
             } else if (insigniaDialog.data) {
-                await api.patch(`/insignia/update/${insigniaDialog.data.id_insignia}`, values);
-                SEGPrincipalNotificator("Insígnia atualizada com sucesso!", "success", "Sucesso!");
+
+
+                const response = await api.patch(`/insignia/update/${insigniaDialog.data.id_insignia}`, values);
+
+                if (response.status === 200) {
+
+                    SEGPrincipalNotificator("Insígnia atualizada com sucesso!", "success", "Sucesso!");
+
+                    if (insigniaDialog.data) {
+                        setInsignias(prev =>
+                            prev.map(ins =>
+                                ins.id_insignia === insigniaDialog.data!.id_insignia
+                                    ? {
+                                        ...ins,
+                                        name: values.name,
+                                        description: values.description,
+                                        rarity: values.rarity,
+                                    }
+                                    : ins
+                            )
+                        );
+                    }
+
+                }
             }
-            await fetchInsignias();
-            await fetchChallenges();
+            //await fetchInsignias();
+            //await fetchChallenges();
             handleCloseInsigniaDialog();
         } catch (error) {
             console.error(error);
@@ -957,9 +1008,13 @@ const GamificationRegisters: React.FC = () => {
     };
 
     const handleSubmitChallenge = async (values: ChallengeFormValues) => {
+
         try {
+
             setSavingChallenge(true);
+
             if (challengeDialog.mode === "create") {
+
                 const payload = {
                     title: values.title,
                     description: values.description,
@@ -967,9 +1022,27 @@ const GamificationRegisters: React.FC = () => {
                     quantity: values.quantity,
                     id_insignia: values.id_insignia,
                 };
-                await api.post("/challenge/create", payload);
-                SEGPrincipalNotificator("Desafio criado com sucesso!", "success", "Sucesso!");
+
+                const response = await api.post("/challenge/create", payload);
+
+                if (response.status === 201) {
+
+                    setChallenges(prev => [
+                        ...prev,
+                        {
+                            id_challenge: response.data.created_challenge_id,
+                            ...payload,
+                            active: false,
+                            insignia: insignias.find(ins => ins.id_insignia === payload.id_insignia)!,
+                        }
+                    ])
+                    SEGPrincipalNotificator("Desafio criado com sucesso!", "success", "Sucesso!");
+
+                }
+
+
             } else if (challengeDialog.data) {
+
                 const payload = {
                     title: values.title,
                     description: values.description,
@@ -978,10 +1051,33 @@ const GamificationRegisters: React.FC = () => {
                     id_insignia: values.id_insignia,
                     active: values.active,
                 };
-                await api.patch(`/challenge/update/${challengeDialog.data.id_challenge}`, payload);
-                SEGPrincipalNotificator("Desafio atualizado com sucesso!", "success", "Sucesso!");
+
+                const response = await api.patch(`/challenge/update/${challengeDialog.data.id_challenge}`, payload);
+
+                if (response.status === 200) {
+
+
+                    setChallenges(prev =>
+                        prev.map(cha => (cha.id_challenge === challengeDialog.data?.id_challenge ?
+                            {
+                                ...cha,
+                                title: values.title,
+                                description: values.description,
+                                type: values.type,
+                                quantity: values.quantity,
+                                insignia: insignias.find(ins => ins.id_insignia === payload.id_insignia)!,
+                                active: values.active
+                            }
+                            : cha))
+                    );
+
+
+                    SEGPrincipalNotificator("Desafio atualizado com sucesso!", "success", "Sucesso!");
+
+                }
+
             }
-            await fetchChallenges();
+            //await fetchChallenges();
             handleCloseChallengeDialog();
         } catch (error) {
             console.error(error);
@@ -1000,14 +1096,30 @@ const GamificationRegisters: React.FC = () => {
         try {
             setDeleting(true);
             if (deleteTarget.type === "insignia") {
-                await api.delete(`/insignia/delete/${deleteTarget.id}`);
-                SEGPrincipalNotificator("Insígnia removida com sucesso!", "success", "Sucesso!");
-                await fetchInsignias();
-                await fetchChallenges();
+
+                const response = await api.delete(`/insignia/delete/${deleteTarget.id}`);
+
+                if (response.status === 200) {
+
+                    setInsignias(prev => prev.filter(ins => ins.id_insignia !== deleteTarget.id));
+
+                    SEGPrincipalNotificator("Insígnia removida com sucesso!", "success", "Sucesso!");
+
+                }
+
+                //await fetchInsignias();
+                //await fetchChallenges();
             } else {
-                await api.delete(`/challenge/delete/${deleteTarget.id}`);
-                SEGPrincipalNotificator("Desafio removido com sucesso!", "success", "Sucesso!");
-                await fetchChallenges();
+
+                const response = await api.delete(`/challenge/delete/${deleteTarget.id}`);
+
+                if(response.status === 200){
+
+                    setChallenges( prev => prev.filter(cha => cha.id_challenge !== deleteTarget.id));
+
+                    SEGPrincipalNotificator("Desafio removido com sucesso!", "success", "Sucesso!");
+                }
+                //await fetchChallenges();
             }
             setDeleteTarget(null);
         } catch (error) {
@@ -1155,8 +1267,9 @@ const GamificationRegisters: React.FC = () => {
                                     placeholder="Pesquisar insígnias"
                                     value={insigniaSearch}
                                     onChange={(event) => setInsigniaSearch(event.target.value)}
-                                    startIcon={<SearchIcon />}
+                                    startIcon={<SearchIcon sx={{ mb: 2 }} />}
                                     sx={{ width: "100%" }}
+                                    InputProps={{ disableUnderline: true }}
                                 />
                             </Box>
                             {loadingInsignias ? (
@@ -1231,8 +1344,9 @@ const GamificationRegisters: React.FC = () => {
                                     placeholder="Pesquisar desafios"
                                     value={challengeSearch}
                                     onChange={(event) => setChallengeSearch(event.target.value)}
-                                    startIcon={<SearchIcon />}
+                                    startIcon={<SearchIcon sx={{ mb: 2}}/>}
                                     sx={{ width: "100%" }}
+                                    InputProps={{ disableUnderline: true }}
                                 />
                             </Box>
                             {insignias.length === 0 && !loadingInsignias && (
