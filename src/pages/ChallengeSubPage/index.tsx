@@ -281,7 +281,10 @@ const ChallengeSubPage: React.FC = () => {
                         </Stack>
                     </Stack>
 
-                    <Typography variant="body1" sx={{ color: alpha("#000", 0.72), lineHeight: 1.6 }}>
+                    <Typography
+                        variant="body1"
+                        sx={{ color: alpha("#000", 0.72), lineHeight: 1.6, overflowWrap: "anywhere" }}
+                    >
                         {data.challenge.insignia.description}
                     </Typography>
 
@@ -300,6 +303,8 @@ const ChallengeSubPage: React.FC = () => {
             </Paper>
         );
     };
+
+    const isSubscribed = Boolean(data?.challenge.user_sub);
 
     const canSubscribe = Boolean(data && !data.challenge.user_sub && data.challenge.active);
     const canAbandon = Boolean(data && data.challenge.user_sub);
@@ -494,8 +499,13 @@ const ChallengeSubPage: React.FC = () => {
                                                     label="Cursos disponíveis"
                                                     value={selectedCourse}
                                                     onChange={(event) => setSelectedCourse(event.target.value as string)}
-                                                    helperText="Selecione o curso que você utilizará para cumprir as missões."
+                                                    helperText={
+                                                        isSubscribed
+                                                            ? "Curso selecionado para este desafio."
+                                                            : "Selecione o curso que você utilizará para cumprir as missões."
+                                                    }
                                                     InputLabelProps={{ shrink: true }}
+                                                    disabled={isSubscribed}
                                                 >
                                                     {data.challenge_courses.map((course) => (
                                                         <MenuItem key={course.id_course} value={course.id_course}>
