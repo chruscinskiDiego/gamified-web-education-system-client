@@ -17,7 +17,6 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import SearchIcon from "@mui/icons-material/Search";
@@ -52,8 +51,6 @@ const CategoriesPage: React.FC = () => {
     const [formName, setFormName] = useState<string>("");
     const [savingCategory, setSavingCategory] = useState<boolean>(false);
 
-    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState<boolean>(false);
-    const [deletingCategory, setDeletingCategory] = useState<boolean>(false);
     const [togglingCategory, setTogglingCategory] = useState<boolean>(false);
 
     const loadCategories = useCallback(async () => {
@@ -72,7 +69,7 @@ const CategoriesPage: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        void loadCategories();
+        loadCategories();
     }, [loadCategories]);
 
     const filteredCategories = useMemo(() => {
@@ -127,16 +124,9 @@ const CategoriesPage: React.FC = () => {
         setFormName("");
     };
 
-    const handleOpenDeleteDialog = () => {
-        setConfirmDeleteOpen(true);
-        handleCloseMenu();
-    };
-
-    const handleCloseDeleteDialog = () => {
-        setConfirmDeleteOpen(false);
-    };
 
     const handleSubmitCategory = async () => {
+
         const trimmedName = formName.trim();
 
         if (!trimmedName) {
@@ -148,17 +138,41 @@ const CategoriesPage: React.FC = () => {
 
         try {
             if (dialogMode === "create") {
-                await api.post("/category/create", { name: trimmedName });
-                SEGPrincipalNotificator("Categoria criada com sucesso!", "success", "Sucesso");
+
+                const response = await api.post("/category/create", { name: trimmedName });
+
+                if (response.status === 201) {
+
+                    SEGPrincipalNotificator("Categoria criada com sucesso!", "success", "Sucesso");
+
+                    setCategories(prev => [
+                        ...prev,
+                        {
+                            id_category: response.data.created_category_id,
+                            name: trimmedName,
+                            active: true,
+                        }
+                    ])
+
+                }
+
             } else if (dialogMode === "edit" && selectedCategory?.id_category) {
-                await api.patch(`/category/update/${selectedCategory.id_category}`, {
+
+                const response = await api.patch(`/category/update/${selectedCategory.id_category}`, {
                     name: trimmedName,
-                    active: selectedCategory.active,
                 });
+
+                if (response.status === 200) {
+
+                    setCategories(prev =>
+                        prev.map(cat => (cat.id_category === selectedCategory?.id_category ? { ...cat, name: trimmedName, active: selectedCategory.active } : cat))
+                    )
+                }
+
                 SEGPrincipalNotificator("Categoria atualizada com sucesso!", "success", "Sucesso");
             }
 
-            await loadCategories();
+            //await loadCategories();
             setPage(1);
             handleDialogClose();
         } catch (err) {
@@ -170,21 +184,32 @@ const CategoriesPage: React.FC = () => {
     };
 
     const handleToggleCategory = async () => {
+
         if (!selectedCategory?.id_category) return;
 
         setTogglingCategory(true);
 
         try {
-            await api.patch(`/category/update/${selectedCategory.id_category}`, {
-                name: selectedCategory.name,
+
+            const response = await api.patch(`/category/update/${selectedCategory.id_category}`, {
                 active: !selectedCategory.active,
             });
+
+            if (response.status === 200) {
+
+                setCategories(prev =>
+                    prev.map(cat =>
+                        cat.id_category === selectedCategory.id_category
+                            ? { ...cat, active: !selectedCategory.active }
+                            : cat
+                    )
+                )
+            }
             SEGPrincipalNotificator(
                 selectedCategory.active ? "Categoria desativada." : "Categoria ativada.",
                 "success",
                 "Atualizado",
             );
-            await loadCategories();
         } catch (err) {
             console.error(err);
             SEGPrincipalNotificator("Não foi possível alterar o status da categoria.", "error", "Erro");
@@ -194,23 +219,6 @@ const CategoriesPage: React.FC = () => {
         }
     };
 
-    const handleDeleteCategory = async () => {
-        if (!selectedCategory?.id_category) return;
-
-        setDeletingCategory(true);
-
-        try {
-            await api.delete(`/category/delete/${selectedCategory.id_category}`);
-            SEGPrincipalNotificator("Categoria removida com sucesso!", "success", "Sucesso");
-            await loadCategories();
-        } catch (err) {
-            console.error(err);
-            SEGPrincipalNotificator("Não foi possível remover a categoria.", "error", "Erro");
-        } finally {
-            setDeletingCategory(false);
-            setConfirmDeleteOpen(false);
-        }
-    };
 
     const renderContent = () => {
         if (loading) {
@@ -466,7 +474,7 @@ const CategoriesPage: React.FC = () => {
                                     placeholder="Buscar categoria"
                                     value={searchTerm}
                                     onChange={(event) => setSearchTerm(event.target.value)}
-                                    startIcon={<SearchIcon sx={{ color: alpha("#000", 0.5) }} />}
+                                    startIcon={<SearchIcon sx={{ color: alpha("#000", 0.5), mb: 2 }} />}
                                     InputProps={{ disableUnderline: true }}
                                     sx={{
                                         width: "100%",
@@ -510,9 +518,6 @@ const CategoriesPage: React.FC = () => {
                 <MenuItem onClick={handleToggleCategory} disabled={togglingCategory}>
                     <PowerSettingsNewIcon fontSize="small" />
                     {selectedCategory?.active ? "Desativar" : "Ativar"}
-                </MenuItem>
-                <MenuItem onClick={handleOpenDeleteDialog} sx={{ color: "#e53935" }}>
-                    <DeleteOutlineIcon fontSize="small" /> Excluir
                 </MenuItem>
             </Menu>
 
@@ -563,47 +568,6 @@ const CategoriesPage: React.FC = () => {
                         fullWidth={false}
                     >
                         Salvar
-                    </SEGButton>
-                </DialogActions>
-            </Dialog>
-
-            <Dialog
-                open={confirmDeleteOpen}
-                onClose={deletingCategory ? undefined : handleCloseDeleteDialog}
-                maxWidth="xs"
-                fullWidth
-                PaperProps={{
-                    sx: {
-                        borderRadius: 4,
-                        p: { xs: 1, md: 1.5 },
-                        boxShadow: "0 20px 60px rgba(33, 33, 52, 0.2)",
-                    },
-                }}
-            >
-                <DialogTitle sx={{ fontWeight: 700, color: colors.purple }}>Remover categoria</DialogTitle>
-                <DialogContent>
-                    <Typography sx={{ color: alpha("#000", 0.68) }}>
-                        Tem certeza que deseja remover a categoria
-                        {selectedCategory ? ` "${selectedCategory.name}"` : ""}? Essa ação não pode ser desfeita.
-                    </Typography>
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 3, gap: 2, flexWrap: "wrap" }}>
-                    <SEGButton
-                        variant="outlined"
-                        colorTheme="outlined"
-                        onClick={handleCloseDeleteDialog}
-                        fullWidth={false}
-                        disabled={deletingCategory}
-                    >
-                        Cancelar
-                    </SEGButton>
-                    <SEGButton
-                        colorTheme="purple"
-                        onClick={handleDeleteCategory}
-                        loading={deletingCategory}
-                        fullWidth={false}
-                    >
-                        Remover
                     </SEGButton>
                 </DialogActions>
             </Dialog>
