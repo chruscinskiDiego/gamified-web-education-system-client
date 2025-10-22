@@ -47,6 +47,7 @@ interface ChallengeResponse {
     description: string;
     quantity: number;
     active: boolean;
+    type: string;
     user_status: string | null;
     user_sub: boolean;
     insignia: InsigniaResponse;
@@ -294,10 +295,19 @@ const ChallengeSubPage: React.FC = () => {
                         <Typography variant="subtitle2" sx={{ color: alpha("#000", 0.65), fontWeight: 700 }}>
                             Como conquistar
                         </Typography>
-                        <Typography variant="body2" sx={{ color: alpha("#000", 0.6), lineHeight: 1.6 }}>
-                            Complete todas as etapas deste desafio e alcance a meta de XP proposta. Ao finalizar, clique em
-                            "Reivindicar recompensa" para adicionar esta insígnia à sua coleção.
-                        </Typography>
+
+                        {data.challenge.type === "X" ?
+                            <Typography variant="body2" sx={{ color: alpha("#000", 0.6), lineHeight: 1.6 }}>
+                                Obtenha a quantidade de XP do desafio através do curso selecionado. Ao finalizar, clique em
+                                "Reivindicar recompensa" para adicionar esta insígnia à sua coleção.
+                            </Typography>
+                            :
+                            <Typography variant="body2" sx={{ color: alpha("#000", 0.6), lineHeight: 1.6 }}>
+                                Complete todas as etapas do curso na quantidade de dias proposta pelo curso. Ao finalizar, clique em
+                                "Reivindicar recompensa" para adicionar esta insígnia à sua coleção.
+                            </Typography>
+                        }
+
                     </Stack>
                 </Stack>
             </Paper>
@@ -310,16 +320,16 @@ const ChallengeSubPage: React.FC = () => {
     const canAbandon = Boolean(data && data.challenge.user_sub);
     const canClaim = Boolean(
         data &&
-            data.challenge.user_sub &&
-            ["C", "F", "R"].includes(data.challenge.user_status ?? "")
+        data.challenge.user_sub &&
+        ["C", "F", "R"].includes(data.challenge.user_status ?? "")
     );
 
     return (
         <Box
             sx={{
                 minHeight: "calc(100vh - 64px)",
-                background: "linear-gradient(180deg, #f6f8ff 0%, #ffffff 60%)",
-                py: { xs: 6, md: 8 },
+                background: "white",
+                py: { xs: 6 },
             }}
         >
             <Container maxWidth="lg">
@@ -434,9 +444,18 @@ const ChallengeSubPage: React.FC = () => {
 
                                             <Stack direction={{ xs: "column", sm: "row" }} spacing={3}>
                                                 <Stack spacing={0.5}>
-                                                    <Typography variant="overline" sx={{ letterSpacing: 1, color: alpha("#000", 0.5) }}>
-                                                        Quantidade de missões
-                                                    </Typography>
+                                                    {
+                                                        data.challenge.type === "X" ?
+                                                            <Typography variant="overline" sx={{ letterSpacing: 1, color: alpha("#000", 0.5) }}>
+                                                                Qtd. XP necessária
+                                                            </Typography>
+                                                            :
+                                                            <Typography variant="overline" sx={{ letterSpacing: 1, color: alpha("#000", 0.5) }}>
+                                                                Dias para você concluir o curso
+                                                            </Typography>
+
+                                                    }
+
                                                     <Typography variant="h5" sx={{ fontWeight: 800, color: colors.purple }}>
                                                         {data.challenge.quantity}
                                                     </Typography>
