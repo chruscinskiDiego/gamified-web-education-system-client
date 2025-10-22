@@ -16,6 +16,7 @@ import CoursesResume from "../pages/CourseResume";
 import CourseDataAndProgressPage from "../pages/CourseDataAndProgressPage";
 import GamificationRegisters from "../pages/GamificationRegisters";
 import CategoriesPage from "../pages/CategoriesPage";
+import ChallengeSubPage from "../pages/ChallengeSubPage";
 
 export const Router: React.FC = () => {
 
@@ -43,6 +44,8 @@ export const Router: React.FC = () => {
 
                         <Route path="/ranking" element={<RankingPage />} />
                         <Route path="/challenges" element={<ChallengesPage />} />
+                        <Route path="/challenges/:id" element={<ChallengeSubPage/>}/>
+
 
                         {/*TEACHER */}
                         <Route path="/statistics" element={<StatisticsByTeacherPage />} />
@@ -54,7 +57,7 @@ export const Router: React.FC = () => {
                         {/*GENERAL*/}
                         <Route path="/course/resume/:id" element={<CoursesResume/>}/>
                         <Route path="/course/:id" element={<CourseDataAndProgressPage/>}/>
-
+                        
                         {/* ADMIN */}
 
                         <Route path="/manage/gamification-registers" element={<GamificationRegisters/>}/>
