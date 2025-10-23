@@ -20,6 +20,7 @@ import ChallengeSubPage from "../pages/ChallengeSubPage";
 import PasswordRecoveryPage from "../pages/PasswordRecoveryPage";
 import ProfilePage from "../pages/ProfilePage";
 import StudiesPage from "../pages/StudiesPage";
+import AllCoursesPage from "../pages/AllCoursesPage";
 
 export const Router: React.FC = () => {
 
@@ -58,6 +59,7 @@ export const Router: React.FC = () => {
                         <Route path="/course-management/:courseId/module/:moduleId" element={<ModuleManagementPage/>}/>
 
                         {/*GENERAL*/}
+                        <Route path="/all-courses" element={<AllCoursesPage/>}/>
                         <Route path="/course/resume/:id" element={<CoursesResume/>}/>
                         <Route path="/course/:id" element={<CourseDataAndProgressPage/>}/>
 

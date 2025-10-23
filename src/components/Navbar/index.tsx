@@ -114,8 +114,9 @@ const Navbar: React.FC = () => {
 
     const studentMenu = [
         { menuId: 1, menuName: "Explorar", menuRoute: "/homepage" },
-        { menuId: 2, menuName: "Ranking", menuRoute: "/ranking" },
-        { menuId: 3, menuName: "Desafios", menuRoute: "/challenges" },
+        { menuId: 2, menuName: "Cursos", menuRoute: "/all-courses" },
+        { menuId: 3, menuName: "Ranking", menuRoute: "/ranking" },
+        { menuId: 4, menuName: "Desafios", menuRoute: "/challenges" },
     ];
 
     const teacherMenu = [
@@ -126,7 +127,7 @@ const Navbar: React.FC = () => {
     ];
 
     const adminMenu = [
-        { menuId: 1, menuName: "Cursos", menuRoute: "/homepage" },
+        { menuId: 1, menuName: "Cursos", menuRoute: "/all-courses" },
         { menuId: 2, menuName: "Recursos", menuRoute: "/ranking" },
         { menuId: 3, menuName: "Categorias", menuRoute: "/manage/categories" },
         { menuId: 4, menuName: "Gamificação", menuRoute: "/manage/gamification-registers" },
