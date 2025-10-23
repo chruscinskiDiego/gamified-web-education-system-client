@@ -319,11 +319,24 @@ const ProfilePage: React.FC = () => {
 
       const newPictureLink = response?.data?.profile_picture_link ?? null;
 
-      setProfile((prev) => ({
-        ...(prev ?? { id_user: userId, active: true }),
-        ...prev,
-        profile_picture_link: newPictureLink,
-      }));
+      setProfile((prev) => {
+        if (prev) {
+          return {
+            ...prev,
+            profile_picture_link: newPictureLink,
+          };
+        } else {
+          return {
+            id_user: userId,
+            name: "",
+            surname: "",
+            email: "",
+            active: true,
+            profile_picture_link: newPictureLink,
+            birth_date: null,
+          };
+        }
+      });
 
       if (newPictureLink) {
         setUserProfilePic(newPictureLink);
