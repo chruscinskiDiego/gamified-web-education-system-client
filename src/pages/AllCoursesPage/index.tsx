@@ -8,7 +8,7 @@ import {
     InputAdornment,
     InputLabel,
     MenuItem,
-    Pagination,
+    OutlinedInput,
     Paper,
     Select,
     Skeleton,
@@ -21,10 +21,16 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import TuneIcon from "@mui/icons-material/Tune";
 import StarIcon from "@mui/icons-material/Star";
+import CategoryIcon from "@mui/icons-material/Category";
+import SignalCellularAltIcon from "@mui/icons-material/SignalCellularAlt";
+import GradeIcon from "@mui/icons-material/Grade";
+import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/axios";
 import { CourseCard } from "../../components/CourseCard";
 import { mapDifficulty } from "../../helpers/DifficultyLevel";
+import SEGPagination from "../../components/SEGPagination";
+import { alpha } from "@mui/material/styles";
 
 type AllCoursesApiResponse = {
     title: string;
@@ -77,6 +83,35 @@ const AllCoursesPage: React.FC = () => {
 
     const navigate = useNavigate();
     const theme = useTheme();
+
+    const filterControlStyles = useMemo(
+        () => ({
+            "& .MuiInputLabel-root": {
+                fontWeight: 600,
+                color: alpha(theme.palette.text.primary, 0.6),
+            },
+            "& .MuiInputLabel-root.Mui-focused": {
+                color: "#4d67f6",
+            },
+            "& .MuiOutlinedInput-root": {
+                borderRadius: 3,
+                background: alpha("#ffffff", 0.92),
+                boxShadow: "0 16px 32px rgba(77, 103, 246, 0.12)",
+                transition: "all .2s ease",
+            },
+            "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
+                borderColor: alpha("#4d67f6", 0.6),
+            },
+            "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                borderColor: alpha("#4d67f6", 0.9),
+                boxShadow: "0 0 0 3px rgba(77, 103, 246, 0.18)",
+            },
+            "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: "transparent",
+            },
+        }),
+        [theme],
+    );
 
     const getCourses = async () => {
         try {
@@ -248,35 +283,10 @@ const AllCoursesPage: React.FC = () => {
                                 link_thumbnail: course.link_thumbnail,
                                 difficulty_level: course.difficulty_level,
                                 avaliation_average: course.avaliation_average,
+                                category_name: course.category?.name ?? null,
                             }}
                             onClick={() => handleNavigateToCourse(course.id_course)}
                         />
-                        {course.category?.name && (
-                            <Stack direction="row" alignItems="center" spacing={1} mt={1}>
-                                <Chip
-                                    icon={<TuneIcon sx={{ fontSize: 16 }} />}
-                                    label={course.category.name}
-                                    size="small"
-                                    sx={{
-                                        backgroundColor: "rgba(77, 103, 246, 0.08)",
-                                        color: "#5560ff",
-                                        fontWeight: 600,
-                                    }}
-                                />
-                                {course.avaliation_average != null && (
-                                    <Chip
-                                        icon={<StarIcon sx={{ fontSize: 16 }} />}
-                                        label={`${course.avaliation_average.toFixed(1)} / 5`}
-                                        size="small"
-                                        sx={{
-                                            backgroundColor: "rgba(255, 180, 0, 0.16)",
-                                            color: "#b58500",
-                                            fontWeight: 600,
-                                        }}
-                                    />
-                                )}
-                            </Stack>
-                        )}
                     </Grid>
                 ))}
             </Grid>
@@ -284,7 +294,7 @@ const AllCoursesPage: React.FC = () => {
     };
 
     return (
-        <Box sx={{ background: "#f7f8fe", minHeight: "calc(100vh - 64px)" }}>
+        <Box sx={{ background: "linear-gradient(180deg, #f6f8ff 0%, #eef3ff 100%)", minHeight: "calc(100vh - 64px)" }}>
             <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
                 <Stack spacing={4}>
                     <Stack spacing={1}>
@@ -300,13 +310,60 @@ const AllCoursesPage: React.FC = () => {
                     <Paper
                         elevation={0}
                         sx={{
+                            position: "relative",
+                            overflow: "hidden",
                             p: { xs: 3, md: 4 },
                             borderRadius: 4,
-                            background: "#ffffff",
-                            boxShadow: "0px 16px 40px rgba(33, 33, 52, 0.12)",
+                            background: "linear-gradient(135deg, rgba(93,112,246,0.12) 0%, rgba(73,160,251,0.18) 100%)",
+                            border: `1px solid ${alpha("#4d67f6", 0.16)}`,
+                            boxShadow: "0px 24px 60px rgba(57, 88, 201, 0.25)",
                         }}
                     >
-                        <Stack spacing={3}>
+                        <Box
+                            sx={{
+                                position: "absolute",
+                                width: 180,
+                                height: 180,
+                                borderRadius: "50%",
+                                background: alpha("#ffffff", 0.2),
+                                top: -60,
+                                right: -40,
+                                filter: "blur(0px)",
+                            }}
+                        />
+                        <Stack spacing={3} position="relative">
+                            <Stack
+                                direction={{ xs: "column", md: "row" }}
+                                justifyContent="space-between"
+                                spacing={2}
+                                alignItems={{ xs: "flex-start", md: "center" }}
+                            >
+                                <Stack spacing={0.5}>
+                                    <Stack direction="row" spacing={1} alignItems="center">
+                                        <FilterAltOutlinedIcon sx={{ color: "#4d67f6" }} />
+                                        <Typography variant="h6" sx={{ fontWeight: 700, color: "#1a1a2e" }}>
+                                            Refine sua busca
+                                        </Typography>
+                                    </Stack>
+                                    <Typography sx={{ color: alpha("#000", 0.6), maxWidth: 520 }}>
+                                        Combine filtros inteligentes para encontrar exatamente o curso que você procura.
+                                    </Typography>
+                                </Stack>
+
+                                <Chip
+                                    icon={<StarIcon sx={{ fontSize: 18 }} />}
+                                    label={`${filteredCourses.length} cursos disponíveis`}
+                                    sx={{
+                                        fontWeight: 700,
+                                        color: "#ffffff",
+                                        background: "linear-gradient(120deg, #4d67f6 0%, #49a0fb 100%)",
+                                        height: 40,
+                                        borderRadius: 20,
+                                        px: 1.5,
+                                    }}
+                                />
+                            </Stack>
+
                             <Stack
                                 direction={{ xs: "column", md: "row" }}
                                 spacing={2}
@@ -325,15 +382,28 @@ const AllCoursesPage: React.FC = () => {
                                             </InputAdornment>
                                         ),
                                     }}
+                                    sx={{
+                                        ...filterControlStyles,
+                                    }}
                                 />
 
-                                <FormControl fullWidth>
+                                <FormControl fullWidth sx={filterControlStyles}>
                                     <InputLabel id="sort-by-label">Ordenar</InputLabel>
                                     <Select
                                         labelId="sort-by-label"
                                         label="Ordenar"
                                         value={sortBy}
                                         onChange={(event: SelectChangeEvent<string>) => setSortBy(event.target.value)}
+                                        input={
+                                            <OutlinedInput
+                                                label="Ordenar"
+                                                startAdornment={
+                                                    <InputAdornment position="start">
+                                                        <TuneIcon color="action" />
+                                                    </InputAdornment>
+                                                }
+                                            />
+                                        }
                                     >
                                         {sortOptions.map((option) => (
                                             <MenuItem key={option.value} value={option.value}>
@@ -345,14 +415,24 @@ const AllCoursesPage: React.FC = () => {
                             </Stack>
 
                             <Grid container spacing={2}>
-                                <Grid item xs={12} sm={6} md={3}>
-                                    <FormControl fullWidth>
+                                <Grid item xs={12} sm={6} md={4}>
+                                    <FormControl fullWidth sx={filterControlStyles}>
                                         <InputLabel id="category-filter-label">Categoria</InputLabel>
                                         <Select
                                             labelId="category-filter-label"
                                             label="Categoria"
                                             value={selectedCategory}
                                             onChange={(event: SelectChangeEvent<string>) => setSelectedCategory(event.target.value)}
+                                            input={
+                                                <OutlinedInput
+                                                    label="Categoria"
+                                                    startAdornment={
+                                                        <InputAdornment position="start">
+                                                            <CategoryIcon color="action" />
+                                                        </InputAdornment>
+                                                    }
+                                                />
+                                            }
                                         >
                                             <MenuItem value="all">Todas as categorias</MenuItem>
                                             {categories.map((category) => (
@@ -364,14 +444,24 @@ const AllCoursesPage: React.FC = () => {
                                     </FormControl>
                                 </Grid>
 
-                                <Grid item xs={12} sm={6} md={3}>
-                                    <FormControl fullWidth>
+                                <Grid item xs={12} sm={6} md={4}>
+                                    <FormControl fullWidth sx={filterControlStyles}>
                                         <InputLabel id="difficulty-filter-label">Dificuldade</InputLabel>
                                         <Select
                                             labelId="difficulty-filter-label"
                                             label="Dificuldade"
                                             value={selectedDifficulty}
                                             onChange={(event: SelectChangeEvent<string>) => setSelectedDifficulty(event.target.value)}
+                                            input={
+                                                <OutlinedInput
+                                                    label="Dificuldade"
+                                                    startAdornment={
+                                                        <InputAdornment position="start">
+                                                            <SignalCellularAltIcon color="action" />
+                                                        </InputAdornment>
+                                                    }
+                                                />
+                                            }
                                         >
                                             {difficulties.map((difficulty) => (
                                                 <MenuItem key={difficulty.value} value={difficulty.value}>
@@ -382,14 +472,24 @@ const AllCoursesPage: React.FC = () => {
                                     </FormControl>
                                 </Grid>
 
-                                <Grid item xs={12} sm={6} md={3}>
-                                    <FormControl fullWidth>
+                                <Grid item xs={12} sm={6} md={4}>
+                                    <FormControl fullWidth sx={filterControlStyles}>
                                         <InputLabel id="rating-filter-label">Avaliações</InputLabel>
                                         <Select
                                             labelId="rating-filter-label"
                                             label="Avaliações"
                                             value={selectedRating}
                                             onChange={(event: SelectChangeEvent<string>) => setSelectedRating(event.target.value)}
+                                            input={
+                                                <OutlinedInput
+                                                    label="Avaliações"
+                                                    startAdornment={
+                                                        <InputAdornment position="start">
+                                                            <GradeIcon color="action" />
+                                                        </InputAdornment>
+                                                    }
+                                                />
+                                            }
                                         >
                                             {ratingOptions.map((rating) => (
                                                 <MenuItem key={rating.value} value={rating.value}>
@@ -398,26 +498,6 @@ const AllCoursesPage: React.FC = () => {
                                             ))}
                                         </Select>
                                     </FormControl>
-                                </Grid>
-
-                                <Grid item xs={12} sm={6} md={3}>
-                                    <Stack
-                                        direction="row"
-                                        spacing={1}
-                                        alignItems="center"
-                                        justifyContent={{ xs: "flex-start", md: "flex-end" }}
-                                        sx={{ height: "100%" }}
-                                    >
-                                        <Chip
-                                            label={`${filteredCourses.length} cursos`}
-                                            color="primary"
-                                            sx={{
-                                                fontWeight: 700,
-                                                background: "rgba(77, 103, 246, 0.12)",
-                                                color: "#5560ff",
-                                            }}
-                                        />
-                                    </Stack>
                                 </Grid>
                             </Grid>
                         </Stack>
@@ -437,12 +517,7 @@ const AllCoursesPage: React.FC = () => {
 
                             {!isLoading && !errorMessage && filteredCourses.length > 0 && (
                                 <Stack direction="row" justifyContent="center">
-                                    <Pagination
-                                        count={totalPages}
-                                        page={page}
-                                        color="primary"
-                                        onChange={(_, value) => setPage(value)}
-                                    />
+                                    <SEGPagination count={totalPages} page={page} onChange={(_, value) => setPage(value)} />
                                 </Stack>
                             )}
                         </Stack>
