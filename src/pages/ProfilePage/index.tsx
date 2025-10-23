@@ -52,7 +52,6 @@ type GeneralFormValues = {
 };
 
 type PasswordFormValues = {
-  currentPassword: string;
   newPassword: string;
   confirmPassword: string;
 };
@@ -83,7 +82,6 @@ const ProfilePage: React.FC = () => {
   const [isUpdatingGeneral, setIsUpdatingGeneral] = useState<boolean>(false);
 
   const [passwordForm, setPasswordForm] = useState<PasswordFormValues>({
-    currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
@@ -204,19 +202,18 @@ const ProfilePage: React.FC = () => {
   const validatePasswordForm = () => {
     const errors: Partial<Record<keyof PasswordFormValues, string>> = {};
 
-    if (!passwordForm.currentPassword) {
-      errors.currentPassword = "Informe sua senha atual";
-    }
+    const newPassword = passwordForm.newPassword.trim();
+    const confirmPassword = passwordForm.confirmPassword.trim();
 
-    if (!passwordForm.newPassword) {
+    if (!newPassword) {
       errors.newPassword = "Informe a nova senha";
-    } else if (passwordForm.newPassword.length < 8) {
+    } else if (newPassword.length < 8) {
       errors.newPassword = "A nova senha deve ter pelo menos 8 caracteres";
     }
 
-    if (!passwordForm.confirmPassword) {
+    if (!confirmPassword) {
       errors.confirmPassword = "Confirme a nova senha";
-    } else if (passwordForm.confirmPassword !== passwordForm.newPassword) {
+    } else if (confirmPassword !== newPassword) {
       errors.confirmPassword = "As senhas não coincidem";
     }
 
@@ -357,7 +354,6 @@ const ProfilePage: React.FC = () => {
 
   const resetPasswordState = () => {
     setPasswordForm({
-      currentPassword: "",
       newPassword: "",
       confirmPassword: "",
     });
@@ -382,12 +378,12 @@ const ProfilePage: React.FC = () => {
     const hasError = Object.values(errors).some(Boolean);
     if (hasError) return;
 
+    const newPassword = passwordForm.newPassword.trim();
+
     try {
       setIsUpdatingPassword(true);
-      await api.patch(`/user-profile/update-password/${userId}`, {
-        current_password: passwordForm.currentPassword,
-        new_password: passwordForm.newPassword,
-        confirm_new_password: passwordForm.confirmPassword,
+      await api.patch(`/user-profile/update/${userId}`, {
+        password: newPassword,
       });
 
       SEGPrincipalNotificator(
@@ -737,8 +733,8 @@ const ProfilePage: React.FC = () => {
                       Alterar senha
                     </SEGButton>
                     <Typography variant="caption" color="text.secondary">
-                      Você precisará informar a senha atual e confirmar a nova
-                      senha antes de salvar.
+                      Informe a nova senha, confirme-a e salve para concluir a
+                      atualização.
                     </Typography>
                   </Stack>
                 </Stack>
@@ -813,15 +809,6 @@ const ProfilePage: React.FC = () => {
             <DialogTitle>Atualizar senha</DialogTitle>
             <DialogContent dividers>
               <Stack spacing={2} sx={{ pt: 1 }}>
-                <SEGTextField
-                  label="Senha atual"
-                  type="password"
-                  showPasswordToggle
-                  value={passwordForm.currentPassword}
-                  onChange={handlePasswordChange("currentPassword")}
-                  error={Boolean(passwordErrors.currentPassword)}
-                  helperText={passwordErrors.currentPassword}
-                />
                 <SEGTextField
                   label="Nova senha"
                   type="password"

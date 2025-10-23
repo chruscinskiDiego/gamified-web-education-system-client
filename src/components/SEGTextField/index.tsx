@@ -32,6 +32,12 @@ const Styled = styled(TextField)(() => ({
     borderRadius: 3,
     paddingLeft: 8,
     paddingRight: 8,
+    "&:before, &:after": {
+      borderBottom: "none",
+    },
+    "&:hover:not(.Mui-disabled):before": {
+      borderBottom: "none",
+    },
   },
   "& .MuiInputBase-input": {
     paddingTop: 12,
@@ -111,6 +117,7 @@ const SEGTextField: React.FC<SEGTextFieldProps> = ({
             ...user,
             startAdornment,
             endAdornment,
+            disableUnderline: true,
         } as typeof user;
 
     }, [InputProps, startIcon, showPasswordToggle, showPassword]);
