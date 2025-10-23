@@ -11,7 +11,6 @@ import {
     MenuItem,
     Paper,
     Select,
-    SelectChangeEvent,
     Stack,
     Typography,
     Rating,
@@ -193,7 +192,7 @@ const StatisticsByTeacherPage: React.FC = () => {
         return { rating, engagement, modules };
     }, [statistics, selectedCourseId]);
 
-    const handleCourseChange = (event: SelectChangeEvent<string>) => {
+    const handleCourseChange = (event: any) => {
         setSelectedCourseId(event.target.value);
     };
 
@@ -250,7 +249,7 @@ const StatisticsByTeacherPage: React.FC = () => {
     const overallEngagement = statistics.engagement.overall;
 
     return (
-        <Box sx={{ bgcolor: "#f5f7fb", minHeight: "100vh", py: { xs: 3, md: 6 } }}>
+        <Box sx={{ bgcolor: "white", minHeight: "100vh", py: { xs: 3} }}>
             <Container maxWidth="lg">
                 <Stack spacing={4}>
                     <Paper
