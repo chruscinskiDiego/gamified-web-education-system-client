@@ -17,6 +17,7 @@ import CourseDataAndProgressPage from "../pages/CourseDataAndProgressPage";
 import GamificationRegisters from "../pages/GamificationRegisters";
 import CategoriesPage from "../pages/CategoriesPage";
 import ChallengeSubPage from "../pages/ChallengeSubPage";
+import PasswordRecoveryPage from "../pages/PasswordRecoveryPage";
 
 export const Router: React.FC = () => {
 
@@ -30,6 +31,7 @@ export const Router: React.FC = () => {
                     <Route path="/" element={<LoginPage />} />
                     <Route path="/signin" element={<LoginPage />} />
                     <Route path="/signup" element={<RegisterPage />} />
+                    <Route path="/password-recovery" element={<PasswordRecoveryPage/>} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </>
             )}
@@ -45,7 +47,6 @@ export const Router: React.FC = () => {
                         <Route path="/ranking" element={<RankingPage />} />
                         <Route path="/challenges" element={<ChallengesPage />} />
                         <Route path="/challenges/:id" element={<ChallengeSubPage/>}/>
-
 
                         {/*TEACHER */}
                         <Route path="/statistics" element={<StatisticsByTeacherPage />} />
