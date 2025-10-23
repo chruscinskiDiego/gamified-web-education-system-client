@@ -316,7 +316,11 @@ const CourseDataAndProgressPage: React.FC = () => {
     const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
     const [selectedEpisodeId, setSelectedEpisodeId] = useState<number | null>(null);
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-    const {setUserXp, userXp} = useContext(ProfileContext)!;
+    const profileContext = useContext(ProfileContext);
+    const userXp = profileContext?.userXp ?? null;
+    const setUserXp = profileContext?.setUserXp;
+    const userType = profileContext?.userType ?? null;
+    const isStudent = userType === "S";
 
 
     const orderedModules = useMemo(() => courseData.modules.slice().sort((a, b) => a.order - b.order), [courseData.modules]);
@@ -501,6 +505,8 @@ const CourseDataAndProgressPage: React.FC = () => {
 
     const handleCompleteEpisode = async () => {
 
+        if (!isStudent) return;
+
         if (selectedModuleId == null || selectedEpisodeId == null) return;
 
         if (isEpisodeLocked(selectedModuleId, selectedEpisodeId)) return;
@@ -574,7 +580,7 @@ const CourseDataAndProgressPage: React.FC = () => {
                     }
                 }
 
-                setUserXp(response.data.updated_xp || userXp);
+                setUserXp?.(response.data.updated_xp ?? userXp ?? null);
 
                 setCourseData(updatedCourse);
                 setSelectedModuleId(nextModuleId);
@@ -652,6 +658,8 @@ const CourseDataAndProgressPage: React.FC = () => {
     }, []);
 
     const canMarkSelectedEpisodeAsCompleted = useMemo(() => {
+        if (!isStudent) return false;
+
         if (!selectedEpisode || selectedEpisode.completed) return false;
 
         if (isSelectedEpisodeLocked) return false;
@@ -661,7 +669,7 @@ const CourseDataAndProgressPage: React.FC = () => {
         }
 
         return true;
-    }, [isSelectedEpisodeLocked, mediaType, selectedEpisode, videoWatchProgress]);
+    }, [isSelectedEpisodeLocked, isStudent, mediaType, selectedEpisode, videoWatchProgress]);
 
     return (
         <Box sx={{ backgroundColor: "white", minHeight: "calc(100vh - 32px)", py: { xs: 3 } }}>

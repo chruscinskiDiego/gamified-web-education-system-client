@@ -52,6 +52,8 @@ const CoursesResume: React.FC = () => {
     const [formValues, setFormValues] = useState<RatingFormValues>(() => buildInitialFormValues());
     const profileContext = useContext(ProfileContext);
     const userId = profileContext?.userId ?? null;
+    const userType = profileContext?.userType ?? null;
+    const canManageRegistration = userType === "S";
     const normalizedUserId = userId != null ? String(userId) : null;
     const userEvaluation = courseResume?.evaluations_by_user?.find((evaluation) => {
         const evaluationStudentId = evaluation.student_id != null ? String(evaluation.student_id) : null;
@@ -224,6 +226,10 @@ const CoursesResume: React.FC = () => {
 
     const handleRegisterStudentInCourse = async () => {
 
+        if (!canManageRegistration) {
+            return;
+        }
+
         try {
 
             setLoadingRegisterAction(true);
@@ -255,6 +261,10 @@ const CoursesResume: React.FC = () => {
     }
 
     const handleCancelStudentInCourse = async () => {
+
+        if (!canManageRegistration) {
+            return;
+        }
 
         try {
 
@@ -298,11 +308,13 @@ const CoursesResume: React.FC = () => {
     };
 
     const handleCreateRegistrationDialog = () => {
+        if (!canManageRegistration) return;
         setModalType('create-registration');
         setConfirmDialogOpen(true);
     }
 
     const handleCancelRegistrationDialog = () => {
+        if (!canManageRegistration) return;
         setModalType('cancel-registration');
         setConfirmDialogOpen(true);
     }
@@ -316,11 +328,15 @@ const CoursesResume: React.FC = () => {
     const overallRatingCount = courseResume?.overall_rating?.count ?? 0;
     const thumbnailUrl = courseResume?.link_thumbnail?.trim() ?? "";
     const hasThumbnail = thumbnailUrl.length > 0;
-    const registrationLabel = courseResume?.registration_state === null
-        ? "MATRICULAR"
-        : courseResume?.registration_state === "S"
-            ? "CANCELAR MATRÍCULA"
-            : null;
+    const registrationLabel = canManageRegistration
+        ? courseResume?.registration_state === null
+            ? "MATRICULAR"
+            : courseResume?.registration_state === "S"
+                ? "CANCELAR MATRÍCULA"
+                : courseResume?.registration_state === "F"
+                    ? "CURSO FINALIZADO"
+                    : null
+        : null;
     const isUserEnrolled = courseResume?.registration_state === "S" || courseResume?.registration_state === "F";
 
     type EvaluationMetricKey = "material_quality" | "didatics" | "teaching_methodology";
@@ -401,7 +417,7 @@ const CoursesResume: React.FC = () => {
     };
 
     const renderRegistrationButton = () => {
-        if (!registrationLabel) return null;
+        if (!registrationLabel || !canManageRegistration) return null;
 
         const colorTheme = courseResume?.registration_state === "S" ? "purple" : "white";
 
