@@ -120,15 +120,15 @@ const Navbar: React.FC = () => {
     ];
 
     const teacherMenu = [
-        { menuId: 1, menuName: "Cursos", menuRoute: "/homepage" },
-        { menuId: 2, menuName: "Ranking", menuRoute: "/ranking" },
-        { menuId: 3, menuName: "Meus Cursos", menuRoute: "/my-courses" },
-        { menuId: 4, menuName: "Estatísticas", menuRoute: "/statistics" },
+        { menuId: 1, menuName: "Estatísticas", menuRoute: "/statistics" },
+        { menuId: 2, menuName: "Meus Cursos", menuRoute: "/my-courses" },
+        { menuId: 3, menuName: "Ranking de Alunos", menuRoute: "/ranking" },
+        { menuId: 4, menuName: "Todos os Cursos", menuRoute: "/all-courses" }
     ];
 
     const adminMenu = [
-        { menuId: 1, menuName: "Cursos", menuRoute: "/all-courses" },
-        { menuId: 2, menuName: "Recursos", menuRoute: "/ranking" },
+        { menuId: 1, menuName: "Todos os Cursos", menuRoute: "/all-courses" },
+        { menuId: 2, menuName: "Ranking de Alunos", menuRoute: "/ranking" },
         { menuId: 3, menuName: "Categorias", menuRoute: "/manage/categories" },
         { menuId: 4, menuName: "Gamificação", menuRoute: "/manage/gamification-registers" },
     ];
