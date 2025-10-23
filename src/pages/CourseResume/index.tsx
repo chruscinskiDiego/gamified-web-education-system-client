@@ -701,7 +701,7 @@ const CoursesResume: React.FC = () => {
                                         </Stack>
                                         <Typography variant="body2" sx={{ opacity: 0.85 }}>
                                             {overallRatingCount > 0
-                                                ? `${overallRatingCount} ${overallRatingCount > 1 ? "avaliações registradas" : "avaliação registrada"}`
+                                                ? `${overallRatingCount / 3} ${overallRatingCount > 1 ? "avaliações registradas" : "avaliação registrada"}`
                                                 : "Ainda não há avaliações registradas"}
                                         </Typography>
                                     </Paper>
