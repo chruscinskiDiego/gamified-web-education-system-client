@@ -294,7 +294,7 @@ const AllCoursesPage: React.FC = () => {
     };
 
     return (
-        <Box sx={{ background: "linear-gradient(180deg, #f6f8ff 0%, #eef3ff 100%)", minHeight: "calc(100vh - 64px)" }}>
+        <Box sx={{ background: "white", minHeight: "calc(100vh - 64px)" }}>
             <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
                 <Stack spacing={4}>
                     <Stack spacing={1}>

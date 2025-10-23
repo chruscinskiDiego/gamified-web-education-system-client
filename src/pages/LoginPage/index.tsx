@@ -86,7 +86,7 @@ export const LoginPage: React.FC = () => {
 
             const response = await signIn(siginData);
 
-            if(response.status !== 200){
+            if (response.status !== 200) {
 
                 handleSetSnackWarning(response?.data?.message || "Erro no login. Verifique suas credenciais.");
                 return;
@@ -108,7 +108,13 @@ export const LoginPage: React.FC = () => {
 
             setUserProfilePic(responseProfilePic ?? null);
 
-            navigate("/homepage");
+            console.log(responseUserType)
+
+            const navigateTo = responseUserType === "S" ? "/homepage" :
+                responseUserType === "T" ? "/statistics" :
+                    "/all-courses";
+
+            navigate(navigateTo);
 
             handleSetSnackSucess("Login realizado com sucesso!");
 
