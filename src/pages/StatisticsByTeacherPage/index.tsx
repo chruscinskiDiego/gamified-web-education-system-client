@@ -83,6 +83,18 @@ interface StatisticsResponse {
 
 const gradient = "linear-gradient(135deg, #5560FF, #49A0FB)";
 
+const metricCardStyles = {
+    p: 3,
+    borderRadius: 3,
+    height: "100%",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: 2,
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    boxShadow: "0 20px 45px -30px rgba(85,96,255,0.4)",
+};
+
 const formatNumber = (value: number | null | undefined, options?: Intl.NumberFormatOptions) => {
     if (value === null || value === undefined) return "--";
     return value.toLocaleString("pt-BR", options);
@@ -302,17 +314,8 @@ const StatisticsByTeacherPage: React.FC = () => {
 
                     <Grid container spacing={3}>
                         <Grid item xs={12} md={3}>
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    p: 3,
-                                    borderRadius: 3,
-                                    height: "100%",
-                                    backgroundColor: "#fff",
-                                    boxShadow: "0 20px 45px -30px rgba(85,96,255,0.4)",
-                                }}
-                            >
-                                <Stack spacing={2}>
+                            <Paper elevation={0} sx={metricCardStyles}>
+                                <Stack spacing={2} sx={{ flexGrow: 1 }}>
                                     <Stack direction="row" spacing={1.5} alignItems="center">
                                         <AutoGraphIcon sx={{ color: "#5560FF", fontSize: 32 }} />
                                         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -335,17 +338,8 @@ const StatisticsByTeacherPage: React.FC = () => {
                             </Paper>
                         </Grid>
                         <Grid item xs={12} md={3}>
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    p: 3,
-                                    borderRadius: 3,
-                                    height: "100%",
-                                    backgroundColor: "#fff",
-                                    boxShadow: "0 20px 45px -30px rgba(85,96,255,0.4)",
-                                }}
-                            >
-                                <Stack spacing={2}>
+                            <Paper elevation={0} sx={metricCardStyles}>
+                                <Stack spacing={2} sx={{ flexGrow: 1 }}>
                                     <Stack direction="row" spacing={1.5} alignItems="center">
                                         <GroupsIcon sx={{ color: "#5560FF", fontSize: 32 }} />
                                         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -362,17 +356,8 @@ const StatisticsByTeacherPage: React.FC = () => {
                             </Paper>
                         </Grid>
                         <Grid item xs={12} md={3}>
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    p: 3,
-                                    borderRadius: 3,
-                                    height: "100%",
-                                    backgroundColor: "#fff",
-                                    boxShadow: "0 20px 45px -30px rgba(85,96,255,0.4)",
-                                }}
-                            >
-                                <Stack spacing={2}>
+                            <Paper elevation={0} sx={metricCardStyles}>
+                                <Stack spacing={2} sx={{ flexGrow: 1 }}>
                                     <Stack direction="row" spacing={1.5} alignItems="center">
                                         <CheckCircleIcon sx={{ color: "#5560FF", fontSize: 32 }} />
                                         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -389,17 +374,8 @@ const StatisticsByTeacherPage: React.FC = () => {
                             </Paper>
                         </Grid>
                         <Grid item xs={12} md={3}>
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    p: 3,
-                                    borderRadius: 3,
-                                    height: "100%",
-                                    backgroundColor: "#fff",
-                                    boxShadow: "0 20px 45px -30px rgba(85,96,255,0.4)",
-                                }}
-                            >
-                                <Stack spacing={2}>
+                            <Paper elevation={0} sx={metricCardStyles}>
+                                <Stack spacing={2} sx={{ flexGrow: 1 }}>
                                     <Stack direction="row" spacing={1.5} alignItems="center">
                                         <ViewModuleIcon sx={{ color: "#5560FF", fontSize: 32 }} />
                                         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
