@@ -12,15 +12,23 @@ import {
 } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import { mapDifficulty } from "../../helpers/DifficultyLevel";
 import type { CourseSummary } from "../../interfaces/course.interfaces";
 
-export const CourseCard = ({ course, onClick }: { course: CourseSummary; onClick: () => void }) => {
+export const CourseCard = ({
+    course,
+    onClick,
+}: {
+    course: CourseSummary & { category_name?: string | null };
+    onClick: () => void;
+}) => {
     const theme = useTheme();
 
     const difficulty = mapDifficulty(course.difficulty_level ?? "M");
     const ratingValue = course.avaliation_average ?? 0;
     const hasRating = course.avaliation_average !== null && course.avaliation_average !== undefined;
+    const categoryName = course.category_name ?? null;
 
     return (
         <Card
@@ -63,17 +71,38 @@ export const CourseCard = ({ course, onClick }: { course: CourseSummary; onClick
 
                 <CardContent sx={{ p: 3 }}>
                     <Stack spacing={2}>
-                        <Stack direction="row" alignItems="center" spacing={1.5} justifyContent="space-between">
-                            <Chip
-                                label={difficulty}
-                                size="small"
-                                sx={{
-                                    background: "rgba(77, 103, 246, 0.12)",
-                                    color: "#5560ff",
-                                    fontWeight: 600,
-                                    letterSpacing: 0.2,
-                                }}
-                            />
+                        <Stack
+                            direction="row"
+                            alignItems="flex-start"
+                            justifyContent="space-between"
+                            spacing={1.5}
+                        >
+                            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                {categoryName && (
+                                    <Chip
+                                        icon={<LocalOfferOutlinedIcon sx={{ fontSize: 16 }} />}
+                                        label={categoryName}
+                                        size="small"
+                                        sx={{
+                                            background: "rgba(73, 160, 251, 0.16)",
+                                            color: "#1a4dd8",
+                                            fontWeight: 600,
+                                            letterSpacing: 0.2,
+                                        }}
+                                    />
+                                )}
+
+                                <Chip
+                                    label={difficulty}
+                                    size="small"
+                                    sx={{
+                                        background: "rgba(77, 103, 246, 0.14)",
+                                        color: "#5560ff",
+                                        fontWeight: 600,
+                                        letterSpacing: 0.2,
+                                    }}
+                                />
+                            </Stack>
                             <Stack direction="row" alignItems="center" spacing={1}>
                                 {hasRating ? (
                                     <>
