@@ -14,6 +14,8 @@ import {
     DialogContent,
     DialogContentText,
     DialogActions,
+    Switch,
+    FormControlLabel,
 } from "@mui/material";
 import PhotoCamera from "@mui/icons-material/PhotoCamera";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -199,6 +201,7 @@ const CourseManagementPage: React.FC = () => {
             description: description.trim(),
             difficulty_level: difficulty,
             id_category: typeof categoryId === "number" ? categoryId : null,
+            active,
         };
 
         setLoadingCourseSave(true);
@@ -513,6 +516,21 @@ const CourseManagementPage: React.FC = () => {
                                         </MenuItem>
                                     ))}
                                 </SEGTextField>
+                            </Grid>
+
+                            <Grid item xs={6} md={2} sx={{ display: "flex", alignItems: "center" }}>
+                                <FormControlLabel
+                                    control={(
+                                        <Switch
+                                            checked={active}
+                                            onChange={(event) => setActive(event.target.checked)}
+                                            color="primary"
+                                        />
+                                    )}
+                                    label={active ? "Curso ativo" : "Curso inativo"}
+                                    labelPlacement="start"
+                                    sx={{ ml: 0 }}
+                                />
                             </Grid>
 
                             <Grid item xs={6} md={2}>
