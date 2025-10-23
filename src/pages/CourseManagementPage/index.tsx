@@ -485,50 +485,20 @@ const CourseManagementPage: React.FC = () => {
                     {/* Formulário do curso — mesma aparência da página de criação */}
                     <Box component="form" noValidate sx={{ mb: 3 }} onSubmit={(e) => { e.preventDefault(); handleSaveCourse(); }}>
                         <Grid container spacing={3} sx={{ mb: { xs: 2, md: 2 } }}>
-                            <Grid item xs={12} md={8}>
-                                <Box
+                            <Grid item xs={12} md={7}>
+                                <SEGTextField
+                                    placeholder="Informe o título do curso"
+                                    label="Título"
+                                    fullWidth
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
                                     sx={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 2,
-                                        flexWrap: { xs: "wrap", md: "nowrap" },
+                                        mb: 0,
+                                        minWidth: 0,
+                                        "& .MuiFilledInput-root": { minHeight: 56, display: "flex", alignItems: "center" },
                                     }}
-                                >
-                                    <SEGTextField
-                                        placeholder="Informe o título do curso"
-                                        label="Título"
-                                        fullWidth
-                                        value={title}
-                                        onChange={(e) => setTitle(e.target.value)}
-                                        sx={{
-                                            flexGrow: 1,
-                                            mb: 0,
-                                            minWidth: 0,
-                                            "& .MuiFilledInput-root": { minHeight: 56, display: "flex", alignItems: "center" },
-                                        }}
-                                        InputProps={{ disableUnderline: true }}
-                                    />
-
-                                    <FormControlLabel
-                                        control={(
-                                            <Switch
-                                                checked={active}
-                                                onChange={(event) => setActive(event.target.checked)}
-                                                color="primary"
-                                            />
-                                        )}
-                                        label={active ? "Curso ativo" : "Curso inativo"}
-                                        labelPlacement="start"
-                                        sx={{
-                                            ml: 0,
-                                            flexShrink: 0,
-                                            px: 1.5,
-                                            py: 1,
-                                            borderRadius: 2,
-                                            bgcolor: { md: "transparent", xs: "#f4efef" },
-                                        }}
-                                    />
-                                </Box>
+                                    InputProps={{ disableUnderline: true }}
+                                />
                             </Grid>
 
                             <Grid item xs={6} md={2}>
@@ -563,6 +533,38 @@ const CourseManagementPage: React.FC = () => {
                                         </MenuItem>
                                     ))}
                                 </SEGTextField>
+                            </Grid>
+
+                            <Grid item xs={6} md={1} sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+                                <FormControlLabel
+                                    control={(
+                                        <Switch
+                                            checked={active}
+                                            onChange={(event) => setActive(event.target.checked)}
+                                            color="primary"
+                                        />
+                                    )}
+                                    label={"Ativo"}
+                                    labelPlacement="start"
+                                    sx={{
+                                        ml: 0,
+                                        flexShrink: 0,
+                                        px: 1.5,
+                                        py: 1,
+                                        borderRadius: 2,
+                                        bgcolor: { md: "transparent", xs: "#f4efef" },
+                                        width: "100%",
+                                        height: 56,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        columnGap: 1,
+                                        "& .MuiFormControlLabel-label": {
+                                            whiteSpace: "nowrap",
+                                            fontWeight: 500,
+                                        },
+                                    }}
+                                />
                             </Grid>
 
                             {/* Descrição à esquerda (md=8) */}
