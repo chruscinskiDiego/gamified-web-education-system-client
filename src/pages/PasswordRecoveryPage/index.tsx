@@ -203,7 +203,8 @@ const PasswordRecoveryPage: React.FC = () => {
                                 onBlur={(event) => setEmailError(validateEmail(event.target.value))}
                                 error={Boolean(emailError)}
                                 helperText={emailError ?? undefined}
-                                startIcon={<EmailOutlinedIcon sx={{ color: colors.purple }} />}
+                                startIcon={<EmailOutlinedIcon sx={{ color: colors.purple, mb: 2 }} />}
+                                InputProps={{ disableUnderline: true }}
                             />
                             <SEGButton type="submit" loading={isSubmitting} colorTheme="gradient">
                                 Enviar instruções

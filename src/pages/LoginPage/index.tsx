@@ -43,7 +43,6 @@ export const LoginPage: React.FC = () => {
     const profileContext = useContext(ProfileContext);
     const { setIsAuthenticated, setUserId, setUserType, setUserProfilePic } = profileContext!;
 
-
     const emailRef = useRef<HTMLInputElement | null>(null);
     const passwordRef = useRef<HTMLInputElement | null>(null);
 
@@ -122,6 +121,10 @@ export const LoginPage: React.FC = () => {
 
     const handleNavigateToRegister = () => {
         navigate("/signup");
+    }
+
+    const handleNavigateToPasswordRecovery = () => {
+        navigate("/password-recovery");
     }
 
     const validateEmail = (v: string) =>
@@ -244,7 +247,7 @@ export const LoginPage: React.FC = () => {
                             <Typography variant="subtitle2" sx={{ color: "#8b8b8b", fontWeight: 600 }}>
                                 Senha
                             </Typography>
-                            <Link href="#" underline="none" sx={{
+                            <Link underline="none" onClick={handleNavigateToPasswordRecovery} sx={{
                                 fontSize: 13,
                                 color: colors.weakGray,
                                 '&:hover': {
