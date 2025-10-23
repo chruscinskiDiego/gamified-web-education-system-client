@@ -66,14 +66,13 @@ const StudiesPage: React.FC = () => {
     );
 
     return (
-        <Box sx={{ backgroundColor: "#f5f7fb", minHeight: "calc(100vh - 64px)", pb: { xs: 6, md: 10 } }}>
+        <Box sx={{ backgroundColor: "#ffffffff", minHeight: "calc(100vh - 64px)", pb: { xs: 6, md: 10 } }}>
             <Box
                 sx={{
                     background: colors.horizontalGradient,
                     color: "#fff",
                     py: { xs: 6, md: 8 },
-                    borderBottomLeftRadius: { xs: 36, md: 60 },
-                    borderBottomRightRadius: { xs: 36, md: 60 },
+                    borderRadius: { xs: 36, md: 60 },
                     boxShadow: "0 18px 45px rgba(93, 112, 246, 0.25)",
                 }}
             >
