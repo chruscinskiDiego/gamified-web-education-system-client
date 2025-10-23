@@ -19,6 +19,7 @@ import CategoriesPage from "../pages/CategoriesPage";
 import ChallengeSubPage from "../pages/ChallengeSubPage";
 import PasswordRecoveryPage from "../pages/PasswordRecoveryPage";
 import ProfilePage from "../pages/ProfilePage";
+import StudiesPage from "../pages/StudiesPage";
 
 export const Router: React.FC = () => {
 
@@ -61,6 +62,7 @@ export const Router: React.FC = () => {
                         <Route path="/course/:id" element={<CourseDataAndProgressPage/>}/>
 
                         <Route path="/my-profile" element={<ProfilePage/>}/>
+                        <Route path="/my-studies" element={<StudiesPage/>}/>
                         
                         {/* ADMIN */}
 

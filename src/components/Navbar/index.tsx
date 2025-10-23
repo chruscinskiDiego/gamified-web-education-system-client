@@ -92,7 +92,7 @@ const Navbar: React.FC = () => {
         if (key === "logout") {
             logout();
         } else if (key === "estudos") {
-            navigate("/studies");
+            navigate("/my-studies");
         } else if (key === "perfil") {
             navigate("/my-profile");
         }
