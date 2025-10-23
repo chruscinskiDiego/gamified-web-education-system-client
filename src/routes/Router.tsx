@@ -18,6 +18,7 @@ import GamificationRegisters from "../pages/GamificationRegisters";
 import CategoriesPage from "../pages/CategoriesPage";
 import ChallengeSubPage from "../pages/ChallengeSubPage";
 import PasswordRecoveryPage from "../pages/PasswordRecoveryPage";
+import ProfilePage from "../pages/ProfilePage";
 
 export const Router: React.FC = () => {
 
@@ -58,6 +59,8 @@ export const Router: React.FC = () => {
                         {/*GENERAL*/}
                         <Route path="/course/resume/:id" element={<CoursesResume/>}/>
                         <Route path="/course/:id" element={<CourseDataAndProgressPage/>}/>
+
+                        <Route path="/my-profile" element={<ProfilePage/>}/>
                         
                         {/* ADMIN */}
 

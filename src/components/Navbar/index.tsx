@@ -92,9 +92,9 @@ const Navbar: React.FC = () => {
         if (key === "logout") {
             logout();
         } else if (key === "estudos") {
-            navigate("/studies"); // ajuste se precisar
+            navigate("/studies");
         } else if (key === "perfil") {
-            navigate("/profile"); // ajuste se precisar
+            navigate("/my-profile");
         }
     };
 
@@ -340,8 +340,11 @@ const Navbar: React.FC = () => {
                         disableScrollLock
                     >
                         <MenuItem onClick={() => handleUserMenuAction("perfil")}>Meu perfil</MenuItem>
-                        <MenuItem onClick={() => handleUserMenuAction("estudos")}>Meus estudos</MenuItem>
+
+                        {userType === "S"&& <MenuItem onClick={() => handleUserMenuAction("estudos")}>Meus estudos</MenuItem>}
+
                         <MenuItem onClick={() => handleUserMenuAction("logout")}>Sair</MenuItem>
+                        
                     </Menu>
                 </Box>
             </Toolbar>
