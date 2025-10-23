@@ -213,8 +213,16 @@ const StudiesPage: React.FC = () => {
                                                     )}
                                                 </Box>
 
-                                                <Stack spacing={2.2} sx={{ p: { xs: 3, md: 3.5 }, flexGrow: 1 }}>
-                                                    <Stack spacing={1.2}>
+                                                <Box
+                                                    sx={{
+                                                        p: { xs: 3, md: 3.5 },
+                                                        flexGrow: 1,
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        gap: 2.2,
+                                                    }}
+                                                >
+                                                    <Stack spacing={1.2} sx={{ flexGrow: 1 }}>
                                                         <Chip
                                                             label={`Dificuldade: ${mapDifficulty(course.difficulty_level)}`}
                                                             sx={{
@@ -241,7 +249,7 @@ const StudiesPage: React.FC = () => {
                                                     >
                                                         Acessar curso
                                                     </SEGButton>
-                                                </Stack>
+                                                </Box>
                                             </Paper>
                                         </Grid>
                                     );
