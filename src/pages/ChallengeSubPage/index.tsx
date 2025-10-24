@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { keyframes } from "@emotion/react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
     Alert,
@@ -28,12 +29,14 @@ import StarOutlineIcon from "@mui/icons-material/StarOutline";
 import RedeemIcon from "@mui/icons-material/Redeem";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
+import CelebrationIcon from "@mui/icons-material/Celebration";
 
 import SEGTextField from "../../components/SEGTextField";
 import SEGButton from "../../components/SEGButton";
 import SEGPrincipalNotificator from "../../components/Notifications/SEGPrincipalNotificator";
 import { colors } from "../../theme/colors";
 import { api } from "../../lib/axios";
+import { ProfileContext } from "../../contexts/ProfileContext";
 
 interface InsigniaResponse {
     name: string;
@@ -51,6 +54,7 @@ interface ChallengeResponse {
     user_status: string | null;
     user_sub: boolean;
     insignia: InsigniaResponse;
+    id_challenge_user_progress?: number | null;
 }
 
 interface CourseOption {
@@ -106,13 +110,41 @@ const statusDescriptionMap: Record<string, string> = {
     N: "Inscreva-se no desafio para começar a acumular XP e evoluir sua jornada.",
 };
 
-const subscribeEndpoint = "/challenge/student/subscribe";
-const abandonEndpoint = "/challenge/student/unsubscribe";
-const claimEndpoint = "/challenge/student/claim";
+const confettiPalette = ["#5D70F6", "#49A0FB", "#F59E0B", "#22C55E", "#EC4899", "#F97316"];
+
+const confettiFall = keyframes`
+    0% {
+        transform: translate3d(0, -120%, 0) rotate(0deg);
+        opacity: 0;
+    }
+    15% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate3d(0, 120vh, 0) rotate(360deg);
+        opacity: 0;
+    }
+`;
+
+const celebrationPulse = keyframes`
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+`;
+
+const subscribeEndpoint = "/challenge-user/join";
+const abandonEndpoint = (progressId: number | string) => `/challenge-user/leave/${progressId}`;
+const claimEndpoint = "/challenge-user/finish";
 
 const ChallengeSubPage: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
+    const profileContext = useContext(ProfileContext);
+    const currentXp = profileContext?.userXp ?? 0;
+    const displayedXp = profileContext?.userXp ?? "--";
 
     const [data, setData] = useState<ChallengeDetailsResponse | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
@@ -121,6 +153,20 @@ const ChallengeSubPage: React.FC = () => {
     const [subscribeDialogOpen, setSubscribeDialogOpen] = useState<boolean>(false);
     const [confirmAction, setConfirmAction] = useState<"abandon" | "claim" | null>(null);
     const [selectedCourse, setSelectedCourse] = useState<string>("");
+    const [celebrating, setCelebrating] = useState<boolean>(false);
+    const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const confettiPieces = useMemo(
+        () =>
+            Array.from({ length: 24 }, (_, index) => ({
+                id: index,
+                left: Math.random() * 100,
+                delay: index * 0.08,
+                size: 8 + Math.random() * 10,
+                color: confettiPalette[index % confettiPalette.length],
+                rotation: Math.random() * 360,
+            })),
+        []
+    );
 
     const getChallengeDetails = async () => {
         if (!id) {
@@ -153,6 +199,14 @@ const ChallengeSubPage: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
+    useEffect(() => {
+        return () => {
+            if (celebrationTimeoutRef.current) {
+                clearTimeout(celebrationTimeoutRef.current);
+            }
+        };
+    }, []);
+
     const statusChip = useMemo(() => {
         const status = data?.challenge.user_status ?? (data?.challenge.user_sub ? "P" : "N");
         return statusChipMap[status] ?? {
@@ -173,9 +227,15 @@ const ChallengeSubPage: React.FC = () => {
             return;
         }
 
+        if (profileContext?.userXp === null || profileContext?.userXp === undefined) {
+            SEGPrincipalNotificator("Não foi possível obter seu XP atual. Tente novamente em instantes.", "warning");
+            return;
+        }
+
         setActionLoading(true);
         try {
             await api.post(subscribeEndpoint, {
+                start_xp: profileContext.userXp,
                 id_challenge: data.challenge.id_challenge,
                 id_course: selectedCourse,
             });
@@ -190,13 +250,14 @@ const ChallengeSubPage: React.FC = () => {
     };
 
     const handleAbandon = async () => {
-        if (!data?.challenge) return;
+        if (!data?.challenge?.id_challenge_user_progress) {
+            SEGPrincipalNotificator("Não foi possível identificar o progresso deste desafio.", "error");
+            return;
+        }
 
         setActionLoading(true);
         try {
-            await api.post(abandonEndpoint, {
-                id_challenge: data.challenge.id_challenge,
-            });
+            await api.delete(abandonEndpoint(data.challenge.id_challenge_user_progress));
             SEGPrincipalNotificator("Você abandonou o desafio.", "info");
             setConfirmAction(null);
             await getChallengeDetails();
@@ -208,15 +269,29 @@ const ChallengeSubPage: React.FC = () => {
     };
 
     const handleClaim = async () => {
-        if (!data?.challenge) return;
+        if (!data?.challenge?.id_challenge_user_progress) {
+            SEGPrincipalNotificator("Não foi possível identificar o progresso deste desafio.", "error");
+            return;
+        }
+
+        if (profileContext?.userXp === null || profileContext?.userXp === undefined) {
+            SEGPrincipalNotificator("Não foi possível obter seu XP atual. Tente novamente em instantes.", "warning");
+            return;
+        }
 
         setActionLoading(true);
         try {
-            await api.post(claimEndpoint, {
-                id_challenge: data.challenge.id_challenge,
+            await api.patch(claimEndpoint, {
+                end_xp: profileContext.userXp,
+                id_challenge_user_progress: data.challenge.id_challenge_user_progress,
             });
             SEGPrincipalNotificator("Recompensa reivindicada com sucesso!", "success");
             setConfirmAction(null);
+            if (celebrationTimeoutRef.current) {
+                clearTimeout(celebrationTimeoutRef.current);
+            }
+            setCelebrating(true);
+            celebrationTimeoutRef.current = setTimeout(() => setCelebrating(false), 4200);
             await getChallengeDetails();
         } catch (err) {
             SEGPrincipalNotificator("Não foi possível reivindicar a recompensa agora.", "error");
@@ -296,17 +371,17 @@ const ChallengeSubPage: React.FC = () => {
                             Como conquistar
                         </Typography>
 
-                        {data.challenge.type === "X" ?
+                        {data.challenge.type === "X" ? (
                             <Typography variant="body2" sx={{ color: alpha("#000", 0.6), lineHeight: 1.6 }}>
-                                Obtenha a quantidade de XP do desafio através do curso selecionado. Ao finalizar, clique em
-                                "Reivindicar recompensa" para adicionar esta insígnia à sua coleção.
+                                Some a quantidade de XP proposta através das atividades do curso escolhido. O progresso considera o seu
+                                XP inicial registrado na inscrição. Ao atingir o objetivo, finalize clicando em "Reivindicar recompensa".
                             </Typography>
-                            :
+                        ) : (
                             <Typography variant="body2" sx={{ color: alpha("#000", 0.6), lineHeight: 1.6 }}>
-                                Complete todas as etapas do curso na quantidade de dias proposta pelo curso. Ao finalizar, clique em
-                                "Reivindicar recompensa" para adicionar esta insígnia à sua coleção.
+                                Complete todas as etapas do curso dentro do número de dias indicado. Este prazo é contado a partir da sua
+                                inscrição, então organize seus estudos e conclua a trilha a tempo para garantir a insígnia!
                             </Typography>
-                        }
+                        )}
 
                     </Stack>
                 </Stack>
@@ -315,13 +390,20 @@ const ChallengeSubPage: React.FC = () => {
     };
 
     const isSubscribed = Boolean(data?.challenge.user_sub);
+    const isXpChallenge = data?.challenge.type === "X";
 
     const canSubscribe = Boolean(data && !data.challenge.user_sub && data.challenge.active);
-    const canAbandon = Boolean(data && data.challenge.user_sub);
+    const canAbandon = Boolean(
+        data &&
+        data.challenge.user_sub &&
+        !["C", "F", "R"].includes(data.challenge.user_status ?? "") &&
+        data.challenge.id_challenge_user_progress
+    );
     const canClaim = Boolean(
         data &&
         data.challenge.user_sub &&
-        ["C", "F", "R"].includes(data.challenge.user_status ?? "")
+        ["C", "F", "R"].includes(data.challenge.user_status ?? "") &&
+        data.challenge.id_challenge_user_progress
     );
 
     return (
@@ -444,18 +526,9 @@ const ChallengeSubPage: React.FC = () => {
 
                                             <Stack direction={{ xs: "column", sm: "row" }} spacing={3}>
                                                 <Stack spacing={0.5}>
-                                                    {
-                                                        data.challenge.type === "X" ?
-                                                            <Typography variant="overline" sx={{ letterSpacing: 1, color: alpha("#000", 0.5) }}>
-                                                                Qtd. XP necessária
-                                                            </Typography>
-                                                            :
-                                                            <Typography variant="overline" sx={{ letterSpacing: 1, color: alpha("#000", 0.5) }}>
-                                                                Dias para você concluir o curso
-                                                            </Typography>
-
-                                                    }
-
+                                                    <Typography variant="overline" sx={{ letterSpacing: 1, color: alpha("#000", 0.5) }}>
+                                                        {isXpChallenge ? "Qtd. XP necessária" : "Dias disponíveis para finalizar"}
+                                                    </Typography>
                                                     <Typography variant="h5" sx={{ fontWeight: 800, color: colors.purple }}>
                                                         {data.challenge.quantity}
                                                     </Typography>
@@ -487,6 +560,11 @@ const ChallengeSubPage: React.FC = () => {
                                                         </Typography>
                                                         <Typography variant="body2" sx={{ color: alpha("#000", 0.6), lineHeight: 1.6 }}>
                                                             {statusDescription}
+                                                        </Typography>
+                                                        <Typography variant="body2" sx={{ color: alpha("#000", 0.55), lineHeight: 1.6 }}>
+                                                            {isXpChallenge
+                                                                ? "Este desafio acompanha a sua evolução em XP. Some a quantidade informada para destravar a recompensa."
+                                                                : "Este desafio é uma corrida contra o tempo! Conclua o curso dentro do prazo de dias indicado para garantir a insígnia."}
                                                         </Typography>
                                                     </Stack>
                                                 </Stack>
@@ -534,7 +612,7 @@ const ChallengeSubPage: React.FC = () => {
                                                 </SEGTextField>
                                             )}
 
-                                            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                                            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} flexWrap="wrap">
                                                 <SEGButton
                                                     startIcon={<HowToRegIcon />}
                                                     onClick={() => {
@@ -547,14 +625,15 @@ const ChallengeSubPage: React.FC = () => {
                                                 >
                                                     Inscrever-se no desafio
                                                 </SEGButton>
-                                                <SEGButton
-                                                    colorTheme="outlined"
-                                                    startIcon={<LogoutIcon />}
-                                                    onClick={() => setConfirmAction("abandon")}
-                                                    disabled={!canAbandon}
-                                                >
-                                                    Abandonar desafio
-                                                </SEGButton>
+                                                {canAbandon && (
+                                                    <SEGButton
+                                                        colorTheme="outlined"
+                                                        startIcon={<LogoutIcon />}
+                                                        onClick={() => setConfirmAction("abandon")}
+                                                    >
+                                                        Abandonar desafio
+                                                    </SEGButton>
+                                                )}
                                                 <SEGButton
                                                     colorTheme="purple"
                                                     startIcon={<RedeemIcon />}
@@ -583,6 +662,13 @@ const ChallengeSubPage: React.FC = () => {
                     <Typography variant="body2" sx={{ color: alpha("#000", 0.7), mb: 2 }}>
                         Você está prestes a se inscrever no desafio "{data?.challenge.title}". Confirme o curso que será
                         utilizado nesta jornada.
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: alpha("#000", 0.6), mb: 3 }}>
+                        Seu XP inicial registrado será de {" "}
+                        <Box component="span" sx={{ fontWeight: 700, color: colors.purple }}>
+                            {displayedXp}
+                        </Box>{" "}
+                        pontos para acompanhar o desempenho deste desafio.
                     </Typography>
                     <SEGTextField
                         select
@@ -644,6 +730,75 @@ const ChallengeSubPage: React.FC = () => {
                     )}
                 </DialogActions>
             </Dialog>
+
+            {celebrating && (
+                <Box
+                    sx={{
+                        position: "fixed",
+                        inset: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        pointerEvents: "none",
+                        zIndex: (theme) => theme.zIndex.modal + 2,
+                    }}
+                >
+                    <Paper
+                        elevation={8}
+                        sx={{
+                            px: { xs: 4, sm: 6 },
+                            py: { xs: 3, sm: 4 },
+                            borderRadius: 6,
+                            background: "linear-gradient(135deg, rgba(124,58,237,0.95) 0%, rgba(56,189,248,0.92) 100%)",
+                            color: colors.white,
+                            textAlign: "center",
+                            boxShadow: "0 24px 64px rgba(79,70,229,0.45)",
+                            pointerEvents: "auto",
+                            position: "relative",
+                            overflow: "hidden",
+                            minWidth: { xs: 280, sm: 360 },
+                        }}
+                    >
+                        <Box
+                            sx={{
+                                position: "absolute",
+                                inset: 0,
+                                overflow: "hidden",
+                                pointerEvents: "none",
+                            }}
+                        >
+                            {confettiPieces.map((piece) => (
+                                <Box
+                                    key={piece.id}
+                                    sx={{
+                                        position: "absolute",
+                                        top: "-15%",
+                                        left: `${piece.left}%`,
+                                        width: piece.size,
+                                        height: piece.size * 0.6,
+                                        borderRadius: 0.5,
+                                        backgroundColor: piece.color,
+                                        opacity: 0,
+                                        animation: `${confettiFall} 2.8s ease-in-out forwards`,
+                                        animationDelay: `${piece.delay}s`,
+                                        transform: `rotate(${piece.rotation}deg)`,
+                                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                                    }}
+                                />
+                            ))}
+                        </Box>
+                        <Stack spacing={1.5} alignItems="center">
+                            <CelebrationIcon sx={{ fontSize: 48, animation: `${celebrationPulse} 1.4s ease-in-out infinite` }} />
+                            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                                Recompensa garantida!
+                            </Typography>
+                            <Typography variant="body1" sx={{ maxWidth: 320 }}>
+                                Você acaba de adicionar uma nova insígnia à sua coleção. Continue acumulando conquistas!
+                            </Typography>
+                        </Stack>
+                    </Paper>
+                </Box>
+            )}
         </Box>
     );
 };
