@@ -402,8 +402,9 @@ const ChallengeSubPage: React.FC = () => {
     );
     const canClaim = Boolean(data && data.challenge.user_sub && data.challenge.id_challenge_user_progress);
     const actionButtonSx = {
-        flex: 1,
+        width: "100%",
         minWidth: { xs: "100%", sm: 220 },
+        mb: 0,
     };
 
     return (
@@ -625,7 +626,16 @@ const ChallengeSubPage: React.FC = () => {
                                                 </>
                                             )}
 
-                                            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} flexWrap="wrap">
+                                            <Box
+                                                sx={{
+                                                    display: "grid",
+                                                    gap: { xs: 2, sm: 2.5 },
+                                                    gridTemplateColumns: {
+                                                        xs: "1fr",
+                                                        sm: "repeat(auto-fit, minmax(220px, 1fr))",
+                                                    },
+                                                }}
+                                            >
                                                 {!isFinalizedStatus && (
                                                     <SEGButton
                                                         startIcon={<HowToRegIcon />}
@@ -663,7 +673,7 @@ const ChallengeSubPage: React.FC = () => {
                                                 >
                                                     Solicitar recompensa
                                                 </SEGButton>
-                                            </Stack>
+                                            </Box>
                                         </Stack>
                                     </Paper>
                                 </Stack>
