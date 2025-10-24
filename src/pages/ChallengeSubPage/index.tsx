@@ -306,6 +306,8 @@ const ChallengeSubPage: React.FC = () => {
             }
         } finally {
             setActionLoading(false);
+            setConfirmAction(null);
+            
         }
     };
 
