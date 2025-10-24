@@ -87,13 +87,16 @@ const Navbar: React.FC = () => {
         setAnchorElUser(e.currentTarget);
     const handleUserClose = () => setAnchorElUser(null);
 
-    const handleUserMenuAction = (key: "perfil" | "estudos" | "logout") => {
+    const handleUserMenuAction = (key: "perfil" | "estudos" | "logout" | "insignias") => {
         handleUserClose();
         if (key === "logout") {
             logout();
         } else if (key === "estudos") {
             navigate("/my-studies");
-        } else if (key === "perfil") {
+        }else if (key === "insignias") {
+            navigate("/my-insignias");
+        } 
+        else if (key === "perfil") {
             navigate("/my-profile");
         }
     };
@@ -343,6 +346,8 @@ const Navbar: React.FC = () => {
                         <MenuItem onClick={() => handleUserMenuAction("perfil")}>Meu perfil</MenuItem>
 
                         {userType === "S"&& <MenuItem onClick={() => handleUserMenuAction("estudos")}>Meus estudos</MenuItem>}
+
+                        {userType === "S"&& <MenuItem onClick={() => handleUserMenuAction("insignias")}>Minhas insígnias</MenuItem>}
 
                         <MenuItem onClick={() => handleUserMenuAction("logout")}>Sair</MenuItem>
                         

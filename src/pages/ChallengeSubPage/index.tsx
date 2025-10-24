@@ -144,7 +144,6 @@ const ChallengeSubPage: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const profileContext = useContext(ProfileContext);
-    const currentXp = profileContext?.userXp ?? 0;
     const displayedXp = profileContext?.userXp ?? "--";
 
     const [data, setData] = useState<ChallengeDetailsResponse | null>(null);

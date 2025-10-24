@@ -21,6 +21,7 @@ import PasswordRecoveryPage from "../pages/PasswordRecoveryPage";
 import ProfilePage from "../pages/ProfilePage";
 import StudiesPage from "../pages/StudiesPage";
 import AllCoursesPage from "../pages/AllCoursesPage";
+import InsigniasPage from "../pages/InsigniasPage";
 
 export const Router: React.FC = () => {
 
@@ -65,6 +66,7 @@ export const Router: React.FC = () => {
 
                         <Route path="/my-profile" element={<ProfilePage/>}/>
                         <Route path="/my-studies" element={<StudiesPage/>}/>
+                        <Route path="/my-insignias" element={<InsigniasPage/>}/>
                         
                         {/* ADMIN */}
 
