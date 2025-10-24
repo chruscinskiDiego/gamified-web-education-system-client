@@ -25,7 +25,7 @@ type ApiResponse = {
 };
 
 const defaultMessages: Record<RecoveryStatus, string> = {
-    idle: "Informe seu e-mail institucional para receber as instruções de redefinição de senha.",
+    idle: "Informe seu e-mail para receber as instruções de redefinição de senha.",
     success: "Enviamos um link de recuperação para o e-mail informado. Verifique também a sua caixa de spam.",
     error: "Não foi possível enviar o e-mail de recuperação. Tente novamente em instantes.",
 };
