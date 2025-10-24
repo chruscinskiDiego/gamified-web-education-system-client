@@ -97,16 +97,16 @@ const rarityMap = {
 const statusChipMap: Record<string, { label: string; color: string; background: string }> = {
     P: { label: "Em progresso", color: "#F59E0B", background: "rgba(245, 158, 11, 0.18)" },
     C: { label: "Concluído", color: "#22C55E", background: "rgba(34, 197, 94, 0.18)" },
-    F: { label: "Finalizado", color: "#3B82F6", background: "rgba(59, 130, 246, 0.18)" },
+    F: { label: "Finalizado com sucesso", color: "#3B82F6", background: "rgba(59, 130, 246, 0.18)" },
     R: { label: "Recompensa disponível", color: "#7C3AED", background: "rgba(124, 58, 237, 0.18)" },
     N: { label: "Não iniciado", color: colors.purple, background: alpha(colors.purple, 0.16) },
 };
 
 const statusDescriptionMap: Record<string, string> = {
     P: "Você está no meio desta jornada. Continue completando as etapas para conquistar a insígnia!",
-    C: "Parabéns! Desafio concluído, agora é só reivindicar sua recompensa.",
-    F: "Este desafio foi encerrado para novos participantes, mas seu histórico continua registrado.",
-    R: "Você já tem direito à recompensa. Clique em reivindicar para garantir sua insígnia.",
+    C: "Parabéns! Desafio concluído, agora é só solicitar sua recompensa.",
+    F: "Você completou todas as etapas deste desafio com excelência. Solicite sua recompensa e comemore a conquista!",
+    R: "Você já tem direito à recompensa. Clique em solicitar para garantir sua insígnia.",
     N: "Inscreva-se no desafio para começar a acumular XP e evoluir sua jornada.",
 };
 
@@ -285,7 +285,7 @@ const ChallengeSubPage: React.FC = () => {
                 end_xp: profileContext.userXp,
                 id_challenge_user_progress: data.challenge.id_challenge_user_progress,
             });
-            SEGPrincipalNotificator("Recompensa reivindicada com sucesso!", "success");
+            SEGPrincipalNotificator("Recompensa solicitada com sucesso!", "success");
             setConfirmAction(null);
             if (celebrationTimeoutRef.current) {
                 clearTimeout(celebrationTimeoutRef.current);
@@ -294,7 +294,7 @@ const ChallengeSubPage: React.FC = () => {
             celebrationTimeoutRef.current = setTimeout(() => setCelebrating(false), 4200);
             await getChallengeDetails();
         } catch (err) {
-            SEGPrincipalNotificator("Não foi possível reivindicar a recompensa agora.", "error");
+            SEGPrincipalNotificator("Não foi possível solicitar a recompensa agora.", "error");
         } finally {
             setActionLoading(false);
         }
@@ -374,7 +374,7 @@ const ChallengeSubPage: React.FC = () => {
                         {data.challenge.type === "X" ? (
                             <Typography variant="body2" sx={{ color: alpha("#000", 0.6), lineHeight: 1.6 }}>
                                 Some a quantidade de XP proposta através das atividades do curso escolhido. O progresso considera o seu
-                                XP inicial registrado na inscrição. Ao atingir o objetivo, finalize clicando em "Reivindicar recompensa".
+                                XP inicial registrado na inscrição. Ao atingir o objetivo, finalize clicando em "Solicitar recompensa".
                             </Typography>
                         ) : (
                             <Typography variant="body2" sx={{ color: alpha("#000", 0.6), lineHeight: 1.6 }}>
@@ -391,6 +391,7 @@ const ChallengeSubPage: React.FC = () => {
 
     const isSubscribed = Boolean(data?.challenge.user_sub);
     const isXpChallenge = data?.challenge.type === "X";
+    const isFinalizedStatus = data?.challenge.user_status === "F";
 
     const canSubscribe = Boolean(data && !data.challenge.user_sub && data.challenge.active);
     const canAbandon = Boolean(
@@ -399,12 +400,11 @@ const ChallengeSubPage: React.FC = () => {
         !["C", "F", "R"].includes(data.challenge.user_status ?? "") &&
         data.challenge.id_challenge_user_progress
     );
-    const canClaim = Boolean(
-        data &&
-        data.challenge.user_sub &&
-        ["C", "F", "R"].includes(data.challenge.user_status ?? "") &&
-        data.challenge.id_challenge_user_progress
-    );
+    const canClaim = Boolean(data && data.challenge.user_sub && data.challenge.id_challenge_user_progress);
+    const actionButtonSx = {
+        flex: 1,
+        minWidth: { xs: "100%", sm: 220 },
+    };
 
     return (
         <Box
@@ -582,54 +582,73 @@ const ChallengeSubPage: React.FC = () => {
                                         }}
                                     >
                                         <Stack spacing={3}>
-                                            <Typography variant="h6" sx={{ fontWeight: 800, color: colors.purple }}>
-                                                Escolha um curso para participar
-                                            </Typography>
-
-                                            {data.challenge_courses.length === 0 ? (
-                                                <Typography variant="body2" sx={{ color: alpha("#000", 0.6) }}>
-                                                    Nenhum curso disponível para inscrição neste desafio no momento.
-                                                </Typography>
+                                            {isFinalizedStatus ? (
+                                                <Stack spacing={1.5}>
+                                                    <Typography variant="h6" sx={{ fontWeight: 800, color: colors.purple }}>
+                                                        Desafio finalizado
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ color: alpha("#000", 0.65) }}>
+                                                        Você levou este desafio até o fim. Agora é só solicitar a recompensa para registrar sua conquista!
+                                                    </Typography>
+                                                </Stack>
                                             ) : (
-                                                <SEGTextField
-                                                    select
-                                                    label="Cursos disponíveis"
-                                                    value={selectedCourse}
-                                                    onChange={(event) => setSelectedCourse(event.target.value as string)}
-                                                    helperText={
-                                                        isSubscribed
-                                                            ? "Curso selecionado para este desafio."
-                                                            : "Selecione o curso que você utilizará para cumprir as missões."
-                                                    }
-                                                    InputLabelProps={{ shrink: true }}
-                                                    disabled={isSubscribed}
-                                                >
-                                                    {data.challenge_courses.map((course) => (
-                                                        <MenuItem key={course.id_course} value={course.id_course}>
-                                                            {course.title}
-                                                        </MenuItem>
-                                                    ))}
-                                                </SEGTextField>
+                                                <>
+                                                    <Typography variant="h6" sx={{ fontWeight: 800, color: colors.purple }}>
+                                                        Escolha um curso para participar
+                                                    </Typography>
+
+                                                    {data.challenge_courses.length === 0 ? (
+                                                        <Typography variant="body2" sx={{ color: alpha("#000", 0.6) }}>
+                                                            Nenhum curso disponível para inscrição neste desafio no momento.
+                                                        </Typography>
+                                                    ) : (
+                                                        <SEGTextField
+                                                            select
+                                                            label="Cursos disponíveis"
+                                                            value={selectedCourse}
+                                                            onChange={(event) => setSelectedCourse(event.target.value as string)}
+                                                            helperText={
+                                                                isSubscribed
+                                                                    ? "Curso selecionado para este desafio."
+                                                                    : "Selecione o curso que você utilizará para cumprir as missões."
+                                                            }
+                                                            InputLabelProps={{ shrink: true }}
+                                                            disabled={isSubscribed}
+                                                        >
+                                                            {data.challenge_courses.map((course) => (
+                                                                <MenuItem key={course.id_course} value={course.id_course}>
+                                                                    {course.title}
+                                                                </MenuItem>
+                                                            ))}
+                                                        </SEGTextField>
+                                                    )}
+                                                </>
                                             )}
 
                                             <Stack direction={{ xs: "column", sm: "row" }} spacing={2} flexWrap="wrap">
-                                                <SEGButton
-                                                    startIcon={<HowToRegIcon />}
-                                                    onClick={() => {
-                                                        if (!selectedCourse && data.challenge_courses.length > 0) {
-                                                            setSelectedCourse(data.challenge_courses[0].id_course);
-                                                        }
-                                                        setSubscribeDialogOpen(true);
-                                                    }}
-                                                    disabled={!canSubscribe || data.challenge_courses.length === 0}
-                                                >
-                                                    Inscrever-se no desafio
-                                                </SEGButton>
+                                                {!isFinalizedStatus && (
+                                                    <SEGButton
+                                                        startIcon={<HowToRegIcon />}
+                                                        onClick={() => {
+                                                            if (!selectedCourse && data.challenge_courses.length > 0) {
+                                                                setSelectedCourse(data.challenge_courses[0].id_course);
+                                                            }
+                                                            setSubscribeDialogOpen(true);
+                                                        }}
+                                                        disabled={!canSubscribe || data.challenge_courses.length === 0}
+                                                        sx={actionButtonSx}
+                                                        fullWidth={false}
+                                                    >
+                                                        Inscrever-se no desafio
+                                                    </SEGButton>
+                                                )}
                                                 {canAbandon && (
                                                     <SEGButton
                                                         colorTheme="outlined"
                                                         startIcon={<LogoutIcon />}
                                                         onClick={() => setConfirmAction("abandon")}
+                                                        sx={actionButtonSx}
+                                                        fullWidth={false}
                                                     >
                                                         Abandonar desafio
                                                     </SEGButton>
@@ -639,8 +658,10 @@ const ChallengeSubPage: React.FC = () => {
                                                     startIcon={<RedeemIcon />}
                                                     onClick={() => setConfirmAction("claim")}
                                                     disabled={!canClaim}
+                                                    sx={actionButtonSx}
+                                                    fullWidth={false}
                                                 >
-                                                    Reivindicar recompensa
+                                                    Solicitar recompensa
                                                 </SEGButton>
                                             </Stack>
                                         </Stack>
@@ -696,13 +717,13 @@ const ChallengeSubPage: React.FC = () => {
 
             <Dialog open={Boolean(confirmAction)} onClose={() => setConfirmAction(null)} maxWidth="xs" fullWidth>
                 <DialogTitle sx={{ fontWeight: 800, color: colors.purple }}>
-                    {confirmAction === "abandon" ? "Abandonar desafio" : "Reivindicar recompensa"}
+                    {confirmAction === "abandon" ? "Abandonar desafio" : "Solicitar recompensa"}
                 </DialogTitle>
                 <DialogContent dividers>
                     <Typography variant="body2" sx={{ color: alpha("#000", 0.7) }}>
                         {confirmAction === "abandon"
                             ? "Tem certeza de que deseja abandonar este desafio? Seu progresso atual será perdido."
-                            : "Deseja reivindicar a recompensa deste desafio agora mesmo?"}
+                            : "Deseja solicitar a recompensa deste desafio agora mesmo?"}
                     </Typography>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 3 }}>
@@ -725,7 +746,7 @@ const ChallengeSubPage: React.FC = () => {
                             loading={actionLoading}
                             fullWidth={false}
                         >
-                            Reivindicar
+                            Solicitar
                         </SEGButton>
                     )}
                 </DialogActions>
