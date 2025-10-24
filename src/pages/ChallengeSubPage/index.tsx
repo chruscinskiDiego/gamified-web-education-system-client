@@ -1,4 +1,5 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import type { AxiosError } from "axios";
 import { keyframes } from "@emotion/react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -294,7 +295,15 @@ const ChallengeSubPage: React.FC = () => {
             celebrationTimeoutRef.current = setTimeout(() => setCelebrating(false), 4200);
             await getChallengeDetails();
         } catch (err) {
-            SEGPrincipalNotificator("Não foi possível solicitar a recompensa agora.", "error");
+            const error = err as AxiosError<{ message?: string }>;
+            const status = error.response?.status;
+            const apiMessage = error.response?.data?.message;
+
+            if (status === 400 && apiMessage) {
+                SEGPrincipalNotificator(apiMessage, "error");
+            } else {
+                SEGPrincipalNotificator("Não foi possível solicitar a recompensa agora.", "error");
+            }
         } finally {
             setActionLoading(false);
         }
