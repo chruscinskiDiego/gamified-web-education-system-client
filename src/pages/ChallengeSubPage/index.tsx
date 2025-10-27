@@ -144,7 +144,8 @@ const ChallengeSubPage: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const profileContext = useContext(ProfileContext);
-    const displayedXp = profileContext?.userXp ?? "--";
+    const userXp = profileContext?.userXp ?? null;
+    const setUserXp = profileContext?.setUserXp;
 
     const [data, setData] = useState<ChallengeDetailsResponse | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
@@ -195,8 +196,9 @@ const ChallengeSubPage: React.FC = () => {
     };
 
     useEffect(() => {
-        void getChallengeDetails();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        
+        getChallengeDetails();
+
     }, [id]);
 
     useEffect(() => {
@@ -280,18 +282,31 @@ const ChallengeSubPage: React.FC = () => {
         }
 
         setActionLoading(true);
+
         try {
-            await api.patch(claimEndpoint, {
+
+            const response = await api.patch(claimEndpoint, {
                 end_xp: profileContext.userXp,
                 id_challenge_user_progress: data.challenge.id_challenge_user_progress,
             });
+
             SEGPrincipalNotificator("Recompensa solicitada com sucesso!", "success");
+
             setConfirmAction(null);
+
             if (celebrationTimeoutRef.current) {
                 clearTimeout(celebrationTimeoutRef.current);
             }
+
             setCelebrating(true);
+
             celebrationTimeoutRef.current = setTimeout(() => setCelebrating(false), 4200);
+
+            if (setUserXp) {
+
+                setUserXp(response.data.userXp || userXp);
+
+            }
             await getChallengeDetails();
         } catch (err) {
             const error = err as AxiosError<{ message?: string }>;
@@ -673,7 +688,7 @@ const ChallengeSubPage: React.FC = () => {
                                                         Abandonar desafio
                                                     </SEGButton>
                                                 )}
-                                                <SEGButton
+                                                {!isFinalizedStatus && <SEGButton
                                                     colorTheme="purple"
                                                     startIcon={<RedeemIcon />}
                                                     onClick={() => setConfirmAction("claim")}
@@ -682,7 +697,7 @@ const ChallengeSubPage: React.FC = () => {
                                                     fullWidth={false}
                                                 >
                                                     Solicitar recompensa
-                                                </SEGButton>
+                                                </SEGButton>}
                                             </Box>
                                         </Stack>
                                     </Paper>
@@ -707,7 +722,7 @@ const ChallengeSubPage: React.FC = () => {
                     <Typography variant="body2" sx={{ color: alpha("#000", 0.6), mb: 3 }}>
                         Seu XP inicial registrado será de {" "}
                         <Box component="span" sx={{ fontWeight: 700, color: colors.purple }}>
-                            {displayedXp}
+                            {userXp}
                         </Box>{" "}
                         pontos para acompanhar o desempenho deste desafio.
                     </Typography>

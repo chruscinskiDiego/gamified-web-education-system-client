@@ -58,10 +58,8 @@ const Navbar: React.FC = () => {
         try {
             const response = await api.get("/user-xp", { signal: controller.signal });
             const points: number = response?.data?.points ?? 0;
-            // atualiza apenas o contexto; o restante é derivado
             setUserXp(points);
         } catch (err: any) {
-            // se for cancelado, só ignora
             if (err?.name !== "CanceledError" && err?.message !== "canceled") {
                 setUserXp(0);
             }

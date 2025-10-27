@@ -1,7 +1,7 @@
 import { Box, Grid, Icon, Stack, Typography, useTheme } from "@mui/material";
 import type { CourseSummary } from "../../interfaces/course.interfaces";
 import { CourseCard } from "../CourseCard";
-import ImageIcon from "@mui/icons-material/Image";
+import BookIcon from '@mui/icons-material/Book';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 import StarsIcon from '@mui/icons-material/Stars';
 import { colors } from "../../theme/colors";
@@ -60,12 +60,12 @@ export const CourseSection = ({
                             color: theme.palette.grey[500],
                         }}
                     >
-                        <ImageIcon sx={{ fontSize: 56, mb: 2, color: theme.palette.grey[400] }} />
-                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                            Nada por aqui ainda
+                        <BookIcon sx={{ fontSize: "80px", color: colors.purple }}/>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: colors.purple }}>
+                            { type === 'registered' ? 'Você ainda não se registrou em nenhum curso' : 'Nada por aqui ainda'}
                         </Typography>
                         <Typography variant="body2" sx={{ maxWidth: 360 }}>
-                            Assim que novos cursos estiverem disponíveis, eles aparecerão nesta seção.
+                            { type === 'registered' ? 'Assim que você se matricular em cursos, eles aparecerão nesta seção': 'Assim que novos cursos estiverem disponíveis, eles aparecerão nesta seção'}
                         </Typography>
                     </Box>
                 ) : (
