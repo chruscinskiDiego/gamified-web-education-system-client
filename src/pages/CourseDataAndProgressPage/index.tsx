@@ -516,6 +516,10 @@ const CourseDataAndProgressPage: React.FC = () => {
         }
 
 
+        const wasCourseCompleted = courseData.modules.every((module) =>
+            module.episodes.every((episode) => episode.completed)
+        );
+
         const updatedModules = courseData.modules.map((module) => {
             if (module.id_course_module !== selectedModuleId) return module;
 
@@ -544,6 +548,10 @@ const CourseDataAndProgressPage: React.FC = () => {
                 modules: updatedModules,
             };
 
+            const isCourseCompleted = updatedCourse.modules.every((module) =>
+                module.episodes.every((episode) => episode.completed)
+            );
+
             const updatedModulesSorted = updatedModules.slice().sort((a, b) => a.order - b.order);
             const currentModuleIndex = updatedModulesSorted.findIndex((module) => module.id_course_module === selectedModuleId);
             const currentModule = updatedModulesSorted[currentModuleIndex];
@@ -559,6 +567,20 @@ const CourseDataAndProgressPage: React.FC = () => {
 
                 let nextModuleId = selectedModuleId;
                 let nextEpisodeId = selectedEpisodeId;
+
+                if (isCourseCompleted && !wasCourseCompleted) {
+                    const courseId = courseData.id_course || id;
+
+                    if (courseId) {
+                        try {
+                            await api.patch("/course-registration/finish", {
+                                id_course: courseId,
+                            });
+                        } catch (error) {
+                            console.error("Erro ao finalizar matrícula do curso", error);
+                        }
+                    }
+                }
 
                 if (currentModule && currentEpisodeIndex > -1) {
                     const nextEpisode = currentModule.episodes[currentEpisodeIndex + 1];
