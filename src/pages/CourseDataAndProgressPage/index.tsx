@@ -568,16 +568,27 @@ const CourseDataAndProgressPage: React.FC = () => {
                 let nextModuleId = selectedModuleId;
                 let nextEpisodeId = selectedEpisodeId;
 
+                //conclui o curso
                 if (isCourseCompleted && !wasCourseCompleted) {
+
                     const courseId = courseData.id_course || id;
 
                     if (courseId) {
                         try {
-                            await api.patch("/course-registration/finish", {
+
+                            const response = await api.patch("/course-registration/finish", {
                                 id_course: courseId,
                             });
+
+                            if (response?.status === 200) {
+
+                                SEGPrincipalNotificator("Curso finalizado com sucesso!", "success", "Parabéns!");
+
+                            }
                         } catch (error) {
+
                             console.error("Erro ao finalizar matrícula do curso", error);
+
                         }
                     }
                 }
