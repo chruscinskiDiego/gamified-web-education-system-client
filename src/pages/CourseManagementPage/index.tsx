@@ -154,6 +154,23 @@ const CourseManagementPage: React.FC = () => {
         if (fileRef.current) fileRef.current.value = "";
     };
 
+    const handleUploadImage = async (): Promise<boolean> => {
+        if (!imageFile || !course?.id_course) return false;
+
+        const form = new FormData();
+        form.append("file", imageFile);
+
+        try {
+            await api.post(`/course/set-thumbnail/${course.id_course}`, form, {
+                headers: { "Content-Type": undefined },
+            });
+            return true;
+        } catch (error) {
+            console.error("Falha no upload da imagem:", error);
+            return false;
+        }
+    };
+
     if (loadingCourse || loadingCategories) {
         return (
             <Box
@@ -225,7 +242,19 @@ const CourseManagementPage: React.FC = () => {
                     } as Course;
                 });
 
-                SEGPrincipalNotificator("Curso atualizado", "success", "Sucesso!");
+                let imageUploaded = true;
+
+                if (imageFile) {
+                    imageUploaded = await handleUploadImage();
+
+                    if (!imageUploaded) {
+                        SEGPrincipalNotificator("Falha ao enviar imagem!", "warning", "Atenção!");
+                    }
+                }
+
+                if (imageUploaded) {
+                    SEGPrincipalNotificator("Curso atualizado", "success", "Sucesso!");
+                }
 
             }
 
