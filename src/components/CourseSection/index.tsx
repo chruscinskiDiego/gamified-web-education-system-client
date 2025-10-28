@@ -62,7 +62,7 @@ export const CourseSection = ({
                     >
                         <BookIcon sx={{ fontSize: "80px", color: colors.purple }}/>
                         <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: colors.purple }}>
-                            { type === 'registered' ? 'Você ainda não se registrou em nenhum curso' : 'Nada por aqui ainda'}
+                            { type === 'registered' ? 'Você não tem cursos em progresso' : 'Nada por aqui ainda'}
                         </Typography>
                         <Typography variant="body2" sx={{ maxWidth: 360 }}>
                             { type === 'registered' ? 'Assim que você se matricular em cursos, eles aparecerão nesta seção': 'Assim que novos cursos estiverem disponíveis, eles aparecerão nesta seção'}

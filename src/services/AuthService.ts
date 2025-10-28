@@ -61,6 +61,7 @@ export const logout = () => {
     Cookies.remove('userId');
     Cookies.remove('cookie');
     Cookies.remove('type');
+    Cookies.remove('pic');
 
     delete api.defaults.headers.common['Authorization'];
     location.reload();

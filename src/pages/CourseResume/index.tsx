@@ -423,17 +423,20 @@ const CoursesResume: React.FC = () => {
 
         return (
             <>
-                <SEGButton
-                    colorTheme={colorTheme}
-                    onClick={() => {
-                        courseResume?.registration_state === null ? handleCreateRegistrationDialog() : handleCancelRegistrationDialog();
-                    }}
-                    sx={{ maxWidth: { xs: "100%", sm: 320 } }}
-                >
-                    {registrationLabel}
-                </SEGButton>
+                {courseResume?.registration_state !== "F" && (
+                    <SEGButton
+                        colorTheme={colorTheme}
+                        onClick={() => {
+                            courseResume?.registration_state === null ? handleCreateRegistrationDialog() : handleCancelRegistrationDialog();
+                        }}
+                        sx={{ maxWidth: { xs: "100%", sm: 320 } }}
+                    >
+                        {registrationLabel}
+                    </SEGButton>
+                )
+                }
 
-                {courseResume?.registration_state === "S" && (
+                {(courseResume?.registration_state === "S" || courseResume?.registration_state === "F" ) && (
                     <SEGButton
                         colorTheme="white"
                         onClick={handleNavigateToCourse}
