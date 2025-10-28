@@ -775,10 +775,13 @@ const CoursesResume: React.FC = () => {
                                             alt={`Thumb do curso ${courseResume?.title ?? "sem título"}`}
                                             sx={{
                                                 width: "100%",
-                                                height: { xs: 260, md: 320 },
-                                                objectFit: "cover",
+                                                height: "auto",
+                                                maxHeight: { xs: 260, md: 320 },
+                                                objectFit: "contain",
+                                                objectPosition: "center",
                                                 borderRadius: 4,
                                                 boxShadow: "0 24px 45px rgba(0,0,0,0.25)",
+                                                display: "block",
                                             }}
                                         />
                                     ) : (
