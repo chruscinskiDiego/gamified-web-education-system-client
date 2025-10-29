@@ -201,6 +201,7 @@ const NewCoursePage: React.FC = () => {
     if (!description.trim()) missingFields.push("Descrição");
     if (!difficulty.trim()) missingFields.push("Dificuldade");
     if (!category.trim()) missingFields.push("Categoria");
+    if (!imageFile) missingFields.push("Imagem");
 
     return {
       isValid: missingFields.length === 0,
