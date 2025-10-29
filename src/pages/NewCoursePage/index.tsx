@@ -87,11 +87,16 @@ const NewCoursePage: React.FC = () => {
 
     if (e) e.preventDefault();
 
-    const validPayload = validateFields();
+    const { isValid, missingFields } = validateFields();
 
-    if (!validPayload) {
+    if (!isValid) {
 
-      alert("payload invalido!");
+      const formattedFields = missingFields.join(", ");
+      const message = missingFields.length > 1
+        ? `Preencha os campos: ${formattedFields}.`
+        : `Preencha o campo: ${formattedFields}.`;
+
+      SEGPrincipalNotificator(message, "warning", "Campos obrigatórios");
 
       return;
 
@@ -188,13 +193,21 @@ const NewCoursePage: React.FC = () => {
     navigate(route);
   };
 
-  const validateFields = () => {
+  const validateFields = (): { isValid: boolean; missingFields: string[] } => {
 
-    if (description === "" || difficulty === "" || category === "" || title === "") return false;
+    const missingFields: string[] = [];
 
-    return true;
+    if (!title.trim()) missingFields.push("Título");
+    if (!description.trim()) missingFields.push("Descrição");
+    if (!difficulty.trim()) missingFields.push("Dificuldade");
+    if (!category.trim()) missingFields.push("Categoria");
 
-  }
+    return {
+      isValid: missingFields.length === 0,
+      missingFields,
+    };
+
+  };
 
   if (loadingCategories) {
     return (
