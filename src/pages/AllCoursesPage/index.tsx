@@ -273,7 +273,7 @@ const AllCoursesPage: React.FC = () => {
         }
 
         return (
-            <Grid container spacing={3} sx={{ m: 0, width: "100%" }}>
+            <Grid container spacing={3} sx={{ p: 0, m: 0, width: "100%" }}>
                 {paginatedCourses.map((course) => (
                     <Grid item xs={12} sm={6} md={4} key={course.id_course}>
                         <CourseCard
