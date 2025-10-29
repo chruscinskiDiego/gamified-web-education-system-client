@@ -162,7 +162,8 @@ const AllCoursesPage: React.FC = () => {
                 const normalizedSearch = searchTerm.trim().toLowerCase();
                 const titleMatches = course.title?.toLowerCase().includes(normalizedSearch);
                 const descriptionMatches = course.description?.toLowerCase().includes(normalizedSearch);
-                return titleMatches || descriptionMatches;
+                const idMatches = course.id_course?.toLowerCase().includes(normalizedSearch);
+                return titleMatches || descriptionMatches || idMatches;
             })
             .filter((course) => {
                 if (selectedCategory === "all") return true;
@@ -374,7 +375,7 @@ const AllCoursesPage: React.FC = () => {
                                     label="Buscar por curso"
                                     value={searchTerm}
                                     onChange={(event) => setSearchTerm(event.target.value)}
-                                    placeholder="Procure por título ou palavras-chave"
+                                    placeholder="Procure por título, palavras-chave ou ID"
                                     InputProps={{
                                         startAdornment: (
                                             <InputAdornment position="start">
