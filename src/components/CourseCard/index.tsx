@@ -39,20 +39,29 @@ export const CourseCard = ({
                 background: "#ffffff",
                 boxShadow: "0px 10px 30px rgba(33, 33, 52, 0.08)",
                 transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                display: "flex",
                 "&:hover": {
                     transform: "translateY(-4px)",
                     boxShadow: "0px 18px 40px rgba(33, 33, 52, 0.18)",
                 },
             }}
         >
-            <CardActionArea onClick={onClick} sx={{ height: "100%" }}>
+            <CardActionArea
+                onClick={onClick}
+                sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "stretch",
+                    height: "100%",
+                }}
+            >
                 {course.link_thumbnail ? (
                     <CardMedia
                         component="img"
                         height="160"
                         image={course.link_thumbnail}
                         alt={`Capa do curso ${course.title}`}
-                        sx={{ objectFit: "cover" }}
+                        sx={{ objectFit: "cover", flexShrink: 0 }}
                     />
                 ) : (
                     <Box
@@ -69,7 +78,7 @@ export const CourseCard = ({
                     </Box>
                 )}
 
-                <CardContent sx={{ p: 3 }}>
+                <CardContent sx={{ p: 3, flexGrow: 1, display: "flex", flexDirection: "column" }}>
                     <Stack spacing={2}>
                         <Stack
                             direction="row"
@@ -133,6 +142,10 @@ export const CourseCard = ({
                                     fontWeight: 700,
                                     color: theme.palette.text.primary,
                                     minHeight: 56,
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: "vertical",
+                                    overflow: "hidden",
                                 }}
                             >
                                 {course.title}

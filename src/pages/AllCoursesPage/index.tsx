@@ -224,9 +224,21 @@ const AllCoursesPage: React.FC = () => {
     const renderCoursesGrid = () => {
         if (isLoading) {
             return (
-                <Grid container spacing={3}>
+                <Grid
+                    container
+                    spacing={3}
+                    justifyContent="center"
+                    sx={{ mx: "auto" }}
+                >
                     {Array.from({ length: 6 }).map((_, index) => (
-                        <Grid item xs={12} sm={6} md={4} key={index}>
+                        <Grid
+                            item
+                            xs={12}
+                            sm={6}
+                            md={4}
+                            key={index}
+                            sx={{ display: "flex" }}
+                        >
                             <Skeleton variant="rectangular" height={320} sx={{ borderRadius: 3 }} />
                         </Grid>
                     ))}
@@ -273,9 +285,21 @@ const AllCoursesPage: React.FC = () => {
         }
 
         return (
-            <Grid container spacing={3}>
+            <Grid
+                container
+                spacing={3}
+                justifyContent="center"
+                sx={{ mx: "auto" }}
+            >
                 {paginatedCourses.map((course) => (
-                    <Grid item xs={12} sm={6} md={4} key={course.id_course}>
+                    <Grid
+                        item
+                        xs={12}
+                        sm={6}
+                        md={4}
+                        key={course.id_course}
+                        sx={{ display: "flex" }}
+                    >
                         <CourseCard
                             course={{
                                 title: course.title,
