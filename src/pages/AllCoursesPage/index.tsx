@@ -162,7 +162,8 @@ const AllCoursesPage: React.FC = () => {
                 const normalizedSearch = searchTerm.trim().toLowerCase();
                 const titleMatches = course.title?.toLowerCase().includes(normalizedSearch);
                 const descriptionMatches = course.description?.toLowerCase().includes(normalizedSearch);
-                return titleMatches || descriptionMatches;
+                const idMatches = course.id_course?.toLowerCase().includes(normalizedSearch);
+                return titleMatches || descriptionMatches || idMatches;
             })
             .filter((course) => {
                 if (selectedCategory === "all") return true;
@@ -224,7 +225,7 @@ const AllCoursesPage: React.FC = () => {
     const renderCoursesGrid = () => {
         if (isLoading) {
             return (
-                <Grid container spacing={3}>
+                <Grid container spacing={3} justifyContent="center">
                     {Array.from({ length: 6 }).map((_, index) => (
                         <Grid item xs={12} sm={6} md={4} key={index}>
                             <Skeleton variant="rectangular" height={320} sx={{ borderRadius: 3 }} />
@@ -273,7 +274,7 @@ const AllCoursesPage: React.FC = () => {
         }
 
         return (
-            <Grid container spacing={3}>
+            <Grid container spacing={3} justifyContent="center">
                 {paginatedCourses.map((course) => (
                     <Grid item xs={12} sm={6} md={4} key={course.id_course}>
                         <CourseCard
@@ -371,10 +372,10 @@ const AllCoursesPage: React.FC = () => {
                             >
                                 <TextField
                                     fullWidth
-                                    label="Buscar por curso"
+                                    label="Buscar por curso ou ID"
                                     value={searchTerm}
                                     onChange={(event) => setSearchTerm(event.target.value)}
-                                    placeholder="Procure por título ou palavras-chave"
+                                    placeholder="Procure por título, ID ou palavras-chave"
                                     InputProps={{
                                         startAdornment: (
                                             <InputAdornment position="start">
