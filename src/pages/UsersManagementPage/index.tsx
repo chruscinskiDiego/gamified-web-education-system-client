@@ -278,7 +278,14 @@ const UsersManagementPage: React.FC = () => {
     });
 
     const actionButtonWidth = 208;
-    const actionButtonSx = { minHeight: 46, minWidth: actionButtonWidth, width: actionButtonWidth };
+    const actionButtonHeight = 50;
+    const actionButtonSx = {
+        minHeight: actionButtonHeight,
+        height: actionButtonHeight,
+        minWidth: actionButtonWidth,
+        width: actionButtonWidth,
+        mb: 0,
+    };
 
     const handleSearchUser = async () => {
         if (!searchValue.trim()) {
@@ -481,7 +488,7 @@ const UsersManagementPage: React.FC = () => {
                                 <Stack
                                     direction={{ xs: "column", sm: "row" }}
                                     spacing={1.25}
-                                    alignItems="center"
+                                    alignItems="stretch"
                                     justifyContent="flex-end"
                                     flexWrap="wrap"
                                 >
@@ -529,7 +536,7 @@ const UsersManagementPage: React.FC = () => {
                                         startIcon={<LaunchRoundedIcon />}
                                         onClick={handleLoadDetails}
                                         loading={loadingDetails}
-                                        sx={{ ...actionButtonSx, px: 3 }}
+                                        sx={actionButtonSx}
                                     >
                                         Ver detalhes
                                     </SEGButton>
