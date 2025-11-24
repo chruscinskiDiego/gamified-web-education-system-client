@@ -298,10 +298,10 @@ const UsersManagementPage: React.FC = () => {
     const [editAdminModal, setEditAdminModal] = useState<{
         open: boolean;
         admin?: AdminUser;
-        form: { name: string; surname: string; email: string; password: string; birth_date: string };
+        form: { name: string; surname: string; email: string };
     }>({
         open: false,
-        form: { name: "", surname: "", email: "", password: "", birth_date: "" },
+        form: { name: "", surname: "", email: "" },
     });
     const [confirmAdminStatus, setConfirmAdminStatus] = useState<{ open: boolean; admin?: AdminUser }>({ open: false });
 
@@ -456,27 +456,19 @@ const UsersManagementPage: React.FC = () => {
                 name: admin.name,
                 surname: admin.surname,
                 email: admin.email,
-                password: "",
-                birth_date: "",
             },
         });
     };
 
     const submitAdminUpdate = async (
         admin: AdminUser,
-        payload: Partial<{ name: string; surname: string; email: string; password: string; birth_date: string; active: boolean }>,
+        payload: Partial<{ name: string; surname: string; email: string; active: boolean }>,
         successMessage: string,
     ) => {
         setAdminActionLoading(admin.id_user);
 
         try {
-            const formattedPayload = { ...payload };
-
-            if (payload.birth_date) {
-                formattedPayload.birth_date = new Date(payload.birth_date).toISOString();
-            }
-
-            await api.patch(`/user-profile/update/${admin.id_user}`, formattedPayload);
+            await api.patch(`/user-profile/update/${admin.id_user}`, payload);
             SEGPrincipalNotificator(successMessage, "success");
             await loadAdmins(false);
         } catch (error: any) {
@@ -529,7 +521,7 @@ const UsersManagementPage: React.FC = () => {
     const handleSubmitEditAdmin = async () => {
         if (!editAdminModal.admin) return;
 
-        const { name, surname, email, password, birth_date } = editAdminModal.form;
+        const { name, surname, email } = editAdminModal.form;
 
         if (!name.trim() || !surname.trim() || !email.trim()) {
             SEGPrincipalNotificator("Preencha nome, sobrenome e e-mail para salvar", "warning");
@@ -540,21 +532,11 @@ const UsersManagementPage: React.FC = () => {
             name: string;
             surname: string;
             email: string;
-            password: string;
-            birth_date: string;
         }> = {
             name: name.trim(),
             surname: surname.trim(),
             email: email.trim(),
         };
-
-        if (password.trim()) {
-            payload.password = password.trim();
-        }
-
-        if (birth_date) {
-            payload.birth_date = birth_date;
-        }
 
         await submitAdminUpdate(editAdminModal.admin, payload, "Administrador atualizado com sucesso");
     };
@@ -1317,31 +1299,6 @@ const UsersManagementPage: React.FC = () => {
                                 setEditAdminModal((prev) => ({
                                     ...prev,
                                     form: { ...prev.form, email: event.target.value },
-                                }))
-                            }
-                        />
-                        <TextField
-                            label="Senha (opcional)"
-                            type="password"
-                            fullWidth
-                            value={editAdminModal.form.password}
-                            onChange={(event) =>
-                                setEditAdminModal((prev) => ({
-                                    ...prev,
-                                    form: { ...prev.form, password: event.target.value },
-                                }))
-                            }
-                        />
-                        <TextField
-                            label="Data de nascimento"
-                            type="date"
-                            fullWidth
-                            InputLabelProps={{ shrink: true }}
-                            value={editAdminModal.form.birth_date || ''}
-                            onChange={(event) =>
-                                setEditAdminModal((prev) => ({
-                                    ...prev,
-                                    form: { ...prev.form, birth_date: event.target.value },
                                 }))
                             }
                         />
