@@ -407,52 +407,64 @@ const UsersManagementPage: React.FC = () => {
                                         <Chip label={selectedUser.active ? "Ativo" : "Inativo"} color={selectedUser.active ? "success" : "default"} />
                                     </Stack>
                                 </Box>
-                                <Stack direction="row" spacing={1}>
-                                    {!selectedUser.active && (
-                                        <Tooltip title="Ativar">
-                                            <span>
-                                                <SEGButton
-                                                    colorTheme="outlined"
-                                                    startIcon={<LockOpenRoundedIcon />}
-                                                    onClick={() => handleStatusAction("activate")}
-                                                >
-                                                    Ativar
-                                                </SEGButton>
-                                            </span>
-                                        </Tooltip>
-                                    )}
-                                    {selectedUser.active && (
-                                        <Tooltip title="Desativar">
-                                            <span>
-                                                <SEGButton
-                                                    colorTheme="outlined"
-                                                    startIcon={<LockPersonRoundedIcon />}
-                                                    onClick={() => handleStatusAction("deactivate")}
-                                                >
-                                                    Desativar
-                                                </SEGButton>
-                                            </span>
-                                        </Tooltip>
-                                    )}
-                                    <Tooltip title="Excluir">
-                                        <span>
-                                            <SEGButton
-                                                colorTheme="outlined"
-                                                startIcon={<DeleteRoundedIcon />}
-                                                onClick={() => handleStatusAction("delete")}
-                                            >
-                                                Excluir
-                                            </SEGButton>
-                                        </span>
-                                    </Tooltip>
-                                </Stack>
-                                <SEGButton
-                                    startIcon={<LaunchRoundedIcon />}
-                                    onClick={handleLoadDetails}
-                                    loading={loadingDetails}
+                                <Stack
+                                    direction={{ xs: "column", sm: "row" }}
+                                    spacing={1.25}
+                                    alignItems="center"
+                                    justifyContent="flex-end"
+                                    flexWrap="wrap"
                                 >
-                                    Ver detalhes
-                                </SEGButton>
+                                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                        {!selectedUser.active && (
+                                            <Tooltip title="Ativar">
+                                                <span>
+                                                    <SEGButton
+                                                        colorTheme="outlined"
+                                                        startIcon={<LockOpenRoundedIcon />}
+                                                        onClick={() => handleStatusAction("activate")}
+                                                        sx={{ minHeight: 46 }}
+                                                    >
+                                                        Ativar
+                                                    </SEGButton>
+                                                </span>
+                                            </Tooltip>
+                                        )}
+                                        {selectedUser.active && (
+                                            <Tooltip title="Desativar">
+                                                <span>
+                                                    <SEGButton
+                                                        colorTheme="outlined"
+                                                        startIcon={<LockPersonRoundedIcon />}
+                                                        onClick={() => handleStatusAction("deactivate")}
+                                                        sx={{ minHeight: 46 }}
+                                                    >
+                                                        Desativar
+                                                    </SEGButton>
+                                                </span>
+                                            </Tooltip>
+                                        )}
+                                        <Tooltip title="Excluir">
+                                            <span>
+                                                <SEGButton
+                                                    colorTheme="outlined"
+                                                    startIcon={<DeleteRoundedIcon />}
+                                                    onClick={() => handleStatusAction("delete")}
+                                                    sx={{ minHeight: 46 }}
+                                                >
+                                                    Excluir
+                                                </SEGButton>
+                                            </span>
+                                        </Tooltip>
+                                    </Stack>
+                                    <SEGButton
+                                        startIcon={<LaunchRoundedIcon />}
+                                        onClick={handleLoadDetails}
+                                        loading={loadingDetails}
+                                        sx={{ minHeight: 46, px: 3 }}
+                                    >
+                                        Ver detalhes
+                                    </SEGButton>
+                                </Stack>
                             </Stack>
                         </GlassyPaper>
                     )}
