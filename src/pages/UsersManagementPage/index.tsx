@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     alpha,
     Avatar,
@@ -39,6 +39,8 @@ import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import DoNotDisturbOnRoundedIcon from "@mui/icons-material/DoNotDisturbOnRounded";
 import DeleteForeverRoundedIcon from "@mui/icons-material/DeleteForeverRounded";
 import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
 import SEGButton from "../../components/SEGButton";
 import SEGTextField from "../../components/SEGTextField";
 import SEGPrincipalNotificator from "../../components/Notifications/SEGPrincipalNotificator";
@@ -91,6 +93,15 @@ interface TeacherPayload {
         profile_picture_link?: string;
     };
     courses: CourseInfo[];
+}
+
+interface AdminUser {
+    id_user: string;
+    name: string;
+    surname: string;
+    email: string;
+    profile_picture_link: string | null;
+    active: boolean;
 }
 
 const PageWrapper = styled(Box)(({ theme }) => ({
@@ -276,6 +287,16 @@ const UsersManagementPage: React.FC = () => {
     }>({
         open: false,
     });
+    const [admins, setAdmins] = useState<AdminUser[]>([]);
+    const [loadingAdmins, setLoadingAdmins] = useState(false);
+    const [creatingAdmin, setCreatingAdmin] = useState(false);
+    const [adminForm, setAdminForm] = useState({
+        name: "",
+        surname: "",
+        email: "",
+        password: "",
+        birth_date: "",
+    });
 
     const actionButtonWidth = 208;
     const actionButtonHeight = 50;
@@ -357,6 +378,74 @@ const UsersManagementPage: React.FC = () => {
         };
         SEGPrincipalNotificator(`Ação de ${actionLabels[action]} registrada para ${selectedUser.full_name}.`, "info");
     };
+
+    const loadAdmins = async (showSuccess = true) => {
+        setLoadingAdmins(true);
+
+        try {
+            const response = await api.get<AdminUser[]>("/user-profile/find-all-admins");
+
+            if (response.status === 200) {
+                setAdmins(response.data);
+
+                if (showSuccess) {
+                    SEGPrincipalNotificator("Lista de administradores atualizada", "success");
+                }
+            }
+        } catch (error) {
+            SEGPrincipalNotificator("Não foi possível carregar os administradores", "error");
+        } finally {
+            setLoadingAdmins(false);
+        }
+    };
+
+    const handleCreateAdmin = async () => {
+        const { name, surname, email, password, birth_date } = adminForm;
+
+        if (!name || !surname || !email || !password || !birth_date) {
+            SEGPrincipalNotificator("Preencha todos os campos para criar o administrador", "warning");
+            return;
+        }
+
+        setCreatingAdmin(true);
+
+        try {
+            const payload = {
+                name,
+                surname,
+                email,
+                password,
+                birth_date: new Date(birth_date).toISOString(),
+            };
+
+            const response = await api.post("/user-profile/create-admin", payload);
+
+            if (response.status === 201 || response.status === 200) {
+                SEGPrincipalNotificator("Administrador criado com sucesso", "success");
+                setAdminForm({ name: "", surname: "", email: "", password: "", birth_date: "" });
+                await loadAdmins(false);
+            }
+        } catch (error) {
+            SEGPrincipalNotificator("Não foi possível criar o administrador", "error");
+        } finally {
+            setCreatingAdmin(false);
+        }
+    };
+
+    const handleAdminStatusAction = (action: "activate" | "deactivate", admin: AdminUser) => {
+        const label = action === "activate" ? "ativado" : "desativado";
+        SEGPrincipalNotificator(`Administrador ${admin.name} ${admin.surname} ${label}.`, "info");
+    };
+
+    const handleEditAdmin = (admin: AdminUser) => {
+        SEGPrincipalNotificator(`Ação de edição solicitada para ${admin.name} ${admin.surname}.`, "info");
+    };
+
+    useEffect(() => {
+        if (tab === 1 && !admins.length && !loadingAdmins) {
+            void loadAdmins(false);
+        }
+    }, [tab, admins.length, loadingAdmins]);
 
     const handleCourseAction = (action: "activate" | "deactivate" | "delete", courseId?: string) => {
         const selectedCourseId = courseId ?? targetCourseId.trim();
@@ -893,11 +982,178 @@ const UsersManagementPage: React.FC = () => {
                     <SectionTitle
                         title="Usuários administradores"
                         icon={<VerifiedUserRoundedIcon sx={{ color: colors.purple }} />}
-                        subtitle="Área em construção: em breve será possível gerenciar também os administradores."
+                        subtitle="Cadastre, visualize e mantenha os perfis administrativos."
                     />
-                    <Typography color={colors.strongGray}>
-                        Estruture ações, filtros e cartões seguindo a mesma identidade visual quando os requisitos forem definidos.
-                    </Typography>
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} md={5}>
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    p: 3,
+                                    borderRadius: 14,
+                                    border: `1px solid ${alpha(colors.purple, 0.12)}`,
+                                    background: alpha(colors.purple, 0.04),
+                                    height: "100%",
+                                }}
+                            >
+                                <Typography fontWeight={800} mb={1.5} color={colors.purple}>
+                                    Adicionar administrador
+                                </Typography>
+                                <Typography variant="body2" color={colors.strongGray} mb={2}>
+                                    Informe os dados do novo administrador para criar o acesso.
+                                </Typography>
+
+                                <SEGTextField
+                                    label="Nome"
+                                    placeholder="Digite o nome"
+                                    value={adminForm.name}
+                                    onChange={(event) => setAdminForm((prev) => ({ ...prev, name: event.target.value }))}
+                                />
+                                <SEGTextField
+                                    label="Sobrenome"
+                                    placeholder="Digite o sobrenome"
+                                    value={adminForm.surname}
+                                    onChange={(event) => setAdminForm((prev) => ({ ...prev, surname: event.target.value }))}
+                                />
+                                <SEGTextField
+                                    label="E-mail"
+                                    placeholder="email@exemplo.com"
+                                    type="email"
+                                    value={adminForm.email}
+                                    onChange={(event) => setAdminForm((prev) => ({ ...prev, email: event.target.value }))}
+                                />
+                                <SEGTextField
+                                    label="Senha temporária"
+                                    placeholder="Defina uma senha inicial"
+                                    type="password"
+                                    showPasswordToggle
+                                    value={adminForm.password}
+                                    onChange={(event) => setAdminForm((prev) => ({ ...prev, password: event.target.value }))}
+                                />
+                                <SEGTextField
+                                    label="Data de nascimento"
+                                    type="date"
+                                    value={adminForm.birth_date}
+                                    onChange={(event) => setAdminForm((prev) => ({ ...prev, birth_date: event.target.value }))}
+                                    InputLabelProps={{ shrink: !!adminForm.birth_date }}
+                                />
+
+                                <SEGButton
+                                    startIcon={<VerifiedUserRoundedIcon />}
+                                    loading={creatingAdmin}
+                                    onClick={handleCreateAdmin}
+                                    sx={{ width: "100%" }}
+                                >
+                                    Criar administrador
+                                </SEGButton>
+                            </Paper>
+                        </Grid>
+
+                        <Grid item xs={12} md={7}>
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    p: 3,
+                                    borderRadius: 14,
+                                    border: `1px solid ${alpha(colors.purple, 0.12)}`,
+                                    background: alpha(colors.white, 0.9),
+                                    height: "100%",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 2,
+                                }}
+                            >
+                                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                                    <Box>
+                                        <Typography fontWeight={800} color={colors.purple}>
+                                            Administradores cadastrados
+                                        </Typography>
+                                        <Typography variant="body2" color={colors.strongGray}>
+                                            Visualize e gerencie o status dos administradores ativos.
+                                        </Typography>
+                                    </Box>
+                                    <SEGButton
+                                        colorTheme="outlined"
+                                        startIcon={<AutorenewRoundedIcon />}
+                                        loading={loadingAdmins}
+                                        onClick={() => loadAdmins()}
+                                    >
+                                        Atualizar
+                                    </SEGButton>
+                                </Stack>
+
+                                <Stack spacing={2} sx={{ maxHeight: 520, overflowY: "auto", pr: 1 }}>
+                                    {admins.map((admin) => (
+                                        <Paper
+                                            key={admin.id_user}
+                                            elevation={0}
+                                            sx={{
+                                                p: 2,
+                                                borderRadius: 12,
+                                                border: `1px solid ${alpha(colors.purple, 0.08)}`,
+                                                background: alpha(colors.blue, 0.04),
+                                            }}
+                                        >
+                                            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
+                                                <Avatar
+                                                    src={admin.profile_picture_link ?? undefined}
+                                                    sx={{ width: 64, height: 64, boxShadow: "0 8px 20px rgba(93,112,246,0.28)" }}
+                                                >
+                                                    <VerifiedUserRoundedIcon />
+                                                </Avatar>
+
+                                                <Box flex={1} width="100%">
+                                                    <Typography fontWeight={800}>{admin.name} {admin.surname}</Typography>
+                                                    <Typography color={colors.strongGray} variant="body2">{admin.email}</Typography>
+                                                    <Stack direction="row" spacing={1} mt={1} flexWrap="wrap">
+                                                        <Chip label="Administrador" color="primary" size="small" />
+                                                        <Chip
+                                                            label={admin.active ? "Ativo" : "Inativo"}
+                                                            color={admin.active ? "success" : "default"}
+                                                            size="small"
+                                                        />
+                                                    </Stack>
+                                                </Box>
+
+                                                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} width={{ xs: "100%", sm: "auto" }}>
+                                                    <SEGButton
+                                                        colorTheme="outlined"
+                                                        startIcon={<EditRoundedIcon />}
+                                                        onClick={() => handleEditAdmin(admin)}
+                                                    >
+                                                        Editar
+                                                    </SEGButton>
+                                                    {admin.active ? (
+                                                        <SEGButton
+                                                            colorTheme="outlined"
+                                                            startIcon={<LockPersonRoundedIcon />}
+                                                            onClick={() => handleAdminStatusAction("deactivate", admin)}
+                                                        >
+                                                            Desativar
+                                                        </SEGButton>
+                                                    ) : (
+                                                        <SEGButton
+                                                            colorTheme="outlined"
+                                                            startIcon={<LockOpenRoundedIcon />}
+                                                            onClick={() => handleAdminStatusAction("activate", admin)}
+                                                        >
+                                                            Ativar
+                                                        </SEGButton>
+                                                    )}
+                                                </Stack>
+                                            </Stack>
+                                        </Paper>
+                                    ))}
+
+                                    {!admins.length && !loadingAdmins && (
+                                        <Typography color={colors.strongGray} textAlign="center">
+                                            Nenhum administrador cadastrado no momento.
+                                        </Typography>
+                                    )}
+                                </Stack>
+                            </Paper>
+                        </Grid>
+                    </Grid>
                 </GlassyPaper>
             )}
         </PageWrapper>
