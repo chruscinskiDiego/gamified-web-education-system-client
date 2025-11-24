@@ -277,6 +277,7 @@ const UsersManagementPage: React.FC = () => {
     const [teacherPayload, setTeacherPayload] = useState<TeacherPayload | null>(null);
     const [enrollModalOpen, setEnrollModalOpen] = useState(false);
     const [targetCourseId, setTargetCourseId] = useState("");
+    const [enrollLoading, setEnrollLoading] = useState(false);
     const [courseConfirm, setCourseConfirm] = useState<{
         open: boolean;
         action?: "activate" | "deactivate" | "delete";
@@ -594,14 +595,34 @@ const UsersManagementPage: React.FC = () => {
         setCourseConfirm({ open: false });
     };
 
-    const handleEnrollment = () => {
+    const handleEnrollment = async () => {
         if (!targetCourseId.trim()) {
             SEGPrincipalNotificator("Informe o ID do curso para matricular", "warning");
             return;
         }
-        SEGPrincipalNotificator(`Matrícula solicitada no curso ${targetCourseId}.`, "success");
-        setEnrollModalOpen(false);
-        setTargetCourseId("");
+
+        if (!studentPayload?.student) {
+            SEGPrincipalNotificator("Nenhum aluno selecionado para matrícula", "warning");
+            return;
+        }
+
+        setEnrollLoading(true);
+
+        try {
+            await api.post(`/course-registration/adm-create/${studentPayload.student.id_user}`, {
+                id_course: targetCourseId.trim(),
+            });
+
+            SEGPrincipalNotificator(`Aluno matriculado no curso ${targetCourseId}.`, "success");
+            setEnrollModalOpen(false);
+            setTargetCourseId("");
+            await handleLoadDetails();
+        } catch (error: any) {
+            const message = error?.response?.data?.message ?? "Não foi possível matricular o aluno";
+            SEGPrincipalNotificator(String(message), "error");
+        } finally {
+            setEnrollLoading(false);
+        }
     };
 
     return (
@@ -820,6 +841,7 @@ const UsersManagementPage: React.FC = () => {
                                                     <SEGButton
                                                         startIcon={<PlaylistAddRoundedIcon />}
                                                         onClick={() => { setEnrollModalOpen(true); setTargetCourseId(""); }}
+                                                        loading={enrollLoading}
                                                     >
                                                         Matricular em curso (ID)
                                                     </SEGButton>
@@ -1032,7 +1054,13 @@ const UsersManagementPage: React.FC = () => {
                         </DialogContent>
                         <DialogActions>
                             <SEGButton colorTheme="outlined" onClick={() => setEnrollModalOpen(false)}>Cancelar</SEGButton>
-                            <SEGButton startIcon={<PlaylistAddRoundedIcon />} onClick={handleEnrollment}>Confirmar matrícula</SEGButton>
+                            <SEGButton
+                                startIcon={<PlaylistAddRoundedIcon />}
+                                onClick={handleEnrollment}
+                                loading={enrollLoading}
+                            >
+                                Confirmar matrícula
+                            </SEGButton>
                         </DialogActions>
                     </Dialog>
 
