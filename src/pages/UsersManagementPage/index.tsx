@@ -163,7 +163,17 @@ const SectionTitle: React.FC<{ title: string; icon?: React.ReactNode; subtitle?:
     </Stack>
 );
 
-const CourseCard: React.FC<{ course: CourseInfo; onOpen?: (course: CourseInfo) => void }> = ({ course, onOpen }) => (
+interface CourseCardProps {
+    course: CourseInfo;
+    onOpen?: (course: CourseInfo) => void;
+    actions?: {
+        onActivate: (course: CourseInfo) => void;
+        onDeactivate: (course: CourseInfo) => void;
+        onDelete: (course: CourseInfo) => void;
+    };
+}
+
+const CourseCard: React.FC<CourseCardProps> = ({ course, onOpen, actions }) => (
     <Paper
         elevation={0}
         sx={{
@@ -196,15 +206,49 @@ const CourseCard: React.FC<{ course: CourseInfo; onOpen?: (course: CourseInfo) =
                 size="small"
             />
         </Stack>
-        {onOpen && (
-            <SEGButton
-                colorTheme="outlined"
-                startIcon={<LaunchRoundedIcon />}
-                onClick={() => onOpen(course)}
-                sx={{ alignSelf: "flex-start", mt: 1 }}
+        {(onOpen || actions) && (
+            <Stack
+                direction="row"
+                justifyContent={onOpen && actions ? "space-between" : onOpen ? "flex-start" : "flex-end"}
+                alignItems="center"
+                sx={{ mt: 1, width: "100%" }}
             >
-                Abrir curso
-            </SEGButton>
+                {onOpen && (
+                    <SEGButton
+                        colorTheme="outlined"
+                        startIcon={<LaunchRoundedIcon />}
+                        onClick={() => onOpen(course)}
+                        sx={{ alignSelf: "flex-start" }}
+                    >
+                        Abrir curso
+                    </SEGButton>
+                )}
+                {actions && (
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                        <Tooltip title="Ativar curso">
+                            <span>
+                                <IconButton color="primary" onClick={() => actions.onActivate(course)}>
+                                    <PlayArrowRoundedIcon />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                        <Tooltip title="Desativar curso">
+                            <span>
+                                <IconButton color="warning" onClick={() => actions.onDeactivate(course)}>
+                                    <PauseCircleFilledRoundedIcon />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                        <Tooltip title="Excluir curso">
+                            <span>
+                                <IconButton color="error" onClick={() => actions.onDelete(course)}>
+                                    <DeleteRoundedIcon />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                    </Stack>
+                )}
+            </Stack>
         )}
     </Paper>
 );
@@ -220,6 +264,8 @@ const UsersManagementPage: React.FC = () => {
     const [teacherPayload, setTeacherPayload] = useState<TeacherPayload | null>(null);
     const [enrollModalOpen, setEnrollModalOpen] = useState(false);
     const [targetCourseId, setTargetCourseId] = useState("");
+
+    const actionButtonSx = { minHeight: 46, minWidth: 180 };
 
     const handleSearchUser = async () => {
         if (!searchValue.trim()) {
@@ -292,8 +338,10 @@ const UsersManagementPage: React.FC = () => {
         SEGPrincipalNotificator(`Ação de ${actionLabels[action]} registrada para ${selectedUser.full_name}.`, "info");
     };
 
-    const handleCourseAction = (action: "activate" | "deactivate" | "delete") => {
-        if (!targetCourseId.trim()) {
+    const handleCourseAction = (action: "activate" | "deactivate" | "delete", courseId?: string) => {
+        const selectedCourseId = courseId ?? targetCourseId.trim();
+
+        if (!selectedCourseId) {
             SEGPrincipalNotificator("Informe o ID do curso", "warning");
             return;
         }
@@ -304,7 +352,7 @@ const UsersManagementPage: React.FC = () => {
             delete: "exclusão",
         };
 
-        SEGPrincipalNotificator(`Ação de ${actionLabels[action]} solicitada para o curso ${targetCourseId}.`, "info");
+        SEGPrincipalNotificator(`Ação de ${actionLabels[action]} solicitada para o curso ${selectedCourseId}.`, "info");
     };
 
     const handleEnrollment = () => {
@@ -422,7 +470,7 @@ const UsersManagementPage: React.FC = () => {
                                                         colorTheme="outlined"
                                                         startIcon={<LockOpenRoundedIcon />}
                                                         onClick={() => handleStatusAction("activate")}
-                                                        sx={{ minHeight: 46 }}
+                                                        sx={actionButtonSx}
                                                     >
                                                         Ativar
                                                     </SEGButton>
@@ -436,7 +484,7 @@ const UsersManagementPage: React.FC = () => {
                                                         colorTheme="outlined"
                                                         startIcon={<LockPersonRoundedIcon />}
                                                         onClick={() => handleStatusAction("deactivate")}
-                                                        sx={{ minHeight: 46 }}
+                                                        sx={actionButtonSx}
                                                     >
                                                         Desativar
                                                     </SEGButton>
@@ -449,7 +497,7 @@ const UsersManagementPage: React.FC = () => {
                                                     colorTheme="outlined"
                                                     startIcon={<DeleteRoundedIcon />}
                                                     onClick={() => handleStatusAction("delete")}
-                                                    sx={{ minHeight: 46 }}
+                                                    sx={actionButtonSx}
                                                 >
                                                     Excluir
                                                 </SEGButton>
@@ -460,7 +508,7 @@ const UsersManagementPage: React.FC = () => {
                                         startIcon={<LaunchRoundedIcon />}
                                         onClick={handleLoadDetails}
                                         loading={loadingDetails}
-                                        sx={{ minHeight: 46, px: 3 }}
+                                        sx={{ ...actionButtonSx, px: 3 }}
                                     >
                                         Ver detalhes
                                     </SEGButton>
@@ -665,71 +713,31 @@ const UsersManagementPage: React.FC = () => {
                                             <SectionTitle title="Ações do professor" subtitle="Controle de conta e cursos." />
                                             <Stack spacing={2}>
                                                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                                                        {teacherPayload.teacher.active ? (
-                                                            <SEGButton
-                                                                colorTheme="outlined"
-                                                                startIcon={<LockPersonRoundedIcon />}
-                                                                onClick={() => handleStatusAction("deactivate")}
-                                                            >
-                                                                Desativar conta
-                                                            </SEGButton>
-                                                        ) : (
-                                                            <SEGButton
-                                                                colorTheme="outlined"
-                                                                startIcon={<LockOpenRoundedIcon />}
-                                                                onClick={() => handleStatusAction("activate")}
-                                                            >
-                                                                Ativar conta
-                                                            </SEGButton>
-                                                        )}
+                                                    {teacherPayload.teacher.active ? (
                                                         <SEGButton
                                                             colorTheme="outlined"
-                                                            startIcon={<DeleteRoundedIcon />}
+                                                            startIcon={<LockPersonRoundedIcon />}
+                                                            onClick={() => handleStatusAction("deactivate")}
+                                                        >
+                                                            Desativar conta
+                                                        </SEGButton>
+                                                    ) : (
+                                                        <SEGButton
+                                                            colorTheme="outlined"
+                                                            startIcon={<LockOpenRoundedIcon />}
+                                                            onClick={() => handleStatusAction("activate")}
+                                                        >
+                                                            Ativar conta
+                                                        </SEGButton>
+                                                    )}
+                                                    <SEGButton
+                                                        colorTheme="outlined"
+                                                        startIcon={<DeleteRoundedIcon />}
                                                         onClick={() => handleStatusAction("delete")}
                                                     >
                                                         Excluir usuário
                                                     </SEGButton>
                                                 </Stack>
-                                                <Paper
-                                                    elevation={0}
-                                                    sx={{
-                                                        p: 2,
-                                                        borderRadius: 12,
-                                                        border: `1px solid ${alpha(colors.purple, 0.12)}`,
-                                                        background: alpha(colors.white, 0.9),
-                                                    }}
-                                                >
-                                                    <Typography fontWeight={700} gutterBottom>Gerenciar cursos do professor</Typography>
-                                                    <Grid container spacing={1.5}>
-                                                        <Grid item xs={12} sm={8}>
-                                                            <SEGTextField
-                                                                label="ID do curso"
-                                                                placeholder="Digite o ID do curso"
-                                                                value={targetCourseId}
-                                                                onChange={(event) => setTargetCourseId(event.target.value)}
-                                                            />
-                                                        </Grid>
-                                                        <Grid item xs={12} sm={4}>
-                                                            <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                                                                <Tooltip title="Ativar curso">
-                                                                    <span>
-                                                                        <IconButton color="primary" onClick={() => handleCourseAction("activate")}> <PlayArrowRoundedIcon /> </IconButton>
-                                                                    </span>
-                                                                </Tooltip>
-                                                                <Tooltip title="Desativar curso">
-                                                                    <span>
-                                                                        <IconButton color="warning" onClick={() => handleCourseAction("deactivate")}> <PauseCircleFilledRoundedIcon /> </IconButton>
-                                                                    </span>
-                                                                </Tooltip>
-                                                                <Tooltip title="Deletar curso">
-                                                                    <span>
-                                                                        <IconButton color="error" onClick={() => handleCourseAction("delete")}> <DeleteRoundedIcon /> </IconButton>
-                                                                    </span>
-                                                                </Tooltip>
-                                                            </Stack>
-                                                        </Grid>
-                                                    </Grid>
-                                                </Paper>
                                                 <Paper
                                                     elevation={0}
                                                     sx={{
@@ -776,7 +784,14 @@ const UsersManagementPage: React.FC = () => {
                                 <Grid container spacing={2}>
                                     {teacherPayload.courses.map((course) => (
                                         <Grid item xs={12} md={4} key={course.id_course}>
-                                            <CourseCard course={course} />
+                                            <CourseCard
+                                                course={course}
+                                                actions={{
+                                                    onActivate: (selectedCourse) => handleCourseAction("activate", selectedCourse.id_course),
+                                                    onDeactivate: (selectedCourse) => handleCourseAction("deactivate", selectedCourse.id_course),
+                                                    onDelete: (selectedCourse) => handleCourseAction("delete", selectedCourse.id_course),
+                                                }}
+                                            />
                                         </Grid>
                                     ))}
                                 </Grid>
