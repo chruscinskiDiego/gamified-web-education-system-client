@@ -12,7 +12,6 @@ import {
     Divider,
     Grid,
     IconButton,
-    InputAdornment,
     MenuItem,
     Paper,
     Stack,
@@ -98,7 +97,10 @@ const PageWrapper = styled(Box)(({ theme }) => ({
     flexDirection: "column",
     gap: theme.spacing(3),
     minHeight: "100vh",
-    background: "linear-gradient(180deg, rgba(93,112,246,0.08) 0%, rgba(73,160,251,0.12) 35%, rgba(255,255,255,0.95) 100%)",
+    backgroundColor: "#f5f7ff",
+    backgroundImage:
+        "linear-gradient(180deg, rgba(93,112,246,0.12) 0%, rgba(73,160,251,0.16) 35%, rgba(255,255,255,1) 100%)",
+    backgroundAttachment: "fixed",
 }));
 
 const HeaderCard = styled(Paper)(({ theme }) => ({
@@ -348,23 +350,19 @@ const UsersManagementPage: React.FC = () => {
                         />
                         <Grid container spacing={2} alignItems="flex-end">
                             <Grid item xs={12} md={3}>
-                                <TextField
+                                <SEGTextField
                                     select
-                                    fullWidth
                                     label="Propriedade"
+                                    placeholder="Selecione a propriedade"
+                                    fullWidth
                                     value={searchProperty}
                                     onChange={(event) => setSearchProperty(event.target.value)}
-                                    InputProps={{
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <SearchRoundedIcon color="primary" />
-                                            </InputAdornment>
-                                        ),
-                                    }}
+                                    startIcon={<SearchRoundedIcon color="primary" />}
+                                    sx={{ mb: 0 }}
                                 >
                                     <MenuItem value="email">E-mail</MenuItem>
                                     <MenuItem value="id">ID</MenuItem>
-                                </TextField>
+                                </SEGTextField>
                             </Grid>
                             <Grid item xs={12} md={6}>
                                 <SEGTextField
@@ -373,6 +371,7 @@ const UsersManagementPage: React.FC = () => {
                                     fullWidth
                                     value={searchValue}
                                     onChange={(event) => setSearchValue(event.target.value)}
+                                    sx={{ mb: 0 }}
                                 />
                             </Grid>
                             <Grid item xs={12} md={3}>
@@ -380,6 +379,7 @@ const UsersManagementPage: React.FC = () => {
                                     startIcon={<PersonSearchRoundedIcon />}
                                     loading={loadingSearch}
                                     onClick={handleSearchUser}
+                                    sx={{ width: "100%", height: "100%", minHeight: 56 }}
                                 >
                                     Buscar usuário
                                 </SEGButton>
