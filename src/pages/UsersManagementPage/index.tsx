@@ -278,6 +278,7 @@ const UsersManagementPage: React.FC = () => {
     const [enrollModalOpen, setEnrollModalOpen] = useState(false);
     const [targetCourseId, setTargetCourseId] = useState("");
     const [enrollLoading, setEnrollLoading] = useState(false);
+    const [xpModalOpen, setXpModalOpen] = useState(false);
     const [courseConfirm, setCourseConfirm] = useState<{
         open: boolean;
         action?: "activate" | "deactivate" | "delete";
@@ -848,7 +849,7 @@ const UsersManagementPage: React.FC = () => {
                                                     <SEGButton
                                                         colorTheme="white"
                                                         startIcon={<InfoOutlinedIcon />}
-                                                        onClick={() => SEGPrincipalNotificator("XP detalhado disponível", "info")}
+                                                        onClick={() => setXpModalOpen(true)}
                                                     >
                                                         Ver estatísticas de XP
                                                     </SEGButton>
@@ -1098,6 +1099,61 @@ const UsersManagementPage: React.FC = () => {
                                 onClick={confirmCourseAction}
                             >
                                 Confirmar
+                            </SEGButton>
+                        </DialogActions>
+                    </Dialog>
+
+                    <Dialog
+                        open={xpModalOpen}
+                        onClose={() => setXpModalOpen(false)}
+                        maxWidth="sm"
+                        fullWidth
+                    >
+                        <DialogTitle>Estatísticas de XP do aluno</DialogTitle>
+                        <DialogContent>
+                            <Stack spacing={2} mt={1}>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <Avatar src={studentPayload.student.profile_picture_link} />
+                                    <Box>
+                                        <Typography fontWeight={800}>{studentPayload.student.name} {studentPayload.student.surname}</Typography>
+                                        <Typography variant="body2" color={colors.strongGray}>ID: {studentPayload.student.id_user}</Typography>
+                                    </Box>
+                                </Stack>
+
+                                <Paper elevation={0} sx={{ p: 2, borderRadius: 12, background: alpha(colors.purple, 0.06), border: `1px solid ${alpha(colors.purple, 0.14)}` }}>
+                                    <Stack spacing={1.5}>
+                                        <Typography variant="body2" color={colors.strongGray}>XP total</Typography>
+                                        <Typography variant="h3" fontWeight={800} color={colors.purple}>{studentPayload.student.points ?? 0} XP</Typography>
+                                        <Typography color={colors.strongGray}>Nível {xpInfo.level} • Próximo nível em {xpInfo.xpToNext} XP</Typography>
+                                        <Box sx={{ mt: 1 }}>
+                                            <Box
+                                                sx={{
+                                                    height: 10,
+                                                    borderRadius: 99,
+                                                    background: alpha(colors.purple, 0.1),
+                                                    overflow: "hidden",
+                                                }}
+                                            >
+                                                <Box sx={{ width: `${xpInfo.progress}%`, height: "100%", background: colors.horizontalGradient }} />
+                                            </Box>
+                                            <Typography variant="body2" mt={1} color={colors.strongGray}>Progresso no nível: {xpInfo.progress}%</Typography>
+                                        </Box>
+                                    </Stack>
+                                </Paper>
+
+                                <Paper elevation={0} sx={{ p: 2, borderRadius: 12, background: alpha(colors.blue, 0.06), border: `1px solid ${alpha(colors.blue, 0.14)}` }}>
+                                    <Typography fontWeight={700} gutterBottom>Resumo rápido</Typography>
+                                    <Stack spacing={0.5}>
+                                        <Typography variant="body2" color={colors.strongGray}>Última atualização: {new Date(studentPayload.student.created_at).toLocaleString()}</Typography>
+                                        <Typography variant="body2" color={colors.strongGray}>Status: {studentPayload.student.active ? "Ativo" : "Inativo"}</Typography>
+                                        <Typography variant="body2" color={colors.strongGray}>Cursos matriculados: {studentPayload.courses.length}</Typography>
+                                    </Stack>
+                                </Paper>
+                            </Stack>
+                        </DialogContent>
+                        <DialogActions>
+                            <SEGButton colorTheme="outlined" onClick={() => setXpModalOpen(false)}>
+                                Fechar
                             </SEGButton>
                         </DialogActions>
                     </Dialog>
