@@ -443,8 +443,13 @@ const UsersManagementPage: React.FC = () => {
     };
 
     const handleAdminStatusAction = (action: "activate" | "deactivate", admin: AdminUser) => {
-        const payload = { active: action === "activate" };
-        void submitAdminUpdate(admin, payload, action === "activate" ? "Administrador ativado" : "Administrador desativado");
+        if (action === "deactivate") {
+            void submitAdminDisable(admin);
+            return;
+        }
+
+        const payload = { active: true };
+        void submitAdminUpdate(admin, payload, "Administrador ativado");
     };
 
     const handleEditAdmin = (admin: AdminUser) => {
@@ -485,6 +490,22 @@ const UsersManagementPage: React.FC = () => {
             setAdminActionLoading(null);
             setConfirmAdminStatus({ open: false });
             setEditAdminModal((prev) => ({ ...prev, open: false }));
+        }
+    };
+
+    const submitAdminDisable = async (admin: AdminUser) => {
+        setAdminActionLoading(admin.id_user);
+
+        try {
+            await api.patch(`/user-profile/disable/${admin.id_user}`);
+            SEGPrincipalNotificator("Administrador desativado", "success");
+            await loadAdmins(false);
+        } catch (error: any) {
+            const message = error?.response?.data?.message ?? "Não foi possível desativar o administrador";
+            SEGPrincipalNotificator(String(message), "error");
+        } finally {
+            setAdminActionLoading(null);
+            setConfirmAdminStatus({ open: false });
         }
     };
 
