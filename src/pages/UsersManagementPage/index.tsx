@@ -297,6 +297,16 @@ const UsersManagementPage: React.FC = () => {
         password: "",
         birth_date: "",
     });
+    const [adminActionLoading, setAdminActionLoading] = useState<string | null>(null);
+    const [editAdminModal, setEditAdminModal] = useState<{
+        open: boolean;
+        admin?: AdminUser;
+        form: { name: string; surname: string; email: string; password: string; birth_date: string };
+    }>({
+        open: false,
+        form: { name: "", surname: "", email: "", password: "", birth_date: "" },
+    });
+    const [confirmAdminStatus, setConfirmAdminStatus] = useState<{ open: boolean; admin?: AdminUser }>({ open: false });
 
     const actionButtonWidth = 208;
     const actionButtonHeight = 50;
@@ -433,12 +443,87 @@ const UsersManagementPage: React.FC = () => {
     };
 
     const handleAdminStatusAction = (action: "activate" | "deactivate", admin: AdminUser) => {
-        const label = action === "activate" ? "ativado" : "desativado";
-        SEGPrincipalNotificator(`Administrador ${admin.name} ${admin.surname} ${label}.`, "info");
+        const payload = { active: action === "activate" };
+        void submitAdminUpdate(admin, payload, action === "activate" ? "Administrador ativado" : "Administrador desativado");
     };
 
     const handleEditAdmin = (admin: AdminUser) => {
-        SEGPrincipalNotificator(`Ação de edição solicitada para ${admin.name} ${admin.surname}.`, "info");
+        setEditAdminModal({
+            open: true,
+            admin,
+            form: {
+                name: admin.name,
+                surname: admin.surname,
+                email: admin.email,
+                password: "",
+                birth_date: "",
+            },
+        });
+    };
+
+    const submitAdminUpdate = async (
+        admin: AdminUser,
+        payload: Partial<{ name: string; surname: string; email: string; password: string; birth_date: string; active: boolean }>,
+        successMessage: string,
+    ) => {
+        setAdminActionLoading(admin.id_user);
+
+        try {
+            const formattedPayload = { ...payload };
+
+            if (payload.birth_date) {
+                formattedPayload.birth_date = new Date(payload.birth_date).toISOString();
+            }
+
+            await api.patch(`/user-profile/update/${admin.id_user}`, formattedPayload);
+            SEGPrincipalNotificator(successMessage, "success");
+            await loadAdmins(false);
+        } catch (error: any) {
+            const message = error?.response?.data?.message ?? "Não foi possível atualizar o administrador";
+            SEGPrincipalNotificator(String(message), "error");
+        } finally {
+            setAdminActionLoading(null);
+            setConfirmAdminStatus({ open: false });
+            setEditAdminModal((prev) => ({ ...prev, open: false }));
+        }
+    };
+
+    const handleConfirmDeactivate = () => {
+        if (!confirmAdminStatus.admin) return;
+        handleAdminStatusAction("deactivate", confirmAdminStatus.admin);
+    };
+
+    const handleSubmitEditAdmin = async () => {
+        if (!editAdminModal.admin) return;
+
+        const { name, surname, email, password, birth_date } = editAdminModal.form;
+
+        if (!name.trim() || !surname.trim() || !email.trim()) {
+            SEGPrincipalNotificator("Preencha nome, sobrenome e e-mail para salvar", "warning");
+            return;
+        }
+
+        const payload: Partial<{
+            name: string;
+            surname: string;
+            email: string;
+            password: string;
+            birth_date: string;
+        }> = {
+            name: name.trim(),
+            surname: surname.trim(),
+            email: email.trim(),
+        };
+
+        if (password.trim()) {
+            payload.password = password.trim();
+        }
+
+        if (birth_date) {
+            payload.birth_date = birth_date;
+        }
+
+        await submitAdminUpdate(editAdminModal.admin, payload, "Administrador atualizado com sucesso");
     };
 
     useEffect(() => {
@@ -1120,6 +1205,7 @@ const UsersManagementPage: React.FC = () => {
                                                         colorTheme="outlined"
                                                         startIcon={<EditRoundedIcon />}
                                                         onClick={() => handleEditAdmin(admin)}
+                                                        loading={adminActionLoading === admin.id_user}
                                                     >
                                                         Editar
                                                     </SEGButton>
@@ -1127,7 +1213,8 @@ const UsersManagementPage: React.FC = () => {
                                                         <SEGButton
                                                             colorTheme="outlined"
                                                             startIcon={<LockPersonRoundedIcon />}
-                                                            onClick={() => handleAdminStatusAction("deactivate", admin)}
+                                                            onClick={() => setConfirmAdminStatus({ open: true, admin })}
+                                                            loading={adminActionLoading === admin.id_user}
                                                         >
                                                             Desativar
                                                         </SEGButton>
@@ -1136,6 +1223,7 @@ const UsersManagementPage: React.FC = () => {
                                                             colorTheme="outlined"
                                                             startIcon={<LockOpenRoundedIcon />}
                                                             onClick={() => handleAdminStatusAction("activate", admin)}
+                                                            loading={adminActionLoading === admin.id_user}
                                                         >
                                                             Ativar
                                                         </SEGButton>
@@ -1156,6 +1244,123 @@ const UsersManagementPage: React.FC = () => {
                     </Grid>
                 </GlassyPaper>
             )}
+
+            <Dialog
+                open={editAdminModal.open}
+                onClose={() => setEditAdminModal((prev) => ({ ...prev, open: false }))}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Editar administrador</DialogTitle>
+                <DialogContent>
+                    <Stack spacing={2} mt={1}>
+                        <TextField
+                            label="Nome"
+                            fullWidth
+                            value={editAdminModal.form.name}
+                            onChange={(event) =>
+                                setEditAdminModal((prev) => ({
+                                    ...prev,
+                                    form: { ...prev.form, name: event.target.value },
+                                }))
+                            }
+                        />
+                        <TextField
+                            label="Sobrenome"
+                            fullWidth
+                            value={editAdminModal.form.surname}
+                            onChange={(event) =>
+                                setEditAdminModal((prev) => ({
+                                    ...prev,
+                                    form: { ...prev.form, surname: event.target.value },
+                                }))
+                            }
+                        />
+                        <TextField
+                            label="E-mail"
+                            fullWidth
+                            type="email"
+                            value={editAdminModal.form.email}
+                            onChange={(event) =>
+                                setEditAdminModal((prev) => ({
+                                    ...prev,
+                                    form: { ...prev.form, email: event.target.value },
+                                }))
+                            }
+                        />
+                        <TextField
+                            label="Senha (opcional)"
+                            type="password"
+                            fullWidth
+                            value={editAdminModal.form.password}
+                            onChange={(event) =>
+                                setEditAdminModal((prev) => ({
+                                    ...prev,
+                                    form: { ...prev.form, password: event.target.value },
+                                }))
+                            }
+                        />
+                        <TextField
+                            label="Data de nascimento (opcional)"
+                            type="date"
+                            fullWidth
+                            InputLabelProps={{ shrink: !!editAdminModal.form.birth_date }}
+                            value={editAdminModal.form.birth_date}
+                            onChange={(event) =>
+                                setEditAdminModal((prev) => ({
+                                    ...prev,
+                                    form: { ...prev.form, birth_date: event.target.value },
+                                }))
+                            }
+                        />
+                    </Stack>
+                </DialogContent>
+                <DialogActions>
+                    <SEGButton
+                        colorTheme="outlined"
+                        onClick={() => setEditAdminModal((prev) => ({ ...prev, open: false }))}
+                        disabled={adminActionLoading === editAdminModal.admin?.id_user}
+                    >
+                        Cancelar
+                    </SEGButton>
+                    <SEGButton
+                        startIcon={<EditRoundedIcon />}
+                        onClick={handleSubmitEditAdmin}
+                        loading={adminActionLoading === editAdminModal.admin?.id_user}
+                    >
+                        Salvar alterações
+                    </SEGButton>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog
+                open={confirmAdminStatus.open}
+                onClose={() => setConfirmAdminStatus({ open: false })}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle>Desativar administrador</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        {confirmAdminStatus.admin
+                            ? `Deseja realmente desativar ${confirmAdminStatus.admin.name} ${confirmAdminStatus.admin.surname}?`
+                            : "Selecione um administrador para desativar."}
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <SEGButton colorTheme="outlined" onClick={() => setConfirmAdminStatus({ open: false })}>
+                        Cancelar
+                    </SEGButton>
+                    <SEGButton
+                        startIcon={<LockPersonRoundedIcon />}
+                        colorTheme="outlined"
+                        onClick={handleConfirmDeactivate}
+                        loading={adminActionLoading === confirmAdminStatus.admin?.id_user}
+                    >
+                        Desativar
+                    </SEGButton>
+                </DialogActions>
+            </Dialog>
         </PageWrapper>
     );
 };
