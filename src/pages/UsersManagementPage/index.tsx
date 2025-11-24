@@ -110,10 +110,7 @@ const PageWrapper = styled(Box)(({ theme }) => ({
     flexDirection: "column",
     gap: theme.spacing(3),
     minHeight: "100vh",
-    backgroundColor: "#f5f7ff",
-    backgroundImage:
-        "linear-gradient(180deg, rgba(93,112,246,0.12) 0%, rgba(73,160,251,0.16) 35%, rgba(255,255,255,1) 100%)",
-    backgroundAttachment: "fixed",
+    backgroundColor: "#ffffffff"
 }));
 
 const HeaderCard = styled(Paper)(({ theme }) => ({
@@ -614,7 +611,7 @@ const UsersManagementPage: React.FC = () => {
                         <Box>
                             <Typography fontWeight={800} fontSize={26}>Gestão de Usuários</Typography>
                             <Typography color={colors.strongGray}>
-                                Inspire-se no visual do painel de gamificação e administre alunos, professores e administradores.
+                                Gerencie alunos, professores e administradores.
                             </Typography>
                         </Box>
                     </Stack>
@@ -804,29 +801,29 @@ const UsersManagementPage: React.FC = () => {
                                                 height: "100%",
                                             }}
                                         >
-                                                <SectionTitle title="Ações" subtitle="Gerencie status, matrícula e XP." />
-                                                <Stack spacing={2}>
-                                                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                                                        {studentPayload.student.active ? (
-                                                            <SEGButton
-                                                                colorTheme="outlined"
-                                                                startIcon={<LockPersonRoundedIcon />}
-                                                                onClick={() => handleStatusAction("deactivate")}
-                                                            >
-                                                                Desativar conta
-                                                            </SEGButton>
-                                                        ) : (
-                                                            <SEGButton
-                                                                colorTheme="outlined"
-                                                                startIcon={<LockOpenRoundedIcon />}
-                                                                onClick={() => handleStatusAction("activate")}
-                                                            >
-                                                                Ativar conta
-                                                            </SEGButton>
-                                                        )}
+                                            <SectionTitle title="Ações" subtitle="Gerencie status, matrícula e XP." />
+                                            <Stack spacing={2}>
+                                                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                                                    {studentPayload.student.active ? (
                                                         <SEGButton
                                                             colorTheme="outlined"
-                                                            startIcon={<DeleteRoundedIcon />}
+                                                            startIcon={<LockPersonRoundedIcon />}
+                                                            onClick={() => handleStatusAction("deactivate")}
+                                                        >
+                                                            Desativar conta
+                                                        </SEGButton>
+                                                    ) : (
+                                                        <SEGButton
+                                                            colorTheme="outlined"
+                                                            startIcon={<LockOpenRoundedIcon />}
+                                                            onClick={() => handleStatusAction("activate")}
+                                                        >
+                                                            Ativar conta
+                                                        </SEGButton>
+                                                    )}
+                                                    <SEGButton
+                                                        colorTheme="outlined"
+                                                        startIcon={<DeleteRoundedIcon />}
                                                         onClick={() => handleStatusAction("delete")}
                                                     >
                                                         Excluir usuário
@@ -1067,13 +1064,12 @@ const UsersManagementPage: React.FC = () => {
                         <DialogContent>
                             <DialogContentText>
                                 {courseConfirm.course
-                                    ? `Deseja realmente ${
-                                          courseConfirm.action === "delete"
-                                              ? "excluir"
-                                              : courseConfirm.action === "activate"
-                                              ? "ativar"
-                                              : "desativar"
-                                      } o curso "${courseConfirm.course.title}" (ID: ${courseConfirm.course.id_course})?`
+                                    ? `Deseja realmente ${courseConfirm.action === "delete"
+                                        ? "excluir"
+                                        : courseConfirm.action === "activate"
+                                            ? "ativar"
+                                            : "desativar"
+                                    } o curso "${courseConfirm.course.title}" (ID: ${courseConfirm.course.id_course})?`
                                     : "Selecione um curso para continuar."}
                             </DialogContentText>
                         </DialogContent>
@@ -1086,8 +1082,8 @@ const UsersManagementPage: React.FC = () => {
                                     courseConfirm.action === "delete"
                                         ? <DeleteForeverRoundedIcon />
                                         : courseConfirm.action === "activate"
-                                        ? <CheckCircleRoundedIcon />
-                                        : <DoNotDisturbOnRoundedIcon />
+                                            ? <CheckCircleRoundedIcon />
+                                            : <DoNotDisturbOnRoundedIcon />
                                 }
                                 onClick={confirmCourseAction}
                             >
@@ -1337,11 +1333,11 @@ const UsersManagementPage: React.FC = () => {
                             }
                         />
                         <TextField
-                            label="Data de nascimento (opcional)"
+                            label="Data de nascimento"
                             type="date"
                             fullWidth
-                            InputLabelProps={{ shrink: !!editAdminModal.form.birth_date }}
-                            value={editAdminModal.form.birth_date}
+                            InputLabelProps={{ shrink: true }}
+                            value={editAdminModal.form.birth_date || ''}
                             onChange={(event) =>
                                 setEditAdminModal((prev) => ({
                                     ...prev,
@@ -1349,6 +1345,7 @@ const UsersManagementPage: React.FC = () => {
                                 }))
                             }
                         />
+
                     </Stack>
                 </DialogContent>
                 <DialogActions>
