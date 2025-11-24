@@ -36,7 +36,6 @@ import PlaylistAddRoundedIcon from "@mui/icons-material/PlaylistAddRounded";
 import LibraryBooksRoundedIcon from "@mui/icons-material/LibraryBooksRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import DoNotDisturbOnRoundedIcon from "@mui/icons-material/DoNotDisturbOnRounded";
-import DeleteForeverRoundedIcon from "@mui/icons-material/DeleteForeverRounded";
 import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
@@ -178,11 +177,11 @@ interface CourseCardProps {
     actions?: {
         onActivate: (course: CourseInfo) => void;
         onDeactivate: (course: CourseInfo) => void;
-        onDelete: (course: CourseInfo) => void;
     };
+    disabledActions?: boolean;
 }
 
-const CourseCard: React.FC<CourseCardProps> = ({ course, onOpen, actions }) => (
+const CourseCard: React.FC<CourseCardProps> = ({ course, onOpen, actions, disabledActions = false }) => (
     <Paper
         elevation={0}
         sx={{
@@ -237,7 +236,11 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, onOpen, actions }) => (
                         {!course.active ? (
                             <Tooltip title="Ativar curso">
                                 <span>
-                                    <IconButton color="primary" onClick={() => actions.onActivate(course)}>
+                                    <IconButton
+                                        color="primary"
+                                        onClick={() => actions.onActivate(course)}
+                                        disabled={disabledActions}
+                                    >
                                         <CheckCircleRoundedIcon />
                                     </IconButton>
                                 </span>
@@ -245,19 +248,16 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, onOpen, actions }) => (
                         ) : (
                             <Tooltip title="Desativar curso">
                                 <span>
-                                    <IconButton color="warning" onClick={() => actions.onDeactivate(course)}>
+                                    <IconButton
+                                        color="warning"
+                                        onClick={() => actions.onDeactivate(course)}
+                                        disabled={disabledActions}
+                                    >
                                         <DoNotDisturbOnRoundedIcon />
                                     </IconButton>
                                 </span>
                             </Tooltip>
                         )}
-                        <Tooltip title="Excluir curso">
-                            <span>
-                                <IconButton color="error" onClick={() => actions.onDelete(course)}>
-                                    <DeleteForeverRoundedIcon />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
                     </Stack>
                 )}
             </Stack>
@@ -281,11 +281,12 @@ const UsersManagementPage: React.FC = () => {
     const [xpModalOpen, setXpModalOpen] = useState(false);
     const [courseConfirm, setCourseConfirm] = useState<{
         open: boolean;
-        action?: "activate" | "deactivate" | "delete";
+        action?: "activate" | "deactivate";
         course?: CourseInfo;
     }>({
         open: false,
     });
+    const [courseActionLoading, setCourseActionLoading] = useState(false);
     const [admins, setAdmins] = useState<AdminUser[]>([]);
     const [loadingAdmins, setLoadingAdmins] = useState(false);
     const [creatingAdmin, setCreatingAdmin] = useState(false);
@@ -569,7 +570,7 @@ const UsersManagementPage: React.FC = () => {
         }
     }, [tab, admins.length, loadingAdmins]);
 
-    const handleCourseAction = (action: "activate" | "deactivate" | "delete", courseId?: string) => {
+    const handleCourseAction = async (action: "activate" | "deactivate", courseId?: string) => {
         const selectedCourseId = courseId ?? targetCourseId.trim();
 
         if (!selectedCourseId) {
@@ -577,23 +578,53 @@ const UsersManagementPage: React.FC = () => {
             return;
         }
 
-        const actionLabels: Record<typeof action, string> = {
-            activate: "ativação",
-            deactivate: "desativação",
-            delete: "exclusão",
-        };
+        if (!teacherPayload) {
+            SEGPrincipalNotificator("Dados do professor não carregados", "warning");
+            return;
+        }
 
-        SEGPrincipalNotificator(`Ação de ${actionLabels[action]} solicitada para o curso ${selectedCourseId}.`, "info");
+        setCourseActionLoading(true);
+
+        try {
+            if (action === "activate") {
+                await api.patch(`/course/update/${selectedCourseId}`, { active: true });
+            } else {
+                await api.patch(`/course/disable/${selectedCourseId}`);
+            }
+
+            setTeacherPayload((prev) => {
+                if (!prev) return prev;
+
+                return {
+                    ...prev,
+                    courses: prev.courses.map((course) =>
+                        course.id_course === selectedCourseId
+                            ? { ...course, active: action === "activate" }
+                            : course,
+                    ),
+                };
+            });
+
+            SEGPrincipalNotificator(
+                `Curso ${action === "activate" ? "ativado" : "desativado"} com sucesso`,
+                "success",
+            );
+        } catch (error: any) {
+            const message = error?.response?.data?.message ?? "Não foi possível atualizar o status do curso";
+            SEGPrincipalNotificator(String(message), "error");
+        } finally {
+            setCourseActionLoading(false);
+            setCourseConfirm({ open: false });
+        }
     };
 
-    const openCourseConfirm = (action: "activate" | "deactivate" | "delete", course: CourseInfo) => {
+    const openCourseConfirm = (action: "activate" | "deactivate", course: CourseInfo) => {
         setCourseConfirm({ open: true, action, course });
     };
 
     const confirmCourseAction = () => {
         if (!courseConfirm.action || !courseConfirm.course) return;
-        handleCourseAction(courseConfirm.action, courseConfirm.course.id_course);
-        setCourseConfirm({ open: false });
+        void handleCourseAction(courseConfirm.action, courseConfirm.course.id_course);
     };
 
     const handleEnrollment = async () => {
@@ -1024,17 +1055,17 @@ const UsersManagementPage: React.FC = () => {
                                 <Grid container spacing={2}>
                                     {teacherPayload.courses.map((course) => (
                                         <Grid item xs={12} md={4} key={course.id_course}>
-                                            <CourseCard
-                                                course={course}
-                                                actions={{
-                                                    onActivate: (selectedCourse) => openCourseConfirm("activate", selectedCourse),
-                                                    onDeactivate: (selectedCourse) => openCourseConfirm("deactivate", selectedCourse),
-                                                    onDelete: (selectedCourse) => openCourseConfirm("delete", selectedCourse),
-                                                }}
-                                            />
-                                        </Grid>
-                                    ))}
-                                </Grid>
+                                                <CourseCard
+                                                    course={course}
+                                                    disabledActions={courseActionLoading}
+                                                    actions={{
+                                                        onActivate: (selectedCourse) => openCourseConfirm("activate", selectedCourse),
+                                                        onDeactivate: (selectedCourse) => openCourseConfirm("deactivate", selectedCourse),
+                                                    }}
+                                                />
+                                            </Grid>
+                                        ))}
+                                    </Grid>
                             </GlassyPaper>
                         </>
                     )}
@@ -1075,11 +1106,9 @@ const UsersManagementPage: React.FC = () => {
                         <DialogContent>
                             <DialogContentText>
                                 {courseConfirm.course
-                                    ? `Deseja realmente ${courseConfirm.action === "delete"
-                                        ? "excluir"
-                                        : courseConfirm.action === "activate"
-                                            ? "ativar"
-                                            : "desativar"
+                                    ? `Deseja realmente ${courseConfirm.action === "activate"
+                                        ? "ativar"
+                                        : "desativar"
                                     } o curso "${courseConfirm.course.title}" (ID: ${courseConfirm.course.id_course})?`
                                     : "Selecione um curso para continuar."}
                             </DialogContentText>
@@ -1090,13 +1119,12 @@ const UsersManagementPage: React.FC = () => {
                             </SEGButton>
                             <SEGButton
                                 startIcon={
-                                    courseConfirm.action === "delete"
-                                        ? <DeleteForeverRoundedIcon />
-                                        : courseConfirm.action === "activate"
-                                            ? <CheckCircleRoundedIcon />
-                                            : <DoNotDisturbOnRoundedIcon />
+                                    courseConfirm.action === "activate"
+                                        ? <CheckCircleRoundedIcon />
+                                        : <DoNotDisturbOnRoundedIcon />
                                 }
                                 onClick={confirmCourseAction}
+                                loading={courseActionLoading}
                             >
                                 Confirmar
                             </SEGButton>
