@@ -34,8 +34,10 @@ import LockOpenRoundedIcon from "@mui/icons-material/LockOpenRounded";
 import LockPersonRoundedIcon from "@mui/icons-material/LockPersonRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import PlaylistAddRoundedIcon from "@mui/icons-material/PlaylistAddRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import PauseCircleFilledRoundedIcon from "@mui/icons-material/PauseCircleFilledRounded";
+import LibraryBooksRoundedIcon from "@mui/icons-material/LibraryBooksRounded";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import DoNotDisturbOnRoundedIcon from "@mui/icons-material/DoNotDisturbOnRounded";
+import DeleteForeverRoundedIcon from "@mui/icons-material/DeleteForeverRounded";
 import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
 import SEGButton from "../../components/SEGButton";
 import SEGTextField from "../../components/SEGTextField";
@@ -228,21 +230,21 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, onOpen, actions }) => (
                         <Tooltip title="Ativar curso">
                             <span>
                                 <IconButton color="primary" onClick={() => actions.onActivate(course)}>
-                                    <PlayArrowRoundedIcon />
+                                    <CheckCircleRoundedIcon />
                                 </IconButton>
                             </span>
                         </Tooltip>
                         <Tooltip title="Desativar curso">
                             <span>
                                 <IconButton color="warning" onClick={() => actions.onDeactivate(course)}>
-                                    <PauseCircleFilledRoundedIcon />
+                                    <DoNotDisturbOnRoundedIcon />
                                 </IconButton>
                             </span>
                         </Tooltip>
                         <Tooltip title="Excluir curso">
                             <span>
                                 <IconButton color="error" onClick={() => actions.onDelete(course)}>
-                                    <DeleteRoundedIcon />
+                                    <DeleteForeverRoundedIcon />
                                 </IconButton>
                             </span>
                         </Tooltip>
@@ -264,8 +266,16 @@ const UsersManagementPage: React.FC = () => {
     const [teacherPayload, setTeacherPayload] = useState<TeacherPayload | null>(null);
     const [enrollModalOpen, setEnrollModalOpen] = useState(false);
     const [targetCourseId, setTargetCourseId] = useState("");
+    const [courseConfirm, setCourseConfirm] = useState<{
+        open: boolean;
+        action?: "activate" | "deactivate" | "delete";
+        course?: CourseInfo;
+    }>({
+        open: false,
+    });
 
-    const actionButtonSx = { minHeight: 46, minWidth: 180 };
+    const actionButtonWidth = 208;
+    const actionButtonSx = { minHeight: 46, minWidth: actionButtonWidth, width: actionButtonWidth };
 
     const handleSearchUser = async () => {
         if (!searchValue.trim()) {
@@ -353,6 +363,16 @@ const UsersManagementPage: React.FC = () => {
         };
 
         SEGPrincipalNotificator(`Ação de ${actionLabels[action]} solicitada para o curso ${selectedCourseId}.`, "info");
+    };
+
+    const openCourseConfirm = (action: "activate" | "deactivate" | "delete", course: CourseInfo) => {
+        setCourseConfirm({ open: true, action, course });
+    };
+
+    const confirmCourseAction = () => {
+        if (!courseConfirm.action || !courseConfirm.course) return;
+        handleCourseAction(courseConfirm.action, courseConfirm.course.id_course);
+        setCourseConfirm({ open: false });
     };
 
     const handleEnrollment = () => {
@@ -648,7 +668,7 @@ const UsersManagementPage: React.FC = () => {
                             <GlassyPaper>
                                 <SectionTitle
                                     title="Cursos matriculados"
-                                    icon={<PlayArrowRoundedIcon sx={{ color: colors.purple }} />}
+                                    icon={<LibraryBooksRoundedIcon sx={{ color: colors.purple }} />}
                                     subtitle="Todos os cursos em que o aluno está matriculado."
                                 />
                                 <Grid container spacing={2}>
@@ -778,7 +798,7 @@ const UsersManagementPage: React.FC = () => {
                             <GlassyPaper>
                                 <SectionTitle
                                     title="Cursos criados"
-                                    icon={<PlayArrowRoundedIcon sx={{ color: colors.purple }} />}
+                                    icon={<LibraryBooksRoundedIcon sx={{ color: colors.purple }} />}
                                     subtitle={`Cursos do professor ${teacherPayload.teacher.name}`}
                                 />
                                 <Grid container spacing={2}>
@@ -787,9 +807,9 @@ const UsersManagementPage: React.FC = () => {
                                             <CourseCard
                                                 course={course}
                                                 actions={{
-                                                    onActivate: (selectedCourse) => handleCourseAction("activate", selectedCourse.id_course),
-                                                    onDeactivate: (selectedCourse) => handleCourseAction("deactivate", selectedCourse.id_course),
-                                                    onDelete: (selectedCourse) => handleCourseAction("delete", selectedCourse.id_course),
+                                                    onActivate: (selectedCourse) => openCourseConfirm("activate", selectedCourse),
+                                                    onDeactivate: (selectedCourse) => openCourseConfirm("deactivate", selectedCourse),
+                                                    onDelete: (selectedCourse) => openCourseConfirm("delete", selectedCourse),
                                                 }}
                                             />
                                         </Grid>
@@ -816,6 +836,45 @@ const UsersManagementPage: React.FC = () => {
                         <DialogActions>
                             <SEGButton colorTheme="outlined" onClick={() => setEnrollModalOpen(false)}>Cancelar</SEGButton>
                             <SEGButton startIcon={<PlaylistAddRoundedIcon />} onClick={handleEnrollment}>Confirmar matrícula</SEGButton>
+                        </DialogActions>
+                    </Dialog>
+
+                    <Dialog
+                        open={courseConfirm.open}
+                        onClose={() => setCourseConfirm({ open: false })}
+                        maxWidth="xs"
+                        fullWidth
+                    >
+                        <DialogTitle>Confirmar ação no curso</DialogTitle>
+                        <DialogContent>
+                            <DialogContentText>
+                                {courseConfirm.course
+                                    ? `Deseja realmente ${
+                                          courseConfirm.action === "delete"
+                                              ? "excluir"
+                                              : courseConfirm.action === "activate"
+                                              ? "ativar"
+                                              : "desativar"
+                                      } o curso "${courseConfirm.course.title}" (ID: ${courseConfirm.course.id_course})?`
+                                    : "Selecione um curso para continuar."}
+                            </DialogContentText>
+                        </DialogContent>
+                        <DialogActions>
+                            <SEGButton colorTheme="outlined" onClick={() => setCourseConfirm({ open: false })}>
+                                Cancelar
+                            </SEGButton>
+                            <SEGButton
+                                startIcon={
+                                    courseConfirm.action === "delete"
+                                        ? <DeleteForeverRoundedIcon />
+                                        : courseConfirm.action === "activate"
+                                        ? <CheckCircleRoundedIcon />
+                                        : <DoNotDisturbOnRoundedIcon />
+                                }
+                                onClick={confirmCourseAction}
+                            >
+                                Confirmar
+                            </SEGButton>
                         </DialogActions>
                     </Dialog>
                 </>
