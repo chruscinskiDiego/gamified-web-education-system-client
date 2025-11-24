@@ -28,8 +28,9 @@ api.interceptors.response.use(
         const req = error?.config;
 
         const isLoginRequest = req && req.url && req.url.includes('/auth/login');
+        const isProfileUpdateRequest = req && req.url && req.url.includes('/user-profile/update/');
 
-        if (status === 401 && !isLoginRequest) {
+        if (status === 401 && !isLoginRequest && !isProfileUpdateRequest) {
 
             logout();
 
