@@ -227,20 +227,23 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, onOpen, actions }) => (
                 )}
                 {actions && (
                     <Stack direction="row" spacing={0.75} alignItems="center">
-                        <Tooltip title="Ativar curso">
-                            <span>
-                                <IconButton color="primary" onClick={() => actions.onActivate(course)}>
-                                    <CheckCircleRoundedIcon />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-                        <Tooltip title="Desativar curso">
-                            <span>
-                                <IconButton color="warning" onClick={() => actions.onDeactivate(course)}>
-                                    <DoNotDisturbOnRoundedIcon />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
+                        {!course.active ? (
+                            <Tooltip title="Ativar curso">
+                                <span>
+                                    <IconButton color="primary" onClick={() => actions.onActivate(course)}>
+                                        <CheckCircleRoundedIcon />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        ) : (
+                            <Tooltip title="Desativar curso">
+                                <span>
+                                    <IconButton color="warning" onClick={() => actions.onDeactivate(course)}>
+                                        <DoNotDisturbOnRoundedIcon />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        )}
                         <Tooltip title="Excluir curso">
                             <span>
                                 <IconButton color="error" onClick={() => actions.onDelete(course)}>
@@ -482,48 +485,46 @@ const UsersManagementPage: React.FC = () => {
                                     justifyContent="flex-end"
                                     flexWrap="wrap"
                                 >
-                                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                                        {!selectedUser.active && (
-                                            <Tooltip title="Ativar">
-                                                <span>
-                                                    <SEGButton
-                                                        colorTheme="outlined"
-                                                        startIcon={<LockOpenRoundedIcon />}
-                                                        onClick={() => handleStatusAction("activate")}
-                                                        sx={actionButtonSx}
-                                                    >
-                                                        Ativar
-                                                    </SEGButton>
-                                                </span>
-                                            </Tooltip>
-                                        )}
-                                        {selectedUser.active && (
-                                            <Tooltip title="Desativar">
-                                                <span>
-                                                    <SEGButton
-                                                        colorTheme="outlined"
-                                                        startIcon={<LockPersonRoundedIcon />}
-                                                        onClick={() => handleStatusAction("deactivate")}
-                                                        sx={actionButtonSx}
-                                                    >
-                                                        Desativar
-                                                    </SEGButton>
-                                                </span>
-                                            </Tooltip>
-                                        )}
-                                        <Tooltip title="Excluir">
+                                    {!selectedUser.active && (
+                                        <Tooltip title="Ativar">
                                             <span>
                                                 <SEGButton
                                                     colorTheme="outlined"
-                                                    startIcon={<DeleteRoundedIcon />}
-                                                    onClick={() => handleStatusAction("delete")}
+                                                    startIcon={<LockOpenRoundedIcon />}
+                                                    onClick={() => handleStatusAction("activate")}
                                                     sx={actionButtonSx}
                                                 >
-                                                    Excluir
+                                                    Ativar
                                                 </SEGButton>
                                             </span>
                                         </Tooltip>
-                                    </Stack>
+                                    )}
+                                    {selectedUser.active && (
+                                        <Tooltip title="Desativar">
+                                            <span>
+                                                <SEGButton
+                                                    colorTheme="outlined"
+                                                    startIcon={<LockPersonRoundedIcon />}
+                                                    onClick={() => handleStatusAction("deactivate")}
+                                                    sx={actionButtonSx}
+                                                >
+                                                    Desativar
+                                                </SEGButton>
+                                            </span>
+                                        </Tooltip>
+                                    )}
+                                    <Tooltip title="Excluir">
+                                        <span>
+                                            <SEGButton
+                                                colorTheme="outlined"
+                                                startIcon={<DeleteRoundedIcon />}
+                                                onClick={() => handleStatusAction("delete")}
+                                                sx={actionButtonSx}
+                                            >
+                                                Excluir
+                                            </SEGButton>
+                                        </span>
+                                    </Tooltip>
                                     <SEGButton
                                         startIcon={<LaunchRoundedIcon />}
                                         onClick={handleLoadDetails}
