@@ -1,10 +1,9 @@
 export const getXpInfo = (userXp: number) => {
-  // configurações internas (fixas)
+
   const BASE_END = 100;
-  const GROWTH_FACTOR = 1.1; // 10% sobre (end + 100) conforme seu snippet
+  const GROWTH_FACTOR = 1.1;
   const MAX_LEVEL = 100;
 
-  // normaliza xp para inteiro >= 0
   let xp = Number(userXp);
   if (!Number.isFinite(xp) || xp < 0) xp = 0;
   xp = Math.floor(xp);

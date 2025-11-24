@@ -132,6 +132,7 @@ const Navbar: React.FC = () => {
         { menuId: 2, menuName: "Ranking de Alunos", menuRoute: "/ranking" },
         { menuId: 3, menuName: "Categorias", menuRoute: "/manage/categories" },
         { menuId: 4, menuName: "Gamificação", menuRoute: "/manage/gamification-registers" },
+        { menuId: 5, menuName: "Usuários", menuRoute: "/manage/users" },
     ];
 
     const renderMenu = userType && userType === "S" ? studentMenu :

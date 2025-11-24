@@ -22,6 +22,7 @@ import ProfilePage from "../pages/ProfilePage";
 import StudiesPage from "../pages/StudiesPage";
 import AllCoursesPage from "../pages/AllCoursesPage";
 import InsigniasPage from "../pages/InsigniasPage";
+import UsersManagementPage from "../pages/UsersManagementPage";
 
 export const Router: React.FC = () => {
 
@@ -72,6 +73,7 @@ export const Router: React.FC = () => {
 
                         <Route path="/manage/gamification-registers" element={<GamificationRegisters/>}/>
                         <Route path="/manage/categories" element={<CategoriesPage/>}/>
+                        <Route path="/manage/users" element={<UsersManagementPage/>}/>
 
                     </Route>
                 </>
