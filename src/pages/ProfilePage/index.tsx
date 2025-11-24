@@ -395,7 +395,7 @@ const ProfilePage: React.FC = () => {
 
     try {
       setIsUpdatingPassword(true);
-      await api.patch(`/user-profile/update/${userId}`, {
+      await api.patch(`/user-profile/update-password/${userId}`, {
         password: newPassword,
       });
 

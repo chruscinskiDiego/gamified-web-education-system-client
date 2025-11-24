@@ -32,7 +32,6 @@ import SupervisorAccountRoundedIcon from "@mui/icons-material/SupervisorAccountR
 import VerifiedUserRoundedIcon from "@mui/icons-material/VerifiedUserRounded";
 import LockOpenRoundedIcon from "@mui/icons-material/LockOpenRounded";
 import LockPersonRoundedIcon from "@mui/icons-material/LockPersonRounded";
-import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import PlaylistAddRoundedIcon from "@mui/icons-material/PlaylistAddRounded";
 import LibraryBooksRoundedIcon from "@mui/icons-material/LibraryBooksRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
@@ -273,6 +272,7 @@ const UsersManagementPage: React.FC = () => {
     const [loadingSearch, setLoadingSearch] = useState(false);
     const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
+    const [userActionLoading, setUserActionLoading] = useState(false);
     const [studentPayload, setStudentPayload] = useState<StudentPayload | null>(null);
     const [teacherPayload, setTeacherPayload] = useState<TeacherPayload | null>(null);
     const [enrollModalOpen, setEnrollModalOpen] = useState(false);
@@ -376,14 +376,34 @@ const UsersManagementPage: React.FC = () => {
         return getXpInfo(xp);
     }, [studentPayload?.student.points]);
 
-    const handleStatusAction = (action: "activate" | "deactivate" | "delete") => {
+    const handleStatusAction = async (action: "activate" | "deactivate") => {
         if (!selectedUser) return;
-        const actionLabels: Record<typeof action, string> = {
-            activate: "ativado",
-            deactivate: "desativado",
-            delete: "excluído",
-        };
-        SEGPrincipalNotificator(`Ação de ${actionLabels[action]} registrada para ${selectedUser.full_name}.`, "info");
+
+        setUserActionLoading(true);
+
+        try {
+            const endpoint = action === "activate"
+                ? `/user-profile/enable/${selectedUser.id_user}`
+                : `/user-profile/disable/${selectedUser.id_user}`;
+
+            await api.patch(endpoint);
+
+            const activeStatus = action === "activate";
+
+            setSelectedUser((prev) => prev ? { ...prev, active: activeStatus } : prev);
+            setStudentPayload((prev) => prev ? { ...prev, student: { ...prev.student, active: activeStatus } } : prev);
+            setTeacherPayload((prev) => prev ? { ...prev, teacher: { ...prev.teacher, active: activeStatus } } : prev);
+
+            SEGPrincipalNotificator(
+                `Usuário ${activeStatus ? "ativado" : "desativado"} com sucesso`,
+                "success",
+            );
+        } catch (error: any) {
+            const message = error?.response?.data?.message ?? "Não foi possível atualizar o status do usuário";
+            SEGPrincipalNotificator(String(message), "error");
+        } finally {
+            setUserActionLoading(false);
+        }
     };
 
     const loadAdmins = async (showSuccess = true) => {
@@ -688,6 +708,7 @@ const UsersManagementPage: React.FC = () => {
                                                     colorTheme="outlined"
                                                     startIcon={<LockOpenRoundedIcon />}
                                                     onClick={() => handleStatusAction("activate")}
+                                                    loading={userActionLoading}
                                                     sx={actionButtonSx}
                                                 >
                                                     Ativar
@@ -702,6 +723,7 @@ const UsersManagementPage: React.FC = () => {
                                                     colorTheme="outlined"
                                                     startIcon={<LockPersonRoundedIcon />}
                                                     onClick={() => handleStatusAction("deactivate")}
+                                                    loading={userActionLoading}
                                                     sx={actionButtonSx}
                                                 >
                                                     Desativar
@@ -709,18 +731,6 @@ const UsersManagementPage: React.FC = () => {
                                             </span>
                                         </Tooltip>
                                     )}
-                                    <Tooltip title="Excluir">
-                                        <span>
-                                            <SEGButton
-                                                colorTheme="outlined"
-                                                startIcon={<DeleteRoundedIcon />}
-                                                onClick={() => handleStatusAction("delete")}
-                                                sx={actionButtonSx}
-                                            >
-                                                Excluir
-                                            </SEGButton>
-                                        </span>
-                                    </Tooltip>
                                     <SEGButton
                                         startIcon={<LaunchRoundedIcon />}
                                         onClick={handleLoadDetails}
@@ -787,29 +797,24 @@ const UsersManagementPage: React.FC = () => {
                                             <Stack spacing={2}>
                                                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                                                     {studentPayload.student.active ? (
-                                                        <SEGButton
-                                                            colorTheme="outlined"
-                                                            startIcon={<LockPersonRoundedIcon />}
-                                                            onClick={() => handleStatusAction("deactivate")}
-                                                        >
-                                                            Desativar conta
-                                                        </SEGButton>
-                                                    ) : (
-                                                        <SEGButton
-                                                            colorTheme="outlined"
-                                                            startIcon={<LockOpenRoundedIcon />}
-                                                            onClick={() => handleStatusAction("activate")}
-                                                        >
-                                                            Ativar conta
-                                                        </SEGButton>
-                                                    )}
                                                     <SEGButton
                                                         colorTheme="outlined"
-                                                        startIcon={<DeleteRoundedIcon />}
-                                                        onClick={() => handleStatusAction("delete")}
+                                                        startIcon={<LockPersonRoundedIcon />}
+                                                        onClick={() => handleStatusAction("deactivate")}
+                                                        loading={userActionLoading}
                                                     >
-                                                        Excluir usuário
+                                                        Desativar conta
                                                     </SEGButton>
+                                                ) : (
+                                                    <SEGButton
+                                                        colorTheme="outlined"
+                                                        startIcon={<LockOpenRoundedIcon />}
+                                                        onClick={() => handleStatusAction("activate")}
+                                                        loading={userActionLoading}
+                                                    >
+                                                        Ativar conta
+                                                    </SEGButton>
+                                                )}
                                                 </Stack>
                                                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                                                     <SEGButton
@@ -931,29 +936,24 @@ const UsersManagementPage: React.FC = () => {
                                             <Stack spacing={2}>
                                                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                                                     {teacherPayload.teacher.active ? (
-                                                        <SEGButton
-                                                            colorTheme="outlined"
-                                                            startIcon={<LockPersonRoundedIcon />}
-                                                            onClick={() => handleStatusAction("deactivate")}
-                                                        >
-                                                            Desativar conta
-                                                        </SEGButton>
-                                                    ) : (
-                                                        <SEGButton
-                                                            colorTheme="outlined"
-                                                            startIcon={<LockOpenRoundedIcon />}
-                                                            onClick={() => handleStatusAction("activate")}
-                                                        >
-                                                            Ativar conta
-                                                        </SEGButton>
-                                                    )}
                                                     <SEGButton
                                                         colorTheme="outlined"
-                                                        startIcon={<DeleteRoundedIcon />}
-                                                        onClick={() => handleStatusAction("delete")}
+                                                        startIcon={<LockPersonRoundedIcon />}
+                                                        onClick={() => handleStatusAction("deactivate")}
+                                                        loading={userActionLoading}
                                                     >
-                                                        Excluir usuário
+                                                        Desativar conta
                                                     </SEGButton>
+                                                ) : (
+                                                    <SEGButton
+                                                        colorTheme="outlined"
+                                                        startIcon={<LockOpenRoundedIcon />}
+                                                        onClick={() => handleStatusAction("activate")}
+                                                        loading={userActionLoading}
+                                                    >
+                                                        Ativar conta
+                                                    </SEGButton>
+                                                    )}
                                                 </Stack>
                                                 <Paper
                                                     elevation={0}
