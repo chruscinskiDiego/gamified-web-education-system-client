@@ -1,73 +1,110 @@
-# React + TypeScript + Vite
+# Gamified web education system (client)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend for my undergraduate capstone project (TCC): a web-based learning platform with **gamification**, designed to increase engagement and improve progress tracking through **XP**, **challenges**, **goals**, **badges**, and **ranking**. This work was approved by the evaluation committee with an average score of **9.9/10**.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Overview
 
-## React Compiler
+<p align="center">
+  <img src="./docs/overview.png" alt="overview" width="1000" />
+</p>
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+This project is the **web client** of the platform. It consumes the backend **REST API** and provides a modern UI for:
 
-## Expanding the ESLint configuration
+- User **authentication** (login)
+- Course discovery and **enrollment**
+- Lesson/class experience with **progress tracking**
+- Gamification features (XP, goals, challenges, badges, ranking)
+- Teacher/admin-style views (analytics and course insights)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Context & value
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Many learning platforms struggle with **low retention** and inconsistent study routines.  
+This frontend was designed to make learning feel more engaging by:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- keeping goals and progress visible (**XP + per-lesson tracking**),
+- encouraging consistency (**goals and challenges**),
+- increasing motivation (**badges and ranking**),
+- presenting course insights clearly (**evaluations and analytics**),
+- delivering a clean and responsive UI with a component-based approach.
+
+---
+
+## Key screens & features
+
+### 🔐 Authentication
+- Login flow integrated with the backend API
+- User session handling (as implemented in the project)
+
+### 🔎 Course discovery
+- Explore/catalog page to browse available courses
+- Courses listing with navigation to course details
+
+### 📘 Course summary
+- Course header summary (key information and call-to-action)
+- Course description section with structured content
+
+### 🎬 Class / lesson experience
+- Lesson view focused on learning progression
+- Progress indicators tied to the backend tracking rules
+
+### ⭐ Evaluations
+- Course evaluations modal/section
+- UI support for collecting and viewing course feedback
+
+### 🕹️ Gamification
+- XP and goals tracking screen
+- Visual progression elements aligned with the platform rules
+
+### 🏆 Ranking
+- Ranking page showing user position and leaderboard view
+
+### 📊 Teacher analytics
+- Course analytics dashboard screen
+- Metrics and insights UI for tracking performance and course engagement
+
+---
+
+## Tech stack
+
+### Core
+- **TypeScript**
+- **React**
+- **Vite**
+
+### UI
+- **Material UI (MUI)**
+
+### Additional
+- API integration via **HTTP requests** to the backend REST API
+- Component-based architecture and screen routing (as implemented)
+
+---
+
+## 🚀 Install & run (Node.js required)
+
+```bash
+# 1) Clone and enter the project
+git clone https://github.com/chruscinskiDiego/gamified-web-education-system-client
+cd gamified-web-education-system-client
+````
+
+```bash
+# 2) Install dependencies
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+```bash
+# 3) Create .env
+cat > .env << 'EOF'
+VITE_API_URL=YOUR_BACKEND_URL
+EOF
+```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# 4) Run the app (development)
+npm run dev
 ```

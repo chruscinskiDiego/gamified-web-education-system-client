@@ -384,10 +384,6 @@ const CategoriesPage: React.FC = () => {
                                         <MoreVertIcon />
                                     </IconButton>
                                 </Box>
-
-                                <Typography sx={{ color: alpha("#000", 0.65), fontSize: 14 }}>
-                                    Utilize as categorias para agrupar cursos e facilitar a navegação dos alunos pela plataforma.
-                                </Typography>
                             </Stack>
                         </Paper>
                     ))}
